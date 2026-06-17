@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frida Dynamic Instrumentation Cheat Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #080c12;
+  --panel:     #0e1520;
+  --card:      #121b28;
+  --border:    #1e2d42;
+  --code-bg:   #0a1520;
+  --code-bdr:  #1a3050;
+  --accent:    #00d4a0;
+  --accent2:   #ff6b35;
+  --accent3:   #7c6df4;
+  --text:      #c4cfdb;
+  --muted:     #4a6080;
+  --dim:       #2a3f58;
+  --android:   #3ddc84;
+  --ios:       #a0b0c8;
+  --windows:   #00aeff;
+  --macos:     #b0c0d8;
+  --linux:     #ffc94a;
+  --core:      #00d4a0;
+  --warn-bg:   #1a1200;
+  --warn-bdr:  #c87020;
+  --info-bg:   #001a14;
+  --info-bdr:  #008860;
+  --tip-bg:    #100820;
+  --tip-bdr:   #6050d4;
+}
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ─── HEADER ─── */
+#hdr {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(8,12,18,0.96);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  display: flex; align-items: center; gap: 16px; height: 52px;
+}
+#logo {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700; font-size: 15px; letter-spacing: .5px;
+  color: var(--accent); white-space: nowrap; flex-shrink: 0;
+}
+#logo span { color: var(--muted); font-weight: 400; }
+#search-wrap {
+  flex: 1; max-width: 400px; position: relative;
+}
+#search {
+  width: 100%; padding: 6px 12px 6px 34px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px;
+  outline: none; transition: border-color .15s;
+}
+#search:focus { border-color: var(--accent); }
+#search::placeholder { color: var(--muted); }
+.search-icon {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  color: var(--muted); font-size: 13px; pointer-events: none;
+}
+#filters {
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.filter-btn {
+  padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border);
+  background: transparent; color: var(--muted); font-family: 'Inter', sans-serif;
+  font-size: 12px; font-weight: 500; cursor: pointer; transition: all .15s;
+  white-space: nowrap;
+}
+.filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+.filter-btn.active { background: var(--accent); border-color: var(--accent); color: #000; }
+.filter-btn[data-p="android"].active { background: var(--android); border-color: var(--android); color: #000; }
+.filter-btn[data-p="ios"].active { background: var(--ios); border-color: var(--ios); color: #000; }
+.filter-btn[data-p="windows"].active { background: var(--windows); border-color: var(--windows); color: #000; }
+.filter-btn[data-p="macos"].active { background: var(--macos); border-color: var(--macos); color: #000; }
+.filter-btn[data-p="linux"].active { background: var(--linux); border-color: var(--linux); color: #000; }
+#menu-btn {
+  display: none; background: none; border: none; cursor: pointer;
+  color: var(--text); font-size: 18px; padding: 4px; flex-shrink: 0;
+}
+
+/* ─── LAYOUT ─── */
+#layout { display: flex; flex: 1; }
+
+/* ─── SIDEBAR ─── */
+#sidebar {
+  width: 240px; flex-shrink: 0;
+  background: var(--panel); border-right: 1px solid var(--border);
+  position: sticky; top: 52px; height: calc(100vh - 52px);
+  overflow-y: auto; padding: 12px 0;
+}
+#sidebar::-webkit-scrollbar { width: 4px; }
+#sidebar::-webkit-scrollbar-track { background: transparent; }
+#sidebar::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
+.nav-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 16px; cursor: pointer;
+  font-size: 13px; color: var(--muted); font-weight: 500;
+  transition: all .12s; border-left: 2px solid transparent;
+  text-decoration: none;
+}
+.nav-item:hover { color: var(--text); background: rgba(0,212,160,.04); }
+.nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(0,212,160,.06); }
+.nav-icon { font-size: 14px; }
+.nav-count {
+  margin-left: auto; font-size: 10px; background: var(--dim);
+  padding: 1px 5px; border-radius: 3px; color: var(--muted);
+}
+
+/* ─── MAIN ─── */
+#main {
+  flex: 1; padding: 24px 28px;
+  max-width: 1100px; min-width: 0;
+}
+
+/* ─── SECTION ─── */
+.section { margin-bottom: 36px; }
+.section-hdr {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 18px;
+  background: var(--card); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px 8px 0 0; margin-bottom: 0;
+}
+.section-icon { font-size: 18px; }
+.section-title {
+  font-size: 17px; font-weight: 700; color: #e0eaf8;
+  font-family: 'Inter', sans-serif;
+}
+.section-platforms { display: flex; gap: 5px; margin-left: auto; }
+.plat-tag {
+  font-size: 10px; font-weight: 700; letter-spacing: .5px;
+  padding: 2px 7px; border-radius: 3px;
+  text-transform: uppercase;
+}
+.plat-android { background: rgba(61,220,132,.15); color: var(--android); border: 1px solid rgba(61,220,132,.3); }
+.plat-ios { background: rgba(160,176,200,.12); color: var(--ios); border: 1px solid rgba(160,176,200,.25); }
+.plat-windows { background: rgba(0,174,255,.12); color: var(--windows); border: 1px solid rgba(0,174,255,.25); }
+.plat-macos { background: rgba(176,192,216,.1); color: var(--macos); border: 1px solid rgba(176,192,216,.2); }
+.plat-linux { background: rgba(255,201,74,.1); color: var(--linux); border: 1px solid rgba(255,201,74,.25); }
+.plat-all { background: rgba(0,212,160,.12); color: var(--accent); border: 1px solid rgba(0,212,160,.25); }
+
+/* ─── SUBSECTION ─── */
+.subsection {
+  border: 1px solid var(--border); border-top: none;
+  background: var(--card);
+}
+.subsection:last-child { border-radius: 0 0 8px 8px; }
+.sub-hdr {
+  padding: 10px 18px; cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--border);
+  user-select: none; transition: background .12s;
+  background: rgba(14,21,32,.6);
+}
+.sub-hdr:hover { background: rgba(0,212,160,.04); }
+.sub-title { font-size: 13px; font-weight: 600; color: #8fa8c8; letter-spacing: .2px; }
+.sub-chevron { margin-left: auto; color: var(--muted); font-size: 11px; transition: transform .2s; }
+.sub-hdr.open .sub-chevron { transform: rotate(90deg); }
+.sub-body { padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; }
+.sub-body.hidden { display: none; }
+
+/* ─── ITEMS ─── */
+.para { font-size: 13.5px; color: #8fa8c8; line-height: 1.7; }
+
+/* ─── CODE BLOCK ─── */
+.code-wrap { position: relative; }
+.code-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 500; letter-spacing: .8px;
+  text-transform: uppercase; color: var(--accent);
+  padding: 6px 14px 0;
+  background: var(--code-bg);
+  border: 1px solid var(--code-bdr); border-bottom: none;
+  border-radius: 6px 6px 0 0;
+}
+pre.code {
+  margin: 0; padding: 12px 14px;
+  background: var(--code-bg);
+  border: 1px solid var(--code-bdr); border-radius: 0 0 6px 6px;
+  overflow-x: auto; font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px; line-height: 1.65; color: #a8dce8;
+  white-space: pre;
+}
+.code-wrap:not(.has-label) pre.code { border-radius: 6px; }
+.copy-btn {
+  position: absolute; top: 6px; right: 8px;
+  background: rgba(0,212,160,.1); border: 1px solid rgba(0,212,160,.2);
+  border-radius: 4px; color: var(--accent); font-size: 10px;
+  font-family: 'JetBrains Mono', monospace; font-weight: 500; letter-spacing: .5px;
+  padding: 3px 8px; cursor: pointer; transition: all .15s; z-index: 2;
+}
+.code-wrap.has-label .copy-btn { top: 30px; }
+.copy-btn:hover { background: rgba(0,212,160,.2); border-color: var(--accent); }
+.copy-btn.copied { background: rgba(0,212,160,.3); color: #fff; }
+/* Syntax tint by lang */
+.lang-bash .code { color: #b8e8a0; }
+.lang-python .code { color: #e0c880; }
+.lang-js .code { color: #a8dce8; }
+
+/* ─── NOTE BOXES ─── */
+.note {
+  padding: 10px 14px; border-radius: 6px; border-left: 3px solid;
+  font-size: 13px; line-height: 1.65;
+}
+.note-warn { background: var(--warn-bg); border-color: var(--warn-bdr); color: #e0a050; }
+.note-info { background: var(--info-bg); border-color: var(--info-bdr); color: #60c8a0; }
+.note-tip  { background: var(--tip-bg);  border-color: var(--tip-bdr);  color: #9890e8; }
+.note-label {
+  font-weight: 700; font-size: 10px; letter-spacing: .8px;
+  text-transform: uppercase; margin-right: 6px;
+}
+
+/* ─── TABLES ─── */
+.tbl-wrap { overflow-x: auto; border-radius: 6px; border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+thead tr { background: rgba(0,212,160,.08); }
+th {
+  padding: 8px 12px; text-align: left;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+  color: var(--accent); border-bottom: 1px solid var(--border);
+}
+td {
+  padding: 7px 12px; border-bottom: 1px solid rgba(30,45,66,.6);
+  color: var(--text); vertical-align: top; line-height: 1.55;
+}
+td:first-child {
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  color: #7ec8e0; white-space: nowrap;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(0,212,160,.03); }
+
+/* ─── NO RESULTS ─── */
+#no-results {
+  text-align: center; padding: 60px 20px; color: var(--muted);
+  font-family: 'JetBrains Mono', monospace; display: none;
+}
+#no-results .nr-icon { font-size: 40px; margin-bottom: 12px; }
+
+/* ─── SCROLLBAR ─── */
+#main::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 3px; }
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 900px) {
+  #menu-btn { display: flex; }
+  #sidebar {
+    position: fixed; top: 52px; left: 0; z-index: 50;
+    transform: translateX(-100%); transition: transform .2s;
+    height: calc(100vh - 52px);
+  }
+  #sidebar.open { transform: translateX(0); }
+  #filters { display: none; }
+}
+@media (max-width: 600px) {
+  #main { padding: 16px; }
+  #logo span { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header id="hdr">
+  <div id="logo">⚙ frida<span>.cheatsheet</span></div>
+  <div id="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input id="search" type="text" placeholder="Search commands, APIs, techniques..." autocomplete="off">
+  </div>
+  <div id="filters">
+    <button class="filter-btn active" data-p="all">All</button>
+    <button class="filter-btn" data-p="android">Android</button>
+    <button class="filter-btn" data-p="ios">iOS</button>
+    <button class="filter-btn" data-p="windows">Windows</button>
+    <button class="filter-btn" data-p="macos">macOS</button>
+    <button class="filter-btn" data-p="linux">Linux</button>
+  </div>
+  <button id="menu-btn" onclick="toggleSidebar()">☰</button>
+</header>
+
+<div id="layout">
+  <nav id="sidebar" id="sidebar"></nav>
+  <main id="main"></main>
+</div>
+
+<script type="application/json" id="guide-data">[{"id":"quickref","title":"Quick Reference","icon":"⚡","platforms":["all"],"subsections":[{"id":"qr-connect","title":"Essential Commands","items":[{"type":"table","headers":["Command","Purpose"],"rows":[["frida-ls-devices","List all Frida-accessible devices"],["frida-ps -U","List processes on USB device"],["frida-ps -U -a","List installed apps (Android)"],["frida-ps -U -a -i","List installed apps (iOS)"],["frida-ps -H <ip>","List processes on remote host"],["frida -U -n <name> -l script.js","Attach to running process + load script"],["frida -U -f <package> --no-pause -l script.js","Spawn app + load script"],["frida -U -f <package> -l script.js","Spawn (paused) + load script"],["frida -U Gadget -l script.js","Connect to embedded frida-gadget"],["frida-trace -U -n <app> -i \"SSL_*\"","Auto-trace functions matching pattern"],["frida-trace -U -n <app> -m \"-[NSURLSession *]\"","Auto-trace ObjC methods"],["frida-trace -U -n <app> -j \"com.example!*\"","Auto-trace Java methods"]]}]},{"id":"qr-api","title":"Core API One-Liners","items":[{"type":"table","headers":["One-Liner","What It Does"],"rows":[["Module.getExportByName(null, \"strcmp\")","Find export across all loaded modules"],["Module.findBaseAddress(\"libssl.so\")","Get base address of a module"],["Process.enumerateModules()","List all loaded modules"],["Memory.readUtf8String(ptr)","Read C string from address"],["Memory.protect(addr, size, \"rwx\")","Make memory region writable/executable"],["Interceptor.attach(addr, { onEnter, onLeave })","Hook a function"],["Interceptor.replace(addr, NativeCallback(...))","Replace a function entirely"],["new NativeFunction(addr, retType, [argTypes])","Call native function directly"],["Java.perform(fn)","Run code in Android Java context"],["ObjC.classes.ClassName","Access iOS Objective-C class"],["Java.use(\"com.example.Class\")","Get Android Java class handle"],["Java.choose(\"com.example.Class\", { onMatch })","Find live Java instances"]]}]},{"id":"qr-modes","title":"Execution Modes","items":[{"type":"table","headers":["Mode","How","Best For"],"rows":[["Injected (default)","Frida injects JS engine via ptrace/debug API into running process","Standard attach testing"],["Spawn","frida -f launches target; injection before main() runs","Hooking early init code"],["Embedded (Gadget)","frida-gadget compiled into app binary","No root/jailbreak; CI pipelines"],["Preloaded","Gadget loaded via LD_PRELOAD or dylib hijack","Jailed devices; production testing"],["Remote","frida-ps -H / frida -H; frida-server on device over TCP","Network-accessible devices"]]}]}]},{"id":"setup","title":"Environment Setup","icon":"🔧","platforms":["all"],"subsections":[{"id":"setup-install","title":"Install frida-tools (All Platforms)","items":[{"type":"note","level":"warn","text":"frida-tools (Python) and frida-server (device binary) MUST match exact versions. Mismatches cause cryptic connection errors. Always pin both."},{"type":"code","label":"Install / pin versions","lang":"bash","code":"# Install latest\npip3 install frida-tools\n\n# Pin to specific version (recommended for engagements)\npip3 install frida==16.2.1 frida-tools==12.3.0\n\n# Verify\nfrida --version\nfrida-ps --version"}]},{"id":"setup-android","title":"Android Setup","items":[{"type":"note","level":"info","text":"Requires rooted device OR frida-gadget injection. USB debugging must be enabled in Developer Options."},{"type":"code","label":"Step 1 — Detect architecture","lang":"bash","code":"adb shell getprop ro.product.cpu.abi\n# Returns: arm64-v8a | armeabi-v7a | x86_64 | x86"},{"type":"code","label":"Step 2 — Push frida-server (arm64 example)","lang":"bash","code":"# Download from https://github.com/frida/frida/releases\nwget https://github.com/frida/frida/releases/download/16.2.1/frida-server-16.2.1-android-arm64.xz\nxz -d frida-server-16.2.1-android-arm64.xz\n\nadb push frida-server-16.2.1-android-arm64 /data/local/tmp/frida-server\nadb shell chmod 755 /data/local/tmp/frida-server"},{"type":"code","label":"Step 3 — Start frida-server","lang":"bash","code":"# Rooted device\nadb shell su -c '/data/local/tmp/frida-server &'\n\n# Emulator / debug build (adb root)\nadb root && adb shell /data/local/tmp/frida-server &\n\n# Verify\nfrida-ls-devices\nfrida-ps -U"},{"type":"code","label":"Non-rooted — Gadget injection (IPA-less APK repack)","lang":"bash","code":"# 1. Decompress APK\napktool d target.apk -o target_dec\n\n# 2. Download matching gadget (arm64)\nwget https://github.com/frida/frida/releases/download/16.2.1/frida-gadget-16.2.1-android-arm64.so.xz\nxz -d frida-gadget-16.2.1-android-arm64.so.xz\ncp frida-gadget-16.2.1-android-arm64.so target_dec/lib/arm64-v8a/libfrida-gadget.so\n\n# 3. Inject gadget load in smali (MainActivity onCreate or Application)\n# Add before super.onCreate():\n# const-string v0, \"frida-gadget\"\n# invoke-static {v0}, Ljava/lang/System;->loadLibrary(Ljava/lang/String;)V\n\n# 4. Repack and sign\napktool b target_dec -o target_patched.apk\nzipalign -v 4 target_patched.apk target_aligned.apk\napksigner sign --ks debug.keystore target_aligned.apk\n\nadb install target_aligned.apk\n# App pauses at launch — connect with: frida -U Gadget"}]},{"id":"setup-ios","title":"iOS Setup","items":[{"type":"code","label":"Jailbroken — install via Cydia/Sileo","lang":"bash","code":"# Add Frida source in Cydia or Sileo:\n#   https://build.frida.re\n# Install package: Frida\n\n# Verify via SSH\nssh root@<device-ip>\nfrida-server --version"},{"type":"code","label":"Connect from host (USB)","lang":"bash","code":"# List devices\nfrida-ls-devices\n\n# List processes\nfrida-ps -U\n\n# USB port forward (if needed)\niproxy 27042 27042 &\nfrida-ps -H 127.0.0.1"},{"type":"code","label":"Non-jailbroken — frida-gadget IPA repack","lang":"bash","code":"# 1. Extract IPA\nunzip target.ipa -d target_extracted\n\n# 2. Download gadget for arm64\nwget https://github.com/frida/frida/releases/download/16.2.1/frida-gadget-16.2.1-ios-universal.dylib.xz\nxz -d frida-gadget-16.2.1-ios-universal.dylib.xz\ncp frida-gadget-16.2.1-ios-universal.dylib target_extracted/Payload/Target.app/FridaGadget.dylib\n\n# 3. Inject load command\ninsert_dylib --strip-codesig --inplace \\\n  '@executable_path/FridaGadget.dylib' \\\n  target_extracted/Payload/Target.app/Target\n\n# 4. Re-sign\ncodesign --force --sign - target_extracted/Payload/Target.app/FridaGadget.dylib\n\n# 5. Repack and install via Sideloadly / AltStore\ncd target_extracted && zip -r ../target_patched.ipa Payload\n\n# App pauses at launch — connect with: frida -U Gadget"}]},{"id":"setup-win","title":"Windows Setup","items":[{"type":"code","label":"Install and connect","lang":"bash","code":"pip install frida-tools\n\n# List local processes\nfrida-ps\n\n# Attach to process\nfrida notepad.exe\n\n# Spawn application\nfrida -f C:\\Path\\To\\App.exe --no-pause -l script.js\n\n# 32-bit target on 64-bit host: use x86 Python or specify arch\nfrida -f App.exe --no-pause --realm=local"}]},{"id":"setup-macos-linux","title":"macOS & Linux Setup","items":[{"type":"code","label":"macOS","lang":"bash","code":"# Attach to running app\nfrida -n Safari -l script.js\n\n# Spawn application\nfrida -f /Applications/Target.app/Contents/MacOS/Target --no-pause -l script.js\n\n# Check SIP status (injection into system processes requires SIP disabled)\ncsrutil status"},{"type":"code","label":"Linux","lang":"bash","code":"# Allow ptrace (required for injection)\necho 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope\n\n# Attach by PID\nfrida -p $(pgrep target_binary) -l script.js\n\n# Spawn\nfrida -f /usr/bin/target_binary --no-pause -l script.js"}]}]},{"id":"connect","title":"Connect & Control","icon":"🔌","platforms":["all"],"subsections":[{"id":"conn-list","title":"Listing Devices & Processes","items":[{"type":"code","label":"Device & process enumeration","lang":"bash","code":"# All accessible devices\nfrida-ls-devices\n\n# USB device processes\nfrida-ps -U\n\n# Remote device processes\nfrida-ps -H 192.168.1.50\n\n# Installed apps (Android) — includes non-running\nfrida-ps -U -a\n\n# Installed apps (iOS)\nfrida-ps -U -a -i\n\n# Filter by name\nfrida-ps -U | grep -i myapp"}]},{"id":"conn-attach","title":"Attach vs Spawn","items":[{"type":"code","label":"Attach to running process","lang":"bash","code":"# By package/bundle name (Android/iOS)\nfrida -U -n com.example.app -l script.js\n\n# By PID — precise, avoids name collision\nfrida -U -p 1234 -l script.js\n\n# By display name\nfrida -U -n \"MyApp\" -l script.js"},{"type":"code","label":"Spawn (start fresh)","lang":"bash","code":"# Spawn and immediately resume\nfrida -U -f com.example.app --no-pause -l script.js\n\n# Spawn and pause at entry — gives time to load script before any code runs\nfrida -U -f com.example.app -l script.js\n# In REPL: %resume  (after loading)\n\n# macOS spawn\nfrida -f /Applications/App.app/Contents/MacOS/App --no-pause -l script.js"},{"type":"note","level":"tip","text":"Use Spawn when you need to hook initialization code (SSL pinning setup, root detection init, early crypto). Attach is fine for runtime testing once the app is running."}]},{"id":"conn-scripts","title":"Running Scripts","items":[{"type":"code","label":"Script execution methods","lang":"bash","code":"# Load script file\nfrida -U -n com.example.app -l my_script.js\n\n# Inline one-liner\nfrida -U -n com.example.app -e 'console.log(Process.arch);'\n\n# Python host (recommended for complex workflows)\npython3 host.py"},{"type":"code","label":"Python host script template","lang":"python","code":"import frida, sys\n\ndef on_message(message, data):\n    if message['type'] == 'send':\n        print('[*]', message['payload'])\n    elif message['type'] == 'error':\n        print('[!]', message['stack'])\n\ndevice = frida.get_usb_device()\n\n# Attach to running process\nsession = device.attach('com.example.app')\n\n# -- OR -- Spawn\npid = device.spawn(['com.example.app'])\nsession = device.attach(pid)\n\nwith open('agent.js') as f:\n    script = session.create_script(f.read())\n\nscript.on('message', on_message)\nscript.load()\n\nif 'pid' in dir():\n    device.resume(pid)  # Only for spawn\n\nsys.stdin.read()  # Keep alive"}]}]},{"id":"api","title":"Core Frida API","icon":"⚙️","platforms":["all"],"subsections":[{"id":"api-interceptor","title":"Interceptor.attach — Hook Functions","items":[{"type":"code","label":"Hook by export name","lang":"js","code":"const strcmp = Module.getExportByName(null, 'strcmp');\n\nInterceptor.attach(strcmp, {\n  onEnter(args) {\n    // Save state for onLeave using 'this'\n    this.s1 = args[0].readUtf8String();\n    this.s2 = args[1].readUtf8String();\n    console.log(`strcmp('${this.s1}', '${this.s2}')`);\n  },\n  onLeave(retval) {\n    console.log('  =>', retval.toInt32());\n    // Override return value:\n    // retval.replace(ptr(0));\n  }\n});"},{"type":"code","label":"Hook by module + offset (stripped binary)","lang":"js","code":"const base = Module.findBaseAddress('libssl.so');\n// Offset from IDA / Ghidra / Hopper\nconst target = base.add(0x12340);\n\nInterceptor.attach(target, {\n  onEnter(args) {\n    console.log('[*] hit 0x12340, args[0]:', args[0]);\n    // Read pointer argument as UTF-8 string\n    try { console.log('  str:', args[0].readUtf8String()); } catch(e) {}\n  }\n});"}]},{"id":"api-replace","title":"Interceptor.replace — Replace Functions","items":[{"type":"code","label":"Full function replacement","lang":"js","code":"// Interceptor.replace swaps the entire implementation\n// NativeCallback(fn, returnType, [argTypes])\n\nInterceptor.replace(\n  Module.getExportByName(null, 'isDebuggerPresent'),\n  new NativeCallback(function () {\n    console.log('[*] isDebuggerPresent -> 0 (bypassed)');\n    return 0;\n  }, 'int', [])\n);"},{"type":"code","label":"Replace with call to original","lang":"js","code":"const orig_open = new NativeFunction(\n  Module.getExportByName(null, 'open'),\n  'int', ['pointer', 'int', '...']\n);\n\nInterceptor.replace(\n  Module.getExportByName(null, 'open'),\n  new NativeCallback(function (path, flags) {\n    const pathStr = path.readUtf8String();\n    if (pathStr && pathStr.includes('/proc/self/status')) {\n      console.log('[*] Blocked open:', pathStr);\n      return -1;  // ENOENT\n    }\n    return orig_open(path, flags);\n  }, 'int', ['pointer', 'int'])\n);"}]},{"id":"api-memory","title":"Memory Operations","items":[{"type":"code","label":"Read & write memory","lang":"js","code":"const addr = ptr('0x7fff12340000');\n\n// Read\nMemory.readU8(addr);\nMemory.readU16(addr);\nMemory.readU32(addr);\nMemory.readU64(addr).toString(16);    // returns Int64\nMemory.readUtf8String(addr);           // null-terminated C string\nMemory.readUtf16String(addr);          // Windows wide string\nMemory.readByteArray(addr, 16);        // raw bytes\n\n// Write (page must be writable)\nMemory.protect(addr, 16, 'rwx');\nMemory.writeU8(addr, 0x90);            // NOP\nMemory.writeU32(addr, 0xDEADBEEF);\nMemory.writeByteArray(addr, [0x90, 0x90, 0xC3]);\nMemory.writeUtf8String(addr, 'patched');\n\n// Allocate\nconst buf = Memory.alloc(256);\nMemory.writeUtf8String(buf, 'injected');"},{"type":"code","label":"Memory scanning","lang":"js","code":"const base = Module.findBaseAddress('libssl.so');\n\n// Scan for byte pattern (wildcards: ??)\nMemory.scan(base, 0x100000, '48 8B 05 ?? ?? ?? ??', {\n  onMatch(address, size) {\n    console.log('Match at:', address, 'size:', size);\n  },\n  onError(reason) { console.error(reason); },\n  onComplete() { console.log('Scan complete'); }\n});\n\n// Synchronous scan (all results at once)\nconst matches = Memory.scanSync(base, 0x100000, 'DE AD BE EF');\nmatches.forEach(m => console.log(m.address, m.size));"}]},{"id":"api-modules","title":"Module & Symbol Enumeration","items":[{"type":"code","label":"Enumerate modules and exports","lang":"js","code":"// All loaded modules\nProcess.enumerateModules().forEach(m => {\n  console.log(`${m.name} base=${m.base} size=${m.size}`);\n});\n\n// Find specific module\nconst mod = Process.findModuleByName('libssl.so');\nconsole.log('Base:', mod.base, 'Path:', mod.path);\n\n// Find export across all modules\nconst addr = Module.findExportByName(null, 'SSL_CTX_set_verify');\n\n// List all exports from a module\nModule.enumerateExports('libc.so.6').forEach(exp => {\n  console.log(exp.type, exp.name, exp.address);\n});\n\n// List imports\nModule.enumerateImports('libssl.so').forEach(imp => {\n  console.log(imp.name, imp.module);\n});\n\n// Enumerate symbols (includes unexported)\nModule.enumerateSymbols('libssl.so').filter(s =>\n  s.name.includes('verify')\n).forEach(s => console.log(s.name, s.address));"}]},{"id":"api-native","title":"NativeFunction — Call Native Code","items":[{"type":"code","label":"Create and call native functions","lang":"js","code":"// NativeFunction(address, returnType, [argTypes], abi?)\n// Types: void int uint8 uint16 uint32 uint64 int8 int16 int32 int64\n//        float double pointer size_t ssize_t bool\n\nconst strlen = new NativeFunction(\n  Module.getExportByName(null, 'strlen'),\n  'size_t', ['pointer']\n);\nconst s = Memory.allocUtf8String('hello');\nconsole.log('strlen:', strlen(s));  // => 5\n\n// Windows x64 ABI\nconst GetTickCount = new NativeFunction(\n  Module.getExportByName('kernel32.dll', 'GetTickCount'),\n  'uint32', [], 'win64'\n);\nconsole.log('Tick:', GetTickCount());\n\n// Call with multiple args\nconst open = new NativeFunction(\n  Module.getExportByName(null, 'open'),\n  'int', ['pointer', 'int']\n);\nconst path = Memory.allocUtf8String('/etc/passwd');\nconst fd = open(path, 0);  // O_RDONLY = 0\nconsole.log('fd:', fd);"}]}]},{"id":"android","title":"Android Testing","icon":"🤖","platforms":["android"],"subsections":[{"id":"and-java","title":"Java Layer Hooking","items":[{"type":"note","level":"info","text":"All Java API calls must be wrapped in Java.perform(). This ensures Frida is operating within a Java thread context attached to the JVM."},{"type":"code","label":"Hook an instance method","lang":"js","code":"Java.perform(function () {\n  const Activity = Java.use('android.app.Activity');\n\n  // Wrap implementation to hook + call original\n  Activity.onCreate.implementation = function (bundle) {\n    console.log('[*] Activity.onCreate called');\n    this.onCreate(bundle);  // call original\n  };\n});"},{"type":"code","label":"Hook overloaded methods","lang":"js","code":"Java.perform(function () {\n  const String = Java.use('java.lang.String');\n\n  // Must specify overload signature for overloaded methods\n  String.equals\n    .overload('java.lang.Object')\n    .implementation = function (other) {\n      const result = this.equals(other);\n      console.log(`equals('${this}', '${other}') => ${result}`);\n      return result;\n    };\n});"},{"type":"code","label":"Enumerate classes and inspect methods","lang":"js","code":"Java.perform(function () {\n  // Find all loaded classes matching package\n  Java.enumerateLoadedClasses({\n    onMatch(name) {\n      if (name.includes('com.example')) console.log(name);\n    },\n    onComplete() {}\n  });\n\n  // Inspect declared methods on a class\n  const cls = Java.use('com.example.app.SecurityManager');\n  cls.class.getDeclaredMethods().forEach(m => {\n    console.log(m.getName(), m.getReturnType().getName());\n  });\n});"},{"type":"code","label":"Access and modify fields","lang":"js","code":"Java.perform(function () {\n  // Static field\n  const BuildConfig = Java.use('com.example.app.BuildConfig');\n  console.log('DEBUG:', BuildConfig.DEBUG.value);\n  BuildConfig.DEBUG.value = true;\n\n  // Instance field via Java.choose (finds live instances)\n  Java.choose('com.example.app.UserSession', {\n    onMatch(instance) {\n      console.log('Token:', instance.authToken.value);\n      instance.isAuthenticated.value = true;  // force auth\n    },\n    onComplete() {}\n  });\n});"},{"type":"code","label":"Hook all methods on a class (auto-hook)","lang":"js","code":"Java.perform(function () {\n  const className = 'com.example.app.CryptoHelper';\n  const cls = Java.use(className);\n\n  cls.class.getDeclaredMethods().forEach(method => {\n    const name = method.getName();\n    try {\n      cls[name].overloads.forEach(overload => {\n        overload.implementation = function() {\n          console.log(`[${name}] called`);\n          const result = this[name].apply(this, arguments);\n          console.log(`[${name}] => ${result}`);\n          return result;\n        };\n      });\n    } catch(e) {}\n  });\n});"}]},{"id":"and-ssl","title":"Android SSL Pinning Bypass","items":[{"type":"code","label":"OkHttp3 — CertificatePinner bypass","lang":"js","code":"Java.perform(function () {\n  try {\n    const CertPinner = Java.use('okhttp3.CertificatePinner');\n    CertPinner.check\n      .overload('java.lang.String', 'java.util.List')\n      .implementation = function (hostname, certs) {\n        console.log('[*] OkHttp3 pin bypassed:', hostname);\n        // No-op: skip pin check\n      };\n    // Also patch older overload\n    CertPinner.check\n      .overload('java.lang.String', '[Ljava.security.cert.Certificate;')\n      .implementation = function (host, certs) {};\n  } catch(e) { console.log('OkHttp3 CertPinner:', e.message); }\n});"},{"type":"code","label":"TrustManager — accept all certificates","lang":"js","code":"Java.perform(function () {\n  const X509TrustManager = Java.use('javax.net.ssl.X509TrustManager');\n  const SSLContext = Java.use('javax.net.ssl.SSLContext');\n\n  const TrustAll = Java.registerClass({\n    name: 'com.frida.TrustAll',\n    implements: [X509TrustManager],\n    methods: {\n      checkClientTrusted(chain, authType) {},\n      checkServerTrusted(chain, authType) {},\n      getAcceptedIssuers() { return []; }\n    }\n  });\n\n  const ctx = SSLContext.getInstance('TLS');\n  ctx.init(null, [TrustAll.$new()], null);\n  SSLContext.getDefault.implementation = function() { return ctx; };\n  console.log('[*] TrustManager override installed');\n});"},{"type":"code","label":"Native BoringSSL / OpenSSL bypass","lang":"js","code":"// Targets apps using native TLS stacks directly (React Native, Flutter, etc.)\nconst libssl = Process.findModuleByName('libssl.so');\n\nif (libssl) {\n  // Neutralize SSL_CTX_set_verify\n  const setVerify = Module.findExportByName(libssl.name, 'SSL_CTX_set_verify');\n  if (setVerify) {\n    Interceptor.attach(setVerify, {\n      onEnter(args) {\n        args[1] = ptr(0);   // mode = SSL_VERIFY_NONE\n        args[2] = ptr(0);   // callback = NULL\n        console.log('[*] SSL_CTX_set_verify -> VERIFY_NONE');\n      }\n    });\n  }\n\n  // Force SSL_get_verify_result to return X509_V_OK (0)\n  const getResult = Module.findExportByName(libssl.name, 'SSL_get_verify_result');\n  if (getResult) {\n    Interceptor.replace(getResult,\n      new NativeCallback(() => 0, 'long', ['pointer'])\n    );\n  }\n}"},{"type":"code","label":"Conscrypt / HttpsURLConnection bypass","lang":"js","code":"Java.perform(function () {\n  // HttpsURLConnection HostnameVerifier\n  try {\n    const HostVerifier = Java.use('javax.net.ssl.HttpsURLConnection');\n    HostVerifier.setDefaultHostnameVerifier.implementation = function(v) {\n      // Install pass-all verifier\n      const AllowAll = Java.registerClass({\n        name: 'com.frida.AllowAllHV',\n        implements: [Java.use('javax.net.ssl.HostnameVerifier')],\n        methods: { verify(host, session) { return true; } }\n      });\n      this.setDefaultHostnameVerifier(AllowAll.$new());\n    };\n  } catch(e) {}\n});"}]},{"id":"and-root","title":"Android Root Detection Bypass","items":[{"type":"code","label":"RootBeer + generic root checks","lang":"js","code":"Java.perform(function () {\n  // RootBeer library\n  try {\n    const RootBeer = Java.use('com.scottyab.rootbeer.RootBeer');\n    ['isRooted','isRootedWithoutBusyBox','checkForSuBinary',\n     'checkForDangerousProps','checkForRWPaths','detectTestKeys',\n     'checkSuExists','checkForRootNative'].forEach(m => {\n      try {\n        RootBeer[m].implementation = function() {\n          console.log('[*] RootBeer.' + m + ' bypassed');\n          return false;\n        };\n      } catch(e) {}\n    });\n  } catch(e) {}\n\n  // Scan all loaded classes for root-check method names\n  Java.enumerateLoadedClasses({\n    onMatch(name) {\n      try {\n        const cls = Java.use(name);\n        cls.class.getDeclaredMethods().forEach(m => {\n          const mName = m.getName();\n          if (/isRoot|checkRoot|isJailbroken|isTamper|detectRoot/i.test(mName)) {\n            try {\n              cls[mName].implementation = function() {\n                console.log('[*] Bypassed:', name + '.' + mName);\n                return false;\n              };\n            } catch(e2) {}\n          }\n        });\n      } catch(e) {}\n    },\n    onComplete() {}\n  });\n});"},{"type":"code","label":"File-based root checks (su / Magisk paths)","lang":"js","code":"Java.perform(function () {\n  const File = Java.use('java.io.File');\n  const rootPaths = [\n    '/system/bin/su', '/sbin/su', '/system/xbin/su',\n    '/data/local/tmp/su', '/system/app/Superuser.apk',\n    '/system/app/SuperSU', '/.magisk', '/data/adb/magisk',\n    '/data/adb/modules', '/sbin/.magisk', '/proc/net/unix'\n  ];\n\n  File.exists.implementation = function () {\n    const path = this.getAbsolutePath();\n    if (rootPaths.some(p => path.startsWith(p))) {\n      console.log('[*] Blocked File.exists:', path);\n      return false;\n    }\n    return this.exists();\n  };\n\n  // Also block canExecute on su paths\n  File.canExecute.implementation = function () {\n    const path = this.getAbsolutePath();\n    if (path.includes('/su') || path.includes('magisk')) return false;\n    return this.canExecute();\n  };\n});"},{"type":"code","label":"Runtime.exec() command check bypass","lang":"js","code":"Java.perform(function () {\n  const Runtime = Java.use('java.lang.Runtime');\n  Runtime.exec.overload('java.lang.String').implementation = function(cmd) {\n    console.log('[*] Runtime.exec:', cmd);\n    if (cmd.includes('su') || cmd.includes('which')) {\n      // Return a failed process\n      return this.exec('true');\n    }\n    return this.exec(cmd);\n  };\n});"}]},{"id":"and-debug","title":"Android Anti-Debugging Bypass","items":[{"type":"code","label":"Java-layer debug checks","lang":"js","code":"Java.perform(function () {\n  // android.os.Debug.isDebuggerConnected()\n  const Debug = Java.use('android.os.Debug');\n  Debug.isDebuggerConnected.implementation = function() { return false; };\n  Debug.waitingForDebugger.implementation = function() { return false; };\n\n  // ApplicationInfo.FLAG_DEBUGGABLE bit check\n  const AppInfo = Java.use('android.content.pm.ApplicationInfo');\n  // Clear bit 2 (FLAG_DEBUGGABLE) in flags field\n  Java.choose('android.app.ActivityThread', {\n    onMatch(at) {\n      try {\n        const ai = at.currentApplication().getApplicationInfo();\n        ai.flags.value = ai.flags.value & ~2;\n      } catch(e) {}\n    },\n    onComplete() {}\n  });\n\n  // BuildConfig.DEBUG\n  try {\n    const BC = Java.use(Java.enumerateLoadedClasses({\n      onMatch(n) { if (n.endsWith('.BuildConfig')) throw n; },\n      onComplete() {}\n    }));\n  } catch(clsName) {\n    if (typeof clsName === 'string') {\n      try { Java.use(clsName).DEBUG.value = false; } catch(e) {}\n    }\n  }\n});"},{"type":"code","label":"Native ptrace / TracerPid bypass","lang":"js","code":"// Block /proc/self/status reads (TracerPid check)\nconst openPtr = Module.getExportByName(null, 'open');\nInterceptor.attach(openPtr, {\n  onEnter(args) {\n    const path = args[0].readUtf8String();\n    if (path && (path.includes('/proc/self/status') ||\n                 path.includes('/proc/self/wchan') ||\n                 path.includes('/proc/net/tcp'))) {\n      console.log('[*] Anti-debug file read blocked:', path);\n      this.block = true;\n    }\n  },\n  onLeave(retval) {\n    if (this.block) retval.replace(ptr(-1));\n  }\n});\n\n// Neutralize ptrace PTRACE_TRACEME self-attach\nconst ptracePtr = Module.findExportByName(null, 'ptrace');\nif (ptracePtr) {\n  Interceptor.attach(ptracePtr, {\n    onEnter(args) {\n      const request = args[0].toInt32();\n      if (request === 0) {  // PTRACE_TRACEME\n        console.log('[*] PTRACE_TRACEME intercepted');\n        args[0] = ptr(-1);  // Invalid request\n      }\n    }\n  });\n}"}]}]},{"id":"ios","title":"iOS Testing","icon":"🍎","platforms":["ios"],"subsections":[{"id":"ios-objc","title":"Objective-C Runtime Hooking","items":[{"type":"code","label":"Hook an ObjC method","lang":"js","code":"// Instance method: -[ClassName methodName:arg:]\n// Class method:    +[ClassName methodName:]\n\nconst NSURLSession = ObjC.classes.NSURLSession;\nconst delegate = NSURLSession[\n  '- URLSession:didReceiveChallenge:completionHandler:'\n];\n\nInterceptor.attach(delegate.implementation, {\n  onEnter(args) {\n    // args[0] = self, args[1] = _cmd, args[2+] = method args\n    const challenge = new ObjC.Object(args[2]);\n    const host = challenge.protectionSpace().host().toString();\n    console.log('[*] Auth challenge for:', host);\n  }\n});"},{"type":"code","label":"Swizzle (replace) an ObjC method","lang":"js","code":"const NSString = ObjC.classes.NSString;\nconst orig = NSString['- isEqualToString:'];\n\nInterceptor.attach(orig.implementation, {\n  onEnter(args) {\n    this.self_str = new ObjC.Object(args[0]).toString();\n    this.other_str = new ObjC.Object(args[2]).toString();\n  },\n  onLeave(retval) {\n    console.log(`isEqualToString('${this.self_str}', '${this.other_str}') => ${retval}`);\n    // Force match:\n    // retval.replace(ptr(1));\n  }\n});"},{"type":"code","label":"Enumerate classes and methods","lang":"js","code":"// List all ObjC classes (returns object with class names as keys)\nconst classNames = Object.keys(ObjC.classes);\nclassNames.filter(n => n.includes('Security')).forEach(n => console.log(n));\n\n// List own methods on a class\nObjC.classes.MyViewController.$ownMethods.forEach(m => console.log(m));\n\n// Find live instances\nObjC.choose(ObjC.classes.MyViewController, {\n  onMatch(instance) {\n    console.log('Instance:', instance, 'addr:', instance.handle);\n  },\n  onComplete() {}\n});"},{"type":"code","label":"Call ObjC methods directly","lang":"js","code":"// Allocate and init an ObjC object\nconst NSMutableArray = ObjC.classes.NSMutableArray;\nconst arr = NSMutableArray.alloc().init();\nconsole.log('Count:', arr.count().valueOf());\n\n// Access properties\nconst obj = ObjC.classes.UIApplication.sharedApplication();\nconsole.log('App state:', obj.applicationState().valueOf());"}]},{"id":"ios-swift","title":"Swift Runtime Hooking","items":[{"type":"note","level":"info","text":"Swift functions use name mangling. Use xcrun swift-demangle on the host to verify symbols before hooking."},{"type":"code","label":"Find and hook Swift functions","lang":"bash","code":"# Step 1: List mangled exports from app binary\nfrida-trace -U -n TargetApp -i '*' 2>&1 | grep -i security\n\n# Step 2: Demangle to verify\nxcrun swift-demangle '_$s9TargetApp14SecurityCheckerC7isValidSbyF'\n# => TargetApp.SecurityChecker.isValid() -> Bool\n\n# Step 3: Look up directly in nm / rabin2\nnm -a /path/to/TargetApp | grep security\nrabin2 -E /path/to/TargetApp | grep -i verify"},{"type":"code","label":"Hook Swift function by mangled name","lang":"js","code":"const mangledName = '_$s9TargetApp14SecurityCheckerC7isValidSbyF';\nconst addr = Module.findExportByName('TargetApp', mangledName);\n\nif (addr) {\n  Interceptor.attach(addr, {\n    onLeave(retval) {\n      console.log('[*] SecurityChecker.isValid() original:', retval.toInt32());\n      retval.replace(ptr(1));  // Force true\n    }\n  });\n} else {\n  // Try scanning all modules\n  const found = Module.findExportByName(null, mangledName);\n  if (found) Interceptor.attach(found, { onLeave(r) { r.replace(ptr(1)); } });\n}"}]},{"id":"ios-ssl","title":"iOS SSL Pinning Bypass","items":[{"type":"code","label":"SecTrust — modern iOS (12+)","lang":"js","code":"// SecTrustEvaluateWithError — returns Bool (1 = trusted)\nconst SecTrustEvaluateWithError = Module.findExportByName(\n  'Security', 'SecTrustEvaluateWithError'\n);\nif (SecTrustEvaluateWithError) {\n  Interceptor.attach(SecTrustEvaluateWithError, {\n    onLeave(retval) {\n      console.log('[*] SecTrustEvaluateWithError -> forced trust');\n      retval.replace(ptr(1));\n    }\n  });\n}\n\n// Legacy: SecTrustEvaluate (iOS < 12) — kSecTrustResultProceed = 4\nconst SecTrustEvaluate = Module.findExportByName('Security', 'SecTrustEvaluate');\nif (SecTrustEvaluate) {\n  Interceptor.attach(SecTrustEvaluate, {\n    onEnter(args) { this.resultPtr = args[1]; },\n    onLeave(retval) {\n      Memory.writeU32(this.resultPtr, 4);  // kSecTrustResultProceed\n      retval.replace(ptr(0));              // errSecSuccess\n    }\n  });\n}"},{"type":"code","label":"NSURLSession delegate bypass","lang":"js","code":"const cls = ObjC.classes.NSURLSession;\nconst method = cls['- URLSession:didReceiveChallenge:completionHandler:'];\n\nif (method) {\n  Interceptor.attach(method.implementation, {\n    onEnter(args) {\n      const completionHandler = new ObjC.Block(args[4]);\n      const origImp = completionHandler.implementation;\n\n      completionHandler.implementation = function(disposition, credential) {\n        const challenge = new ObjC.Object(args[3]);\n        const trust = challenge.protectionSpace().serverTrust();\n        const NSURLCredential = ObjC.classes.NSURLCredential;\n        const cred = NSURLCredential.credentialForTrust_(trust);\n        console.log('[*] NSURLSession auth bypass — using server credential');\n        return origImp.call(this, 0, cred);  // 0 = NSURLSessionAuthChallengeUseCredential\n      };\n    }\n  });\n}"},{"type":"code","label":"AFNetworking / Alamofire bypass","lang":"js","code":"Java.perform(function() {}); // noop — ensure Frida is ready\n// AFNetworking uses AFSecurityPolicy\ntry {\n  const AFSecPolicy = ObjC.classes.AFSecurityPolicy;\n  const evalServer = AFSecPolicy['- evaluateServerTrust:forDomain:'];\n  if (evalServer) {\n    Interceptor.attach(evalServer.implementation, {\n      onLeave(retval) {\n        console.log('[*] AFSecurityPolicy bypass');\n        retval.replace(ptr(1));\n      }\n    });\n  }\n  // Also disable pinning on creation\n  const policyWithPinning = AFSecPolicy['+ policyWithPinningMode:'];\n  if (policyWithPinning) {\n    Interceptor.attach(policyWithPinning.implementation, {\n      onLeave(retval) {\n        const policy = new ObjC.Object(retval);\n        policy.setAllowInvalidCertificates_(1);\n        policy.setValidatesDomainName_(0);\n      }\n    });\n  }\n} catch(e) { console.log('AFNetworking not found'); }"}]},{"id":"ios-jb","title":"iOS Jailbreak Detection Bypass","items":[{"type":"code","label":"File existence checks (libc level)","lang":"js","code":"const jbPaths = [\n  '/Applications/Cydia.app', '/usr/sbin/sshd', '/bin/bash',\n  '/.installed_unc0ver', '/.bootstrapped_electra',\n  '/var/jb', '/private/var/lib/apt', '/etc/apt',\n  '/private/var/mobile/Library/Preferences/ABPattern',\n  '/usr/libexec/sftp-server', '/usr/bin/sshd',\n];\n\n['access', 'stat', 'lstat', 'fopen', 'open'].forEach(fname => {\n  const fn = Module.findExportByName(null, fname);\n  if (!fn) return;\n  Interceptor.attach(fn, {\n    onEnter(args) {\n      try {\n        const path = args[0].readUtf8String();\n        if (jbPaths.some(p => path && path.startsWith(p))) {\n          console.log(`[*] JB path blocked [${fname}]: ${path}`);\n          this.blocked = true;\n        }\n      } catch(e) {}\n    },\n    onLeave(retval) {\n      if (this.blocked) retval.replace(ptr(-1));\n    }\n  });\n});"},{"type":"code","label":"URL scheme checks (Cydia:// Sileo://)","lang":"js","code":"const UIApp = ObjC.classes.UIApplication;\nInterceptor.attach(UIApp['- canOpenURL:'].implementation, {\n  onEnter(args) {\n    try {\n      const url = new ObjC.Object(args[2]).absoluteString().toString();\n      if (/cydia|sileo|installer|zebra|zbra/i.test(url)) {\n        console.log('[*] JB URL scheme blocked:', url);\n        this.block = true;\n      }\n    } catch(e) {}\n  },\n  onLeave(retval) {\n    if (this.block) retval.replace(ptr(0));\n  }\n});"},{"type":"code","label":"fork() / system() sandbox escape check","lang":"js","code":"// fork() is not allowed in sandboxed apps — JB detection tests if it succeeds\nconst forkPtr = Module.findExportByName(null, 'fork');\nif (forkPtr) {\n  Interceptor.attach(forkPtr, {\n    onLeave(retval) {\n      const pid = retval.toInt32();\n      if (pid > 0) {  // parent process got child PID — jailbroken\n        console.log('[*] fork() JB check -> returning -1');\n        retval.replace(ptr(-1));\n      }\n    }\n  });\n}\n\n// system() — blocked on sandboxed; success = jailbroken\nconst systemPtr = Module.findExportByName(null, 'system');\nif (systemPtr) {\n  Interceptor.replace(systemPtr,\n    new NativeCallback(cmd => {\n      console.log('[*] system() blocked');\n      return -1;\n    }, 'int', ['pointer'])\n  );\n}"},{"type":"code","label":"ObjC isJailbroken method sweep","lang":"js","code":"// Sweep all ObjC classes for jailbreak detection methods\nObject.keys(ObjC.classes).forEach(clsName => {\n  try {\n    const cls = ObjC.classes[clsName];\n    cls.$ownMethods.forEach(method => {\n      if (/jailbreak|isJail|checkJail|isRooted|tamper|detect/i.test(method)) {\n        try {\n          Interceptor.attach(cls[method].implementation, {\n            onLeave(retval) {\n              console.log(`[*] Bypassed ${clsName}.${method}`);\n              retval.replace(ptr(0));  // return false/nil\n            }\n          });\n        } catch(e) {}\n      }\n    });\n  } catch(e) {}\n});"}]}]},{"id":"windows","title":"Windows Testing","icon":"🪟","platforms":["windows"],"subsections":[{"id":"win-api","title":"Win32 API Hooking","items":[{"type":"code","label":"Monitor file, registry, and network calls","lang":"js","code":"// File access\nInterceptor.attach(Module.getExportByName('kernel32.dll', 'CreateFileW'), {\n  onEnter(args) {\n    this.path = args[0].readUtf16String();\n    console.log('[FILE] CreateFileW:', this.path);\n  },\n  onLeave(retval) {\n    if (retval.equals(ptr('0xFFFFFFFFFFFFFFFF')))\n      console.log('  => INVALID_HANDLE_VALUE');\n  }\n});\n\n// Registry reads\nInterceptor.attach(Module.getExportByName('advapi32.dll', 'RegOpenKeyExW'), {\n  onEnter(args) {\n    console.log('[REG] RegOpenKeyExW:', args[1].readUtf16String());\n  }\n});\n\n// Network connections\nInterceptor.attach(Module.getExportByName('ws2_32.dll', 'connect'), {\n  onEnter(args) {\n    console.log('[NET] connect() called');\n  }\n});"}]},{"id":"win-antidebug","title":"Windows Anti-Debug Bypass","items":[{"type":"code","label":"IsDebuggerPresent / CheckRemoteDebuggerPresent","lang":"js","code":"// 1. IsDebuggerPresent\nInterceptor.replace(\n  Module.getExportByName('kernel32.dll', 'IsDebuggerPresent'),\n  new NativeCallback(() => 0, 'int', [])\n);\n\n// 2. CheckRemoteDebuggerPresent\nconst CRDP = Module.getExportByName('kernel32.dll', 'CheckRemoteDebuggerPresent');\nInterceptor.attach(CRDP, {\n  onEnter(args) { this.outPtr = args[1]; },\n  onLeave(retval) {\n    if (this.outPtr && !this.outPtr.isNull())\n      Memory.writeU32(this.outPtr, 0);  // *pbDebuggerPresent = FALSE\n  }\n});"},{"type":"code","label":"NtQueryInformationProcess — debug port & flags","lang":"js","code":"const NtQIP = Module.getExportByName('ntdll.dll', 'NtQueryInformationProcess');\nInterceptor.attach(NtQIP, {\n  onEnter(args) {\n    this.infoClass = args[1].toInt32();\n    this.outBuf = args[2];\n  },\n  onLeave(retval) {\n    // ProcessDebugPort = 7, ProcessDebugFlags = 31, ProcessDebugObjectHandle = 30\n    if ([7, 30, 31].includes(this.infoClass)) {\n      if (this.outBuf && !this.outBuf.isNull()) {\n        Memory.writeU64(this.outBuf, uint64(0));\n        console.log('[*] NtQIP debug check neutralized, class:', this.infoClass);\n      }\n    }\n  }\n});"},{"type":"code","label":"NtSetInformationThread — hide from debugger","lang":"js","code":"// ThreadHideFromDebugger (0x11) prevents debug events\nconst NtSIT = Module.getExportByName('ntdll.dll', 'NtSetInformationThread');\nInterceptor.attach(NtSIT, {\n  onEnter(args) {\n    if (args[1].toInt32() === 0x11) {\n      console.log('[*] NtSetInformationThread ThreadHideFromDebugger blocked');\n      args[1] = ptr(0);  // Benign class\n    }\n  }\n});"},{"type":"code","label":"Heap flag / NtGlobalFlag bypass","lang":"js","code":"// PEB.NtGlobalFlag at PEB+0x68 (x64) — debug heap flags 0x70\n// Read PEB from TEB (GS register on x64)\n// Patch via Memory.writeU32 once PEB address is known\n\n// Monitor GetProcessHeap for heap-flag reads\nInterceptor.attach(Module.getExportByName('kernel32.dll', 'GetProcessHeap'), {\n  onLeave(retval) {\n    // Heap ForceFlags at heap_base+0x70 (x64)\n    // heap_base+0x74 — flags\n    try {\n      const heapBase = retval;\n      Memory.writeU32(heapBase.add(0x70), 0);   // ForceFlags\n      Memory.writeU32(heapBase.add(0x74), 2);   // HEAP_GROWABLE only\n    } catch(e) {}\n  }\n});"}]}]},{"id":"macos-linux","title":"macOS & Linux","icon":"🐧","platforms":["macos","linux"],"subsections":[{"id":"mac-objc","title":"macOS Objective-C & Keychain","items":[{"type":"note","level":"info","text":"macOS ObjC/Swift testing follows the same patterns as iOS (Section 06). Key differences: SIP must be disabled to inject into system processes; entitlements control Keychain access."},{"type":"code","label":"Monitor Keychain operations","lang":"js","code":"const ops = ['SecItemCopyMatching', 'SecItemAdd', 'SecItemUpdate', 'SecItemDelete'];\nops.forEach(name => {\n  const fn = Module.findExportByName('Security', name);\n  if (!fn) return;\n  Interceptor.attach(fn, {\n    onEnter(args) {\n      try {\n        const query = new ObjC.Object(args[0]);\n        console.log(`[${name}]:`, query.description().toString());\n      } catch(e) {}\n    },\n    onLeave(retval) {\n      console.log(`  => OSStatus: ${retval.toInt32()}`);\n    }\n  });\n});"},{"type":"code","label":"Monitor NSUserDefaults read/write","lang":"js","code":"const UD = ObjC.classes.NSUserDefaults;\n['- objectForKey:', '- stringForKey:', '- boolForKey:'].forEach(sel => {\n  try {\n    Interceptor.attach(UD[sel].implementation, {\n      onEnter(args) {\n        this.key = new ObjC.Object(args[2]).toString();\n      },\n      onLeave(retval) {\n        try {\n          const val = new ObjC.Object(retval);\n          console.log(`NSUserDefaults.${sel.replace(/[- :]/g,'')} '${this.key}' => ${val}`);\n        } catch(e) {}\n      }\n    });\n  } catch(e) {}\n});"}]},{"id":"linux-elf","title":"Linux ELF Binary Testing","items":[{"type":"code","label":"Enable ptrace & attach","lang":"bash","code":"# Allow ptrace (persists until reboot)\necho 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope\n\n# Attach by PID\nfrida -p $(pgrep -f target_binary) -l script.js\n\n# Spawn binary\nfrida -f /usr/local/bin/target --no-pause -l script.js\n\n# Auto-trace all SSL functions\nfrida-trace -p $(pgrep target) -i 'SSL_*' -i 'verify_*' -i 'BIO_*'"},{"type":"code","label":"GOT/PLT hooking (stripped binaries)","lang":"js","code":"// PLT thunks land on GOT — hook the exported libc function directly\nconst openFn = Module.getExportByName('libc.so.6', 'open');\nInterceptor.attach(openFn, {\n  onEnter(args) {\n    const path = args[0].readUtf8String();\n    const flags = args[1].toInt32();\n    if (path) console.log(`open('${path}', ${flags})`);\n    if (path && path.startsWith('/proc/self'))\n      console.log('  [!] Possible anti-debug /proc read');\n  }\n});\n\n// Hook mmap to detect executable page allocation (shellcode/self-modifying code)\nconst mmap = Module.getExportByName(null, 'mmap');\nInterceptor.attach(mmap, {\n  onEnter(args) {\n    const prot = args[2].toInt32();\n    if ((prot & 4) && (prot & 1))  // PROT_EXEC | PROT_READ\n      console.log('[*] mmap with PROT_EXEC, len:', args[1].toInt32().toString(16));\n  }\n});"},{"type":"code","label":"LD_PRELOAD gadget injection","lang":"bash","code":"# Download gadget for linux-x86_64\nwget https://github.com/frida/frida/releases/download/16.2.1/frida-gadget-16.2.1-linux-x86_64.so.xz\nxz -d frida-gadget-16.2.1-linux-x86_64.so.xz\nmv frida-gadget-16.2.1-linux-x86_64.so libfrida-gadget.so\n\n# Create config (listen mode)\ncat > libfrida-gadget.config.so << 'EOF'\n{\n  \"interaction\": {\n    \"type\": \"listen\",\n    \"address\": \"127.0.0.1\",\n    \"port\": 27042,\n    \"on_load\": \"wait\"\n  }\n}\nEOF\n\n# Inject via LD_PRELOAD\nLD_PRELOAD=./libfrida-gadget.so ./target_binary\n\n# Connect from another terminal\nfrida -H 127.0.0.1 Gadget -l script.js"}]}]},{"id":"integrity","title":"Runtime Integrity Testing","icon":"🛡️","platforms":["all"],"subsections":[{"id":"int-checklists","title":"Testing Checklists","items":[{"type":"note","level":"info","text":"Runtime integrity testing validates that tamper detection mechanisms exist AND respond correctly, then verifies that bypass is achievable. Document both baseline detection behavior and the bypass method."},{"type":"table","headers":["Control","Test Method","Pass: Detected","Pass: Bypassable"],"rows":[["Certificate Pinning","Route traffic through Burp without pin bypass; app should reject","TLS error / connection refused","Frida bypass captures traffic in proxy"],["Root / Jailbreak","Run on rooted/jailbroken device; trigger guarded feature","App exits, blocks, or warns","Root bypass script defeats detection"],["Debugger Detection","Attach Frida; observe if app detects or terminates","Process terminates or logs detection","Anti-debug bypass allows stable attach"],["Integrity Check (APK hash)","Repack APK; install; trigger app","App refuses to start or function","Bypass with Frida smali hook"],["Emulator Detection","Run in AVD/Genymotion; trigger guarded feature","App detects virtual env","Emulator property spoofing bypasses check"],["Frida Detection","Attach Frida normally; observe","App detects injection","Gadget mode / port rename defeats detection"],["Screen Capture Block","Attempt screenshot in-app","Screenshot is blank/black","FLAG_SECURE removal via Frida"],["Clipboard Restriction","Attempt to paste sensitive data externally","Data cleared on background","Clipboard hook exposes cleared data"]]}]},{"id":"int-antifrida","title":"Detecting Anti-Frida Measures","items":[{"type":"code","label":"Detect anti-Frida signals in app","lang":"js","code":"// Monitor for signals that app is checking for Frida presence\n// Common: /proc/self/maps scan, port 27042 check, thread name scan, dlopen audit\n\n// 1. /proc/self/maps and /proc/net/tcp reads\nconst openFn = Module.getExportByName(null, 'open');\nInterceptor.attach(openFn, {\n  onEnter(args) {\n    try {\n      const path = args[0].readUtf8String();\n      if (path && /proc.*(maps|tcp|net|status|wchan)/.test(path))\n        console.log('[!] Anti-Frida suspect: reading', path);\n    } catch(e) {}\n  }\n});\n\n// 2. Port 27042 connection attempt\nconst connectFn = Module.findExportByName(null, 'connect');\nif (connectFn) {\n  Interceptor.attach(connectFn, {\n    onEnter(args) {\n      const sa = args[1];\n      try {\n        const family = sa.readU16();\n        if (family === 2) {  // AF_INET\n          const port = (sa.add(2).readU8() << 8) | sa.add(3).readU8();\n          if (port === 27042 || port === 27047)\n            console.log('[!] Anti-Frida: connection to frida port', port);\n        }\n      } catch(e) {}\n    }\n  });\n}\n\n// 3. Thread name scan (gum-js-loop, gmain, pool-frida)\nconst pthreadSetname = Module.findExportByName(null, 'pthread_getname_np') ||\n                       Module.findExportByName(null, 'pthread_setname_np');\n// Monitor via /proc/self/task/*/comm reads in open() hook above\n\n// 4. dlopen audit for frida libraries\nconst dlopenFn = Module.findExportByName(null, 'dlopen');\nif (dlopenFn) {\n  Interceptor.attach(dlopenFn, {\n    onEnter(args) {\n      try {\n        const lib = args[0].readUtf8String();\n        if (lib) console.log('[*] dlopen:', lib);\n      } catch(e) {}\n    }\n  });\n}"}]},{"id":"int-bypass-frida","title":"Anti-Frida Bypass Techniques","items":[{"type":"code","label":"Rename frida-server + change port","lang":"bash","code":"# Rename binary (defeats name-based process scan)\nadb push frida-server /data/local/tmp/syslogd\nadb shell chmod 755 /data/local/tmp/syslogd\n\n# Start on non-default port\nadb shell su -c '/data/local/tmp/syslogd -l 0.0.0.0:19999 &'\n\n# Connect with custom port\nadb forward tcp:19999 tcp:19999\nfrida -H 127.0.0.1:19999 -n com.example.app -l script.js"},{"type":"code","label":"Gadget mode (no frida-server process)","lang":"bash","code":"# Gadget has no separate server process — avoids port scanning and\n# process name enumeration detection entirely\n\n# Configure gadget for listen mode (frida-gadget.config.so):\n# {\n#   \"interaction\": {\n#     \"type\": \"listen\",\n#     \"address\": \"127.0.0.1\",\n#     \"port\": 27042,\n#     \"on_load\": \"wait\"\n#   }\n# }\n\n# Connect once app starts\nfrida -H 127.0.0.1 Gadget -l script.js"},{"type":"code","label":"Rename Frida thread names","lang":"js","code":"// Apps scan /proc/self/task/*/comm or thread names for:\n// 'gum-js-loop', 'gmain', 'pool-frida', 'JS Sour'\n\nconst pthread_setname_np = Module.findExportByName(null, 'pthread_setname_np');\nif (pthread_setname_np) {\n  Interceptor.attach(pthread_setname_np, {\n    onEnter(args) {\n      try {\n        const name = args[1].readUtf8String();\n        const fridaNames = ['gum-js-loop', 'gmain', 'pool-frida', 'JS Sour'];\n        if (name && fridaNames.some(fn => name.startsWith(fn))) {\n          args[1] = Memory.allocUtf8String('com.android.system');\n          console.log('[*] Renamed Frida thread:', name, '-> com.android.system');\n        }\n      } catch(e) {}\n    }\n  });\n}"},{"type":"code","label":"Block /proc/self/maps Frida pattern scan","lang":"js","code":"// Some apps open /proc/self/maps and scan for 'frida' or 'gum' in mapped paths\n// Intercept read() on the maps fd and scrub matching lines\n\nconst openFn = Module.getExportByName(null, 'open');\nconst readFn = Module.getExportByName(null, 'read');\nconst mapsTrackedFds = new Set();\n\nInterceptor.attach(openFn, {\n  onEnter(args) { this.path = args[0].readUtf8String(); },\n  onLeave(retval) {\n    if (this.path && this.path.includes('/proc/self/maps'))\n      mapsTrackedFds.add(retval.toInt32());\n  }\n});\n\nInterceptor.attach(readFn, {\n  onEnter(args) { this.fd = args[0].toInt32(); this.buf = args[1]; this.len = args[2].toInt32(); },\n  onLeave(retval) {\n    const n = retval.toInt32();\n    if (n <= 0 || !mapsTrackedFds.has(this.fd)) return;\n    try {\n      let content = this.buf.readUtf8String(n);\n      const scrubbed = content.split('\\n')\n        .filter(line => !line.includes('frida') && !line.includes('gum-'))\n        .join('\\n');\n      this.buf.writeUtf8String(scrubbed);\n      retval.replace(ptr(scrubbed.length));\n    } catch(e) {}\n  }\n});"}]}]},{"id":"trace","title":"frida-trace","icon":"📡","platforms":["all"],"subsections":[{"id":"trace-basic","title":"frida-trace Commands","items":[{"type":"code","label":"Trace by pattern","lang":"bash","code":"# Native exports matching glob\nfrida-trace -U -n com.example.app -i 'SSL_*'\nfrida-trace -U -n com.example.app -i 'strcmp' -i 'strncmp'\n\n# All imports from a specific library\nfrida-trace -U -n com.example.app -I 'libssl.so'\n\n# ObjC methods\nfrida-trace -U -n TargetApp -m '-[NSURLSession *]'\nfrida-trace -U -n TargetApp -m '+[NSURL *]'\nfrida-trace -U -n TargetApp -m '*[*Pinning*]'\n\n# Java methods (Android)\nfrida-trace -U -n com.example.app -j 'com.example.app.SecurityManager!*'\nfrida-trace -U -n com.example.app -j 'javax.net.ssl.X509TrustManager!*'\n\n# On spawn (don't miss early calls)\nfrida-trace -U -f com.example.app --no-pause -i 'SSL_*'\n\n# Save output\nfrida-trace -U -n TargetApp -i 'recv*' -i 'send*' 2>&1 | tee trace.txt"}]},{"id":"trace-handlers","title":"Customizing Handler Files","items":[{"type":"note","level":"info","text":"frida-trace writes handler .js files to __handlers__/. Edit them live — changes are hot-reloaded automatically without restarting."},{"type":"code","label":"Enhanced handler with payload dump","lang":"js","code":"// __handlers__/libssl.so/SSL_write.js\n// Auto-generated by frida-trace — customize below\n{\n  onEnter(log, args, state) {\n    const ssl = args[0];\n    const buf = args[1];\n    const len = args[2].toInt32();\n\n    log('SSL_write()');\n    log('  ssl:  ' + ssl);\n    log('  len:  ' + len);\n\n    if (len > 0 && len < 4096) {\n      try {\n        log('  data: ' + buf.readUtf8String(len));\n      } catch(e) {\n        log('  hex:  ' + hexdump(buf.readByteArray(Math.min(len, 64))));\n      }\n    }\n  },\n  onLeave(log, retval, state) {\n    log('  => bytes written: ' + retval.toInt32());\n  }\n}"},{"type":"code","label":"ObjC handler with argument inspection","lang":"js","code":"// __handlers__/NSURLSession/URLSession_didReceiveChallenge_completionHandler_.js\n{\n  onEnter(log, args, state) {\n    log('URLSession:didReceiveChallenge:completionHandler:');\n    try {\n      const challenge = new ObjC.Object(args[2]);\n      const space = challenge.protectionSpace();\n      log('  host:   ' + space.host().toString());\n      log('  port:   ' + space.port().valueOf());\n      log('  method: ' + space.authenticationMethod().toString());\n    } catch(e) {\n      log('  (could not read challenge: ' + e.message + ')');\n    }\n  }\n}"}]}]},{"id":"templates","title":"Script Templates","icon":"📋","platforms":["all"],"subsections":[{"id":"tpl-crypto","title":"Universal Crypto Monitor (Android)","items":[{"type":"code","label":"Crypto monitor — Cipher, Mac, MessageDigest","lang":"js","code":"Java.perform(function () {\n  function bytesToHex(b) {\n    return b ? Array.from(b).map(x => ('0' + (x & 0xFF).toString(16)).slice(-2)).join('') : 'null';\n  }\n\n  // javax.crypto.Cipher\n  const Cipher = Java.use('javax.crypto.Cipher');\n  Cipher.doFinal.overload('[B').implementation = function(input) {\n    const result = this.doFinal(input);\n    console.log('[CIPHER] algo:', this.getAlgorithm());\n    console.log('[CIPHER]   in:', bytesToHex(input));\n    console.log('[CIPHER]  out:', bytesToHex(result));\n    return result;\n  };\n  Cipher.doFinal.overload().implementation = function() {\n    const result = this.doFinal();\n    console.log('[CIPHER] doFinal() algo:', this.getAlgorithm());\n    console.log('[CIPHER]  out:', bytesToHex(result));\n    return result;\n  };\n\n  // javax.crypto.Mac (HMAC)\n  const Mac = Java.use('javax.crypto.Mac');\n  Mac.doFinal.overload('[B').implementation = function(input) {\n    const result = this.doFinal(input);\n    console.log('[MAC] algo:', this.getAlgorithm(), 'out:', bytesToHex(result));\n    return result;\n  };\n\n  // java.security.MessageDigest\n  const MD = Java.use('java.security.MessageDigest');\n  MD.digest.overload('[B').implementation = function(input) {\n    const result = this.digest(input);\n    console.log('[HASH]', this.getAlgorithm(), ':', bytesToHex(result));\n    return result;\n  };\n});"}]},{"id":"tpl-network","title":"Network Traffic Monitor (Android)","items":[{"type":"code","label":"OkHttp3 + HttpURLConnection monitor","lang":"js","code":"Java.perform(function () {\n  // OkHttp3 Request/Response\n  try {\n    const Builder = Java.use('okhttp3.Request$Builder');\n    Builder.build.implementation = function() {\n      const req = this.build();\n      console.log('[OkHttp3] ' + req.method() + ' ' + req.url().toString());\n      const hdrs = req.headers();\n      for (let i = 0; i < hdrs.size(); i++)\n        console.log('  ' + hdrs.name(i) + ': ' + hdrs.value(i));\n      return req;\n    };\n  } catch(e) {}\n\n  // Intercept response body\n  try {\n    const RespBody = Java.use('okhttp3.ResponseBody');\n    RespBody.string.implementation = function() {\n      const body = this.string();\n      console.log('[OkHttp3] Response body (' + body.length + ' chars):', body.substring(0, 512));\n      return body;\n    };\n  } catch(e) {}\n\n  // HttpURLConnection\n  try {\n    const HURLC = Java.use('java.net.HttpURLConnection');\n    HURLC.getResponseCode.implementation = function() {\n      const code = this.getResponseCode();\n      console.log('[HttpURL]', this.getURL().toString(), '->', code);\n      return code;\n    };\n  } catch(e) {}\n});"}]},{"id":"tpl-storage","title":"Storage Monitor (Android)","items":[{"type":"code","label":"SharedPreferences + SQLite monitor","lang":"js","code":"Java.perform(function () {\n  // SharedPreferences reads\n  const SPI = Java.use('android.app.SharedPreferencesImpl');\n  ['getString','getInt','getBoolean','getLong','getFloat'].forEach(m => {\n    try {\n      SPI[m].overloads.forEach(overload => {\n        overload.implementation = function() {\n          const val = this[m].apply(this, arguments);\n          console.log(`[PREFS] ${m}('${arguments[0]}') => ${val}`);\n          return val;\n        };\n      });\n    } catch(e) {}\n  });\n\n  // SharedPreferences.Editor writes\n  try {\n    const Editor = Java.use('android.app.SharedPreferencesImpl$EditorImpl');\n    ['putString','putInt','putBoolean','putLong'].forEach(m => {\n      Editor[m].implementation = function(key, val) {\n        console.log(`[PREFS WRITE] ${m}('${key}', ${val})`);\n        return this[m](key, val);\n      };\n    });\n  } catch(e) {}\n\n  // SQLite query intercept\n  try {\n    const SQLiteDB = Java.use('android.database.sqlite.SQLiteDatabase');\n    SQLiteDB.rawQuery.implementation = function(sql, args) {\n      console.log('[SQL]', sql, args ? JSON.stringify(args) : '');\n      return this.rawQuery(sql, args);\n    };\n    SQLiteDB.execSQL.overload('java.lang.String').implementation = function(sql) {\n      console.log('[SQL EXEC]', sql);\n      return this.execSQL(sql);\n    };\n  } catch(e) {}\n});"}]},{"id":"tpl-keychain","title":"iOS Keychain Monitor","items":[{"type":"code","label":"Intercept all Keychain operations","lang":"js","code":"['SecItemCopyMatching', 'SecItemAdd', 'SecItemUpdate', 'SecItemDelete'].forEach(name => {\n  const fn = Module.findExportByName('Security', name);\n  if (!fn) return;\n  Interceptor.attach(fn, {\n    onEnter(args) {\n      try {\n        const query = new ObjC.Object(args[0]);\n        console.log(`[KEYCHAIN] ${name}`);\n        console.log('  query:', query.description().toString());\n        if (name === 'SecItemCopyMatching') this.resultPtr = args[1];\n      } catch(e) {}\n    },\n    onLeave(retval) {\n      const status = retval.toInt32();\n      const statusMap = { 0: 'errSecSuccess', '-25300': 'errSecItemNotFound',\n                          '-25308': 'errSecInteractionNotAllowed' };\n      console.log(`  => ${statusMap[status] || status}`);\n      if (status === 0 && this.resultPtr && !this.resultPtr.isNull()) {\n        try {\n          const result = new ObjC.Object(this.resultPtr.readPointer());\n          console.log('  result:', result.description().toString().substring(0, 256));\n        } catch(e) {}\n      }\n    }\n  });\n});"}]},{"id":"tpl-biometric","title":"Biometric / Touch ID Bypass (iOS)","items":[{"type":"code","label":"LAContext evaluatePolicy bypass","lang":"js","code":"// LocalAuthentication framework\n// LAPolicyDeviceOwnerAuthenticationWithBiometrics = 1\n// LAPolicyDeviceOwnerAuthentication = 2\n\nconst LAContext = ObjC.classes.LAContext;\nconst evalPolicy = LAContext[\n  '- evaluatePolicy:localizedReason:reply:'\n];\n\nif (evalPolicy) {\n  Interceptor.attach(evalPolicy.implementation, {\n    onEnter(args) {\n      const policy = args[2].toInt32();\n      const reason = new ObjC.Object(args[3]).toString();\n      console.log('[*] LAContext evaluatePolicy:', policy, 'reason:', reason);\n\n      // Invoke reply block with success=true, error=nil\n      const replyBlock = new ObjC.Block(args[4]);\n      const origImpl = replyBlock.implementation;\n\n      replyBlock.implementation = function(success, error) {\n        console.log('[*] LAContext bypass — forcing success');\n        return origImpl.call(this, 1, null);\n      };\n    }\n  });\n}"}]}]},{"id":"troubleshoot","title":"Troubleshooting","icon":"🔍","platforms":["all"],"subsections":[{"id":"ts-errors","title":"Common Errors & Fixes","items":[{"type":"table","headers":["Error / Symptom","Cause & Fix"],"rows":[["unable to find process with name","App not running. Launch it first, or use -f to spawn."],["unable to connect to remote frida-server","Server not running on device, or version mismatch. Start server and verify versions match exactly."],["version mismatch between server and bindings","pip install frida==X.Y.Z and frida-server must share same X.Y.Z. Check both with --version."],["ObjC.classes.X is undefined","Class not yet loaded. Delay hook with ObjC.schedule() or trigger the class load via a UI action first."],["java.lang.ClassNotFoundException","Class not loaded by ART. Use spawn to hook before class loads, or hook Application.onCreate first."],["App crashes on Frida attach","Strong anti-Frida detection. Try gadget mode, rename frida-server, or apply anti-debug bypass first."],["Hooks defined but never fire","Wrong module/function name, or code path not triggered. Use frida-trace to confirm function is being called."],["Cannot read property of undefined","args[n] is null pointer. Guard: args[0] && args[0].readUtf8String()"],["Access violation / crash in Memory.read","Address unmapped or protected. Wrap reads in try/catch. Verify address with Process.findRangeByAddress()."],["SSL bypass works on Android but not iOS","App uses additional native pinning layer. Apply both SecTrust and native bypass (Section 06)."],["frida-server killed on Android","SELinux policy enforcement. Try: adb shell setenforce 0 (requires root). Or use gadget mode."],["ptrace: Operation not permitted","Kernel ptrace_scope. Run: echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope"],["Script throws \"not implemented\" on ObjC method","Method does not exist on this OS version or is named differently. Verify with $ownMethods."],["Java.perform callback never runs","Not attached to a Java-enabled process, or called too early. Ensure process has loaded ART."]]}]},{"id":"ts-tips","title":"Diagnostic Commands","items":[{"type":"code","label":"Quick diagnostic commands","lang":"bash","code":"# Check if frida-server is running (Android)\nadb shell ps | grep frida\n\n# Check frida-server version on device\nadb shell /data/local/tmp/frida-server --version\n\n# List all Frida-accessible devices\nfrida-ls-devices\n\n# Test basic connectivity (should print process list)\nfrida-ps -U\n\n# Check USB daemon on macOS (for iOS)\nusbmuxd -v\n\n# Verify iproxy for iOS USB forwarding\niproxy 27042 27042 -v\n\n# Kill and restart frida-server\nadb shell su -c 'pkill frida-server'\nadb shell su -c '/data/local/tmp/frida-server &'"},{"type":"code","label":"In-script diagnostics","lang":"js","code":"// Print process info\nconsole.log('Arch:', Process.arch);\nconsole.log('Platform:', Process.platform);\nconsole.log('PID:', Process.id);\nconsole.log('Threads:', Process.enumerateThreads().length);\n\n// List top 5 modules\nProcess.enumerateModules().slice(0, 5).forEach(m =>\n  console.log(m.name, m.base, m.size.toString(16))\n);\n\n// Find if a symbol exists\nconst sym = Module.findExportByName(null, 'SSL_CTX_set_verify');\nconsole.log('SSL_CTX_set_verify:', sym || 'NOT FOUND');\n\n// Check memory range protection\nconst range = Process.findRangeByAddress(ptr('0x7fff12340000'));\nif (range) console.log('Range protection:', range.protection);"}]}]}]</script>
+
+<script>
+const sections = JSON.parse(document.getElementById('guide-data').textContent);
+let activeFilter = 'all';
+let searchTerm = '';
+
+// ─── BUILD SIDEBAR ────────────────────────────────────────────────────────────
+const sidebar = document.getElementById('sidebar');
+sections.forEach(sec => {
+  const a = document.createElement('a');
+  a.href = '#' + sec.id;
+  a.className = 'nav-item';
+  a.dataset.section = sec.id;
+  a.dataset.platforms = sec.platforms.join(',');
+  const subCount = sec.subsections.length;
+  a.innerHTML = `<span class="nav-icon">${sec.icon}</span>${sec.title}<span class="nav-count">${subCount}</span>`;
+  a.addEventListener('click', e => {
+    document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+    a.classList.add('active');
+    if (window.innerWidth <= 900) toggleSidebar(false);
+  });
+  sidebar.appendChild(a);
+});
+
+// ─── BUILD MAIN ───────────────────────────────────────────────────────────────
+const main = document.getElementById('main');
+
+function buildItem(item) {
+  if (item.type === 'para') {
+    const d = document.createElement('p');
+    d.className = 'para'; d.textContent = item.text;
+    return d;
+  }
+  if (item.type === 'note') {
+    const d = document.createElement('div');
+    d.className = 'note note-' + item.level;
+    const lbl = { warn: '⚠ Warning', info: 'ℹ Info', tip: '💡 Tip' }[item.level] || item.level;
+    d.innerHTML = `<span class="note-label">${lbl}</span>${item.text}`;
+    return d;
+  }
+  if (item.type === 'code') {
+    const wrap = document.createElement('div');
+    wrap.className = 'code-wrap lang-' + (item.lang || 'js');
+    if (item.label) {
+      wrap.classList.add('has-label');
+      const lbl = document.createElement('div');
+      lbl.className = 'code-label'; lbl.textContent = '// ' + item.label;
+      wrap.appendChild(lbl);
+    }
+    const pre = document.createElement('pre');
+    pre.className = 'code'; pre.textContent = item.code;
+    const btn = document.createElement('button');
+    btn.className = 'copy-btn'; btn.textContent = '⎘ COPY';
+    btn.addEventListener('click', () => {
+      navigator.clipboard.writeText(item.code).then(() => {
+        btn.textContent = '✓ COPIED'; btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = '⎘ COPY'; btn.classList.remove('copied'); }, 1600);
+      });
+    });
+    wrap.appendChild(pre);
+    wrap.appendChild(btn);
+    return wrap;
+  }
+  if (item.type === 'table') {
+    const wrap = document.createElement('div'); wrap.className = 'tbl-wrap';
+    const tbl = document.createElement('table');
+    const thead = document.createElement('thead');
+    const tr = document.createElement('tr');
+    item.headers.forEach(h => {
+      const th = document.createElement('th'); th.textContent = h; tr.appendChild(th);
+    });
+    thead.appendChild(tr); tbl.appendChild(thead);
+    const tbody = document.createElement('tbody');
+    item.rows.forEach(row => {
+      const r = document.createElement('tr');
+      row.forEach(cell => {
+        const td = document.createElement('td'); td.textContent = cell; r.appendChild(td);
+      });
+      tbody.appendChild(r);
+    });
+    tbl.appendChild(tbody); wrap.appendChild(tbl);
+    return wrap;
+  }
+  return document.createElement('div');
+}
+
+function buildSection(sec) {
+  const el = document.createElement('div');
+  el.className = 'section';
+  el.id = sec.id;
+  el.dataset.platforms = sec.platforms.join(',');
+
+  const platTags = sec.platforms.map(p =>
+    `<span class="plat-tag plat-${p}">${p}</span>`
+  ).join('');
+  el.innerHTML = `
+    <div class="section-hdr">
+      <span class="section-icon">${sec.icon}</span>
+      <span class="section-title">${sec.title}</span>
+      <div class="section-platforms">${platTags}</div>
+    </div>`;
+
+  sec.subsections.forEach((sub, idx) => {
+    const ss = document.createElement('div');
+    ss.className = 'subsection';
+    ss.dataset.subsectionId = sub.id;
+
+    const hdr = document.createElement('div');
+    hdr.className = 'sub-hdr' + (idx === 0 ? ' open' : '');
+    hdr.innerHTML = `<span class="sub-title">${sub.title}</span><span class="sub-chevron">▶</span>`;
+
+    const body = document.createElement('div');
+    body.className = 'sub-body' + (idx === 0 ? '' : ' hidden');
+
+    sub.items.forEach(item => body.appendChild(buildItem(item)));
+
+    hdr.addEventListener('click', () => {
+      const isOpen = hdr.classList.contains('open');
+      hdr.classList.toggle('open', !isOpen);
+      body.classList.toggle('hidden', isOpen);
+    });
+
+    ss.appendChild(hdr); ss.appendChild(body);
+    el.appendChild(ss);
+  });
+  return el;
+}
+
+sections.forEach(sec => main.appendChild(buildSection(sec)));
+
+// ─── FILTER ───────────────────────────────────────────────────────────────────
+function applyFilter() {
+  const q = searchTerm.toLowerCase();
+  let anyVisible = false;
+
+  document.querySelectorAll('.section').forEach(secEl => {
+    const plats = secEl.dataset.platforms.split(',');
+    const platformMatch = activeFilter === 'all' || plats.includes(activeFilter) || plats.includes('all');
+    
+    if (!platformMatch) { secEl.style.display = 'none'; return; }
+
+    let secVisible = false;
+    secEl.querySelectorAll('.subsection').forEach(subEl => {
+      if (!q) {
+        subEl.style.display = ''; secVisible = true; return;
+      }
+      const txt = subEl.textContent.toLowerCase();
+      const match = txt.includes(q);
+      subEl.style.display = match ? '' : 'none';
+      if (match) {
+        secVisible = true;
+        // Expand matched subsections
+        const hdr = subEl.querySelector('.sub-hdr');
+        const body = subEl.querySelector('.sub-body');
+        if (hdr && body) { hdr.classList.add('open'); body.classList.remove('hidden'); }
+      }
+    });
+    secEl.style.display = secVisible ? '' : 'none';
+    if (secVisible) anyVisible = true;
+  });
+
+  const nr = document.getElementById('no-results');
+  if (nr) nr.style.display = anyVisible ? 'none' : 'block';
+
+  // Update sidebar
+  document.querySelectorAll('.nav-item').forEach(a => {
+    const plats = a.dataset.platforms.split(',');
+    const show = activeFilter === 'all' || plats.includes(activeFilter) || plats.includes('all');
+    a.style.opacity = show ? '' : '0.3';
+  });
+}
+
+document.getElementById('search').addEventListener('input', e => {
+  searchTerm = e.target.value;
+  applyFilter();
+});
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter = btn.dataset.p;
+    applyFilter();
+  });
+});
+
+// ─── NO RESULTS PLACEHOLDER ───────────────────────────────────────────────────
+const nr = document.createElement('div');
+nr.id = 'no-results';
+nr.innerHTML = '<div class="nr-icon">🔍</div><div>No results found</div>';
+main.appendChild(nr);
+
+// ─── ACTIVE NAV ON SCROLL ─────────────────────────────────────────────────────
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const id = e.target.id;
+      document.querySelectorAll('.nav-item').forEach(a => {
+        a.classList.toggle('active', a.dataset.section === id);
+      });
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px', threshold: 0 });
+
+document.querySelectorAll('.section').forEach(s => observer.observe(s));
+
+// ─── SIDEBAR TOGGLE ───────────────────────────────────────────────────────────
+function toggleSidebar(force) {
+  const sb = document.getElementById('sidebar');
+  if (typeof force === 'boolean') sb.classList.toggle('open', force);
+  else sb.classList.toggle('open');
+}
+
+// Close sidebar when clicking outside
+document.addEventListener('click', e => {
+  const sb = document.getElementById('sidebar');
+  const btn = document.getElementById('menu-btn');
+  if (sb.classList.contains('open') && !sb.contains(e.target) && e.target !== btn) {
+    sb.classList.remove('open');
+  }
+});
+</script>
+</body>
+</html>
